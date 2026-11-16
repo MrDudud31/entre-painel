@@ -65,10 +65,35 @@
     const st = STYLES[id] ? id : 'entre';
     loadFonts(st);
     if (st === 'entre') delete document.documentElement.dataset.style; else document.documentElement.dataset.style = st;
-    const dark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-    $('meta[name="theme-color"]')?.setAttribute('content', dark ? getComputedStyle(document.body).backgroundColor : STYLES[st].theme);
+    syncThemeColor();
     if (persist) store.set('style', st);
   }
+  /** Cor da barrinha do celular acompanha o fundo do app. */
+  function syncThemeColor() {
+    $('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.body).backgroundColor);
+  }
+  // Modo claro/escuro: 'auto' segue o celular; 'light'/'dark' fixam (guardado só neste aparelho).
+  const darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+  function applyMode(m = store.get('mode') || 'auto') {
+    const dark = m === 'dark' || (m !== 'light' && !!darkQuery?.matches);
+    document.documentElement.dataset.mode = dark ? 'dark' : 'light';
+    syncThemeColor();
+  }
+  darkQuery?.addEventListener?.('change', () => applyMode());
+  const MODES = [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']];
+  const modePickerHtml = () => `<div class="seg mode-seg" role="group" aria-label="Claro ou escuro">${MODES.map(([k, t]) =>
+    `<button type="button" data-mode-opt="${k}" class="${(store.get('mode') || 'auto') === k ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
+  function bindModePicker(root) {
+    $$('[data-mode-opt]', root).forEach((b) => {
+      b.onclick = () => {
+        store.set('mode', b.dataset.modeOpt);
+        applyMode(b.dataset.modeOpt);
+        $$('[data-mode-opt]', root).forEach((x) => x.classList.toggle('sel', x === b));
+      };
+    });
+  }
+  // iPhone ignora "sem zoom" da página: bloqueia o gesto de pinça direto.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
 
   // ------------------------------------------------------------------ utilidades
   const $ = (s, el = document) => el.querySelector(s);
@@ -250,6 +275,7 @@
 
   async function boot() {
     loadFonts(store.get('style')); // o estilo salvo neste celular já vale na primeira tela
+    applyMode();
     sb.auth.onAuthStateChange((event, session) => {
       S.session = session;
       if (!session) { S.started = false; show('login'); return; }
@@ -416,7 +442,8 @@
           <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
         canSkip = true;
       } else if (step === 'estilo') {
-        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Toque para ver na hora. Cada estilo tem versão clara e escura.</p>${stylePickerHtml(W.theme)}`;
+        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Toque para ver na hora. Cada estilo tem versão clara e escura.</p>${stylePickerHtml(W.theme)}
+          <p class="label">Claro ou escuro</p>${modePickerHtml()}`;
       } else if (step === 'imagens') {
         body = `<h2>Logo e capa</h2><p class="wiz-sub">A logo aparece no topo; a capa, no início do app. Se não tiver agora, pode pular.</p>
           <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
@@ -458,7 +485,7 @@
       $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; W.i++; render(); });
       $$('[data-kind]', box).forEach((b) => { b.onclick = () => { W.kind = b.dataset.kind; W.i++; render(); }; });
       $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
-      if (step === 'estilo') bindStylePicker(form, (id) => { W.theme = id; applyStyle(id, { persist: false }); });
+      if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; applyStyle(id, { persist: false }); }); bindModePicker(form); }
       for (const [kind, id] of [['logo', '#wLogo'], ['cover', '#wCover']]) {
         const input = $(id, box);
         if (!input) continue;
@@ -1106,8 +1133,10 @@
       ${S.bizList.length > 1 ? `<label class="card">Negócio<select id="bizSel">${S.bizList.map((x) => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
       <details class="card" data-sec="aparencia" ${open('aparencia')}><summary>Aparência do app</summary>
         <form id="lookForm">
-          <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura, que troca sozinha conforme o celular.</p>
+          <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura.</p>
           ${stylePickerHtml(S.previewStyle || b.theme || 'entre')}
+          <p class="label">Claro ou escuro (vale para este aparelho)</p>
+          ${modePickerHtml()}
           <label>Seu nome (aparece em "Bom dia, …")<input name="owner_name" maxlength="60" value="${esc(b.owner_name || '')}" placeholder="Ex.: Ana"></label>
           <p class="label">Logo do negócio (aparece no topo)</p>
           <div class="img-pick"><span class="thumb" id="logoThumb"></span><div class="grow"><input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp">
@@ -1176,6 +1205,7 @@
     const thumb = (el, url) => { el.style.backgroundImage = url ? `url("${String(url).replace(/["\\]/g, '')}")` : ''; };
     thumb($('#logoThumb'), b.logo_url); thumb($('#coverThumb'), b.cover_url);
     bindStylePicker(look, (id) => { S.previewStyle = id; applyStyle(id, { persist: false }); });
+    bindModePicker(look);
     look.onsubmit = async (e) => {
       e.preventDefault();
       await busy($('button[type=submit]', look), async () => {

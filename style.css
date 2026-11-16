@@ -1,5 +1,7 @@
 /* Entre — painel. Feito para celular primeiro.
-   ESTILOS: a dona escolhe um de 7 (html[data-style="…"]); cada um tem versão clara e escura (segue o celular).
+   ESTILOS: o dono ou a dona escolhe um de 7 (html[data-style="…"]); cada um tem versão clara e escura.
+   O modo vem de html[data-mode="dark|light"], posto pelo script do <head> e por app.js
+   (Automático = segue o celular; ou Sempre claro / Sempre escuro, guardado neste aparelho).
    Cada estilo só troca variáveis: cores, fontes, fundo e cantos. As telas são as mesmas. */
 
 /* ---- Entre (oficial), claro: também é o padrão de tudo ---- */
@@ -15,13 +17,13 @@
   --ok: #1F6B45; --ok-soft: #DCEFE2; --warn: #8A5300; --warn-soft: #FBEFD9; --bad: #B3261E; --bad-soft: #FBE5E3;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root {
+:root[data-mode="dark"] {
   --bg: #0F1F1B; --card: #17302A; --solid: #17302A; --ink: #E8EFE6; --muted: #A9BBB2; --line: #2A4A41;
   --brand: #E0A36B; --brand-ink: #10231E; --brand-soft: #1B382F; --hi: #E0A36B; --chip-muted: #1B382F;
   --bubble-in: #17302A; --bubble-bot: #1B382F; --bubble-me: #E0A36B; --shadow: none;
   --ok: #8FD9AE; --ok-soft: #1D3A2B; --warn: #F0C070; --warn-soft: #3D2F17; --bad: #F2A29B; --bad-soft: #3F1F1D;
   color-scheme: dark;
-} }
+}
 
 /* ---- Spa: areia, creme e grafite, degradê suave ---- */
 :root[data-style="spa"] {
@@ -32,12 +34,12 @@
   --bubble-in: rgba(255, 255, 255, .75); --bubble-bot: #E9DFD2; --bubble-me: #2E2A26;
   --card-border: 1px solid rgba(255, 255, 255, .7); --shadow: 0 8px 24px -16px rgba(60, 45, 30, .35);
 }
-@media (prefers-color-scheme: dark) { :root[data-style="spa"] {
-  --bg: #1B1917; --bg-pat: linear-gradient(165deg, #2A2622 0%, #1B1917 60%, #141210 100%);
-  --card: rgba(255, 255, 255, .05); --solid: #24211E; --ink: #EEE6DC; --muted: #A89C8F; --line: #36312B;
-  --brand: #E6D7C3; --brand-ink: #1B1917; --brand-soft: #2C2824; --hi: #D5BE9F; --chip-muted: #2C2824;
-  --bubble-in: #24211E; --bubble-bot: #2C2824; --bubble-me: #E6D7C3; --card-border: 1px solid #36312B; --shadow: none;
-} }
+:root[data-mode="dark"][data-style="spa"] {
+  --bg: #2E2721; --bg-pat: linear-gradient(165deg, #3F362D 0%, #2E2721 55%, #231D18 100%);
+  --card: rgba(255, 255, 255, .07); --solid: #3A322A; --ink: #F1E9DF; --muted: #B8AA9A; --line: #4D4339;
+  --brand: #E6D7C3; --brand-ink: #2E2721; --brand-soft: #40372E; --hi: #DCC4A3; --chip-muted: #40372E;
+  --bubble-in: #3A322A; --bubble-bot: #40372E; --bubble-me: #E6D7C3; --card-border: 1px solid #4D4339; --shadow: none;
+}
 
 /* ---- Mármore: branco com veios e filetes dourados ---- */
 :root[data-style="marmore"] {
@@ -48,13 +50,13 @@
   --brand: #1E1E1E; --brand-ink: #F7F6F3; --brand-soft: #F0ECE4; --hi: #A8844C; --chip-muted: #EFEBE3;
   --bubble-in: #FFFFFF; --bubble-bot: #F0ECE4; --bubble-me: #1E1E1E; --card-border: 1px solid #E2D4B6; --shadow: none;
 }
-@media (prefers-color-scheme: dark) { :root[data-style="marmore"] {
-  --bg: #121212;
-  --bg-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005 0.016' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.82 0 0 0 0 0.76 0 0 0 0.45 -0.234'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+:root[data-mode="dark"][data-style="marmore"] {
+  --bg: #161514;
+  --bg-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005 0.016' numOctaves='5' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0 0.55 0 0 0 0.8 -0.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
   --card: rgba(18, 18, 18, .86); --solid: #1A1A19; --ink: #F1EEE8; --muted: #A09A90; --line: #3B3326;
   --brand: #C9A86A; --brand-ink: #121212; --brand-soft: #24211C; --hi: #C9A86A; --chip-muted: #24211C;
   --bubble-in: #1A1A19; --bubble-bot: #24211C; --bubble-me: #C9A86A; --card-border: 1px solid #3B3326;
-} }
+}
 
 /* ---- Nude: tons de pele, rosa queimado e champanhe sobre linho ---- */
 :root[data-style="nude"] {
@@ -66,14 +68,14 @@
   --bubble-in: #FBF4EF; --bubble-bot: #F1DDD2; --bubble-me: #A4544E; --card-border: 1px solid #EBD6CA;
   --shadow: 0 6px 20px -14px rgba(120, 60, 50, .35); --ok: #4F6E47; --ok-soft: #E7EEDD;
 }
-@media (prefers-color-scheme: dark) { :root[data-style="nude"] {
-  --bg: #221816;
-  --bg-pat: repeating-linear-gradient(0deg, rgba(255, 220, 200, .03) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(255, 220, 200, .03) 0 1px, transparent 1px 4px);
-  --card: #2E201D; --solid: #2E201D; --ink: #F5E4DB; --muted: #BFA197; --line: #42302B;
-  --brand: #E7A79C; --brand-ink: #2A1A17; --brand-soft: #392723; --hi: #E9C9A0; --chip-muted: #392723;
-  --bubble-in: #2E201D; --bubble-bot: #392723; --bubble-me: #E7A79C; --card-border: 1px solid #42302B; --shadow: none;
+:root[data-mode="dark"][data-style="nude"] {
+  --bg: #3A2421;
+  --bg-pat: repeating-linear-gradient(0deg, rgba(255, 220, 200, .045) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(255, 220, 200, .045) 0 1px, transparent 1px 4px);
+  --card: #4A2E2A; --solid: #4A2E2A; --ink: #F8E8DF; --muted: #D0B0A6; --line: #5E3D37;
+  --brand: #EBAFA4; --brand-ink: #3A2421; --brand-soft: #553530; --hi: #ECCFA6; --chip-muted: #553530;
+  --bubble-in: #4A2E2A; --bubble-bot: #553530; --bubble-me: #EBAFA4; --card-border: 1px solid #5E3D37; --shadow: none;
   --ok: #B5D3A6; --ok-soft: #26301F;
-} }
+}
 
 /* ---- Botânico: sálvia e creme com folhas em traço fino ---- */
 :root[data-style="botanico"] {
@@ -85,13 +87,13 @@
   --bubble-in: #F7F8F3; --bubble-bot: #DFE7D8; --bubble-me: #4E6B4A; --card-border: 1px solid #D3DCCD;
   --shadow: 0 6px 18px -14px rgba(36, 51, 38, .35);
 }
-@media (prefers-color-scheme: dark) { :root[data-style="botanico"] {
-  --bg: #131C16;
-  --bg-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' fill='none' stroke='rgba(169,199,156,.12)' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M14 58c14-26 44-30 58-16-14 14-40 22-58 16zM14 58l58-16M34 52l8-12M50 47l6-10'/%3E%3Cpath d='M96 128c-4-24 14-46 34-46 2 20-14 42-34 46zM96 128l34-46M104 112l12-2M112 100l12-2'/%3E%3Cpath d='M120 20c10 6 12 20 4 30-10-6-12-20-4-30zM124 50V20'/%3E%3C/svg%3E");
-  --card: #1B2820; --solid: #1B2820; --ink: #E3EBDD; --muted: #9DB0A0; --line: #2B3D30;
-  --brand: #A9C79C; --brand-ink: #142016; --brand-soft: #213027; --hi: #A9C79C; --chip-muted: #213027;
-  --bubble-in: #1B2820; --bubble-bot: #213027; --bubble-me: #A9C79C; --card-border: 1px solid #2B3D30; --shadow: none;
-} }
+:root[data-mode="dark"][data-style="botanico"] {
+  --bg: #1A2B20;
+  --bg-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' fill='none' stroke='rgba(169,199,156,.2)' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M14 58c14-26 44-30 58-16-14 14-40 22-58 16zM14 58l58-16M34 52l8-12M50 47l6-10'/%3E%3Cpath d='M96 128c-4-24 14-46 34-46 2 20-14 42-34 46zM96 128l34-46M104 112l12-2M112 100l12-2'/%3E%3Cpath d='M120 20c10 6 12 20 4 30-10-6-12-20-4-30zM124 50V20'/%3E%3C/svg%3E");
+  --card: #23382A; --solid: #23382A; --ink: #E6EEE0; --muted: #A9BCAB; --line: #355040;
+  --brand: #B2D0A5; --brand-ink: #1A2B20; --brand-soft: #2A4232; --hi: #B2D0A5; --chip-muted: #2A4232;
+  --bubble-in: #23382A; --bubble-bot: #2A4232; --bubble-me: #B2D0A5; --card-border: 1px solid #355040; --shadow: none;
+}
 
 /* ---- Editorial: off-white e preto, títulos enormes, uma cor só ---- */
 :root[data-style="editorial"] {
@@ -100,11 +102,11 @@
   --brand: #111111; --brand-ink: #F2F0EB; --brand-soft: #E4E1DA; --hi: #2433C7; --chip-muted: #E4E1DA;
   --bubble-in: #F2F0EB; --bubble-bot: #E4E1DA; --bubble-me: #111111; --card-border: 1px solid #111111; --shadow: none;
 }
-@media (prefers-color-scheme: dark) { :root[data-style="editorial"] {
+:root[data-mode="dark"][data-style="editorial"] {
   --bg: #0E0E0E; --card: transparent; --solid: #0E0E0E; --ink: #F2F0EB; --muted: #9A968E; --line: #3A3936;
   --brand: #F2F0EB; --brand-ink: #0E0E0E; --brand-soft: #1E1E1E; --hi: #8C9BFF; --chip-muted: #1E1E1E;
   --bubble-in: #0E0E0E; --bubble-bot: #1E1E1E; --bubble-me: #F2F0EB; --card-border: 1px solid #F2F0EB;
-} }
+}
 
 /* ---- Barbearia: verde-garrafa, couro e creme, letras fortes ---- */
 :root[data-style="barbearia"] {
@@ -116,16 +118,19 @@
   --bubble-in: #F8F2E8; --bubble-bot: #E7DAC6; --bubble-me: #1F3B2D; --card-border: 1px solid #DCCFBB;
   --shadow: 0 6px 16px -12px rgba(31, 59, 45, .4);
 }
-@media (prefers-color-scheme: dark) { :root[data-style="barbearia"] {
-  --bg: #12231A;
-  --bg-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0 0.6 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  --card: #1A3024; --solid: #1A3024; --ink: #EFE6D8; --muted: #A9B39F; --line: #2A4434;
-  --brand: #C8915E; --brand-ink: #12231A; --brand-soft: #20392B; --hi: #C8915E; --chip-muted: #20392B;
-  --bubble-in: #1A3024; --bubble-bot: #20392B; --bubble-me: #C8915E; --card-border: 1px solid #2A4434; --shadow: none;
-} }
+:root[data-mode="dark"][data-style="barbearia"] {
+  --bg: #173528;
+  --bg-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0 0.6 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --card: #1F4332; --solid: #1F4332; --ink: #F1E9DC; --muted: #B4C0AA; --line: #305A45;
+  --brand: #D19A66; --brand-ink: #173528; --brand-soft: #265039; --hi: #D19A66; --chip-muted: #265039;
+  --bubble-in: #1F4332; --bubble-bot: #265039; --bubble-me: #D19A66; --card-border: 1px solid #305A45; --shadow: none;
+}
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+/* Cara de aplicativo: sem zoom de dois toques, sem "puxar" a página, sem destaque azul ao tocar */
+html { -webkit-text-size-adjust: 100%; touch-action: pan-x pan-y; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+body { overscroll-behavior-y: none; }
+button, .btn, .pill, .tabs, .kind-opt, .hours-opt, .style-opt, summary { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 body {
   margin: 0; color: var(--ink); min-height: 100vh;
   background-color: var(--bg); background-image: var(--bg-pat); background-size: var(--bg-size); background-attachment: fixed;
@@ -168,6 +173,7 @@ input, select, textarea {
   display: block; width: 100%; margin-top: .3rem; padding: .7rem .8rem;
   font: inherit; font-weight: 400; color: var(--ink); background: var(--card);
   border: 1.5px solid var(--line); border-radius: calc(var(--radius) * .6); outline: none;
+  font-size: max(16px, 1em); /* abaixo de 16px o iPhone dá zoom sozinho ao tocar no campo */
 }
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
 input:focus, select:focus, textarea:focus { border-color: var(--brand); }
@@ -450,7 +456,8 @@ details.card[open] > summary::after { transform: rotate(90deg); }
 .img-pick .thumb { width: 64px; height: 64px; border-radius: 14px; background: var(--chip-muted) center / cover no-repeat; border: 1px solid var(--line); flex: none; }
 .img-pick .thumb.wide { width: 120px; }
 .img-pick .grow { flex: 1; min-width: 160px; }
-.img-pick input[type=file] { padding: .5rem; font-size: .85rem; }
+.img-pick input[type=file] { padding: .5rem; }
+.mode-seg { margin: 0 0 1rem; }
 
 /* janela de baixo */
 dialog#sheet {

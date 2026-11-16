@@ -2,7 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Entre</title>
   <meta name="theme-color" content="#163A32">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,7 +13,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
   <!-- Aplica o estilo escolhido antes de desenhar a tela (sem "piscar" no estilo padrão) -->
-  <script>try { var s = localStorage.getItem('entre.painel.style'); if (s) document.documentElement.dataset.style = s; } catch (e) {}</script>
+  <script>(function () { var d = document.documentElement, m = 'auto'; try { var s = localStorage.getItem('entre.painel.style'); if (s) d.dataset.style = s; m = localStorage.getItem('entre.painel.mode') || 'auto'; } catch (e) {} var dark = m === 'dark' || (m !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); d.dataset.mode = dark ? 'dark' : 'light'; })();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
