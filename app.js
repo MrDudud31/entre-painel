@@ -1,4 +1,4 @@
-/* Entre — painel da dona. HTML/JS puro + Supabase (sem build).
+/* Entre — o app de quem é dono do negócio (salão, barbearia, clínica…). HTML/JS puro + Supabase (sem build).
    Telas: Início, Agenda, Conversas, Clientes, Ajustes. Tudo que vem do WhatsApp passa por esc(). */
 (() => {
   'use strict';
@@ -357,60 +357,169 @@
     });
   }
   /** Sobe a logo ou a capa para a pasta do negócio e devolve o endereço público. */
-  async function uploadBrandImage(kind, file) {
+  async function uploadBrandImage(kind, file, bizId = S.biz.id) {
     const isLogo = kind === 'logo';
     const blob = await shrinkImage(file, isLogo ? 512 : 1600, isLogo ? 'image/png' : 'image/jpeg');
-    const path = `${S.biz.id}/${kind}-${Date.now()}.${isLogo ? 'png' : 'jpg'}`;
+    const path = `${bizId}/${kind}-${Date.now()}.${isLogo ? 'png' : 'jpg'}`;
     const { error } = await sb.storage.from('marca').upload(path, blob, { contentType: blob.type, upsert: false });
     if (error) throw new Error(/size|large/i.test(error.message) ? 'A imagem é grande demais.' : friendly(error));
     return sb.storage.from('marca').getPublicUrl(path).data.publicUrl;
   }
 
   // ------------------------------------------------------------------ primeiro acesso
+  // Primeiro acesso: um passo por tela, como uma conversa. Nada é salvo até o último passo.
+  const KIND_ICON = {
+    salao: '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3L20 17M8.2 15.7L20 7"/>',
+    manicure: '<rect x="8" y="11" width="8" height="9" rx="2"/><path d="M10 11V5h4v6M10 15h4"/>',
+    barbearia: '<path d="M4 6h16l-2 4H6zM6 10v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8M10 14h4"/>',
+    estetica: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+    clinica: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>',
+    outro: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  };
+  const HOURS_PRESETS = {
+    comercial: { label: 'Seg a sex, 9h às 18h · sáb, 9h às 13h', rows: [[1, '09:00', '18:00'], [2, '09:00', '18:00'], [3, '09:00', '18:00'], [4, '09:00', '18:00'], [5, '09:00', '18:00'], [6, '09:00', '13:00']] },
+    terca: { label: 'Ter a sáb, 9h às 19h', rows: [2, 3, 4, 5, 6].map((w) => [w, '09:00', '19:00']) },
+    longo: { label: 'Seg a sáb, 8h às 20h', rows: [1, 2, 3, 4, 5, 6].map((w) => [w, '08:00', '20:00']) },
+    semana: { label: 'Seg a sex, 8h às 18h', rows: [1, 2, 3, 4, 5].map((w) => [w, '08:00', '18:00']) },
+  };
+  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'estilo', 'imagens', 'horario', 'pronto'];
+
   function showOnboarding() {
     show('onboard');
-    const opts = Object.entries(KINDS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
-    $('#onboard').innerHTML = `<form id="onboardForm" class="card narrow">
-      <div class="brand"><span class="logo-badge">${LOGO('anim')}</span><div><b>Bem-vinda ao Entre!</b><small>Vamos cadastrar o seu negócio. Leva 1 minuto.</small></div></div>
-      <label>Nome do negócio<input name="name" required maxlength="80" placeholder="Ex.: Studio Bela Unha"></label>
-      <label>Tipo de negócio<select name="kind">${opts}</select></label>
-      <label>Seu nome<input name="owner" required maxlength="60" placeholder="Quem atende"></label>
-      <label>Seu WhatsApp (para receber avisos)<input name="wa" inputmode="tel" placeholder="(11) 91234-5678"></label>
-      <p class="label">Escolha a cara do seu app</p>
-      ${stylePickerHtml('entre')}
-      <input type="hidden" name="theme" value="entre">
-      <p class="hint">Vamos criar uma lista de serviços de exemplo, <b>desativados e sem preço</b>. Depois você coloca seus preços e ativa só o que faz.</p>
-      <button class="btn primary block" type="submit">Começar</button>
-      <button class="btn ghost block" type="button" id="onboardLogout">Sair</button>
-    </form>`;
-    $('#onboardLogout').onclick = () => sb.auth.signOut();
-    bindStylePicker($('#onboardForm'), (id) => { $('#onboardForm').theme.value = id; applyStyle(id, { persist: false }); });
-    $('#onboardForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const f = new FormData(e.target);
-      const btn = $('button[type=submit]', e.target);
-      await busy(btn, async () => {
-        const kind = String(f.get('kind'));
-        const id = crypto.randomUUID();
-        must(await sb.from('businesses').insert({
-          id, owner_id: S.session.user.id, name: String(f.get('name')).trim(), kind,
-          health_business: !!KINDS[kind].health, owner_whatsapp: phoneDigits(f.get('wa')),
-          theme: STYLES[f.get('theme')] ? String(f.get('theme')) : 'entre', owner_name: String(f.get('owner')).trim().slice(0, 60),
-        }));
-        const person = must(await sb.from('staff').insert({ business_id: id, name: String(f.get('owner')).trim() }).select().single());
-        const hours = [1, 2, 3, 4, 5].map((w) => ({ business_id: id, weekday: w, opens: '09:00', closes: '18:00' }));
-        hours.push({ business_id: id, weekday: 6, opens: '09:00', closes: '13:00' });
-        must(await sb.from('opening_hours').insert(hours));
-        const svcs = must(await sb.from('services').insert(KINDS[kind].services.map(([name, dur, ret]) => ({
-          business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false,
-        }))).select('id'));
-        if (svcs.length) must(await sb.from('staff_services').insert(svcs.map((s) => ({ staff_id: person.id, service_id: s.id }))));
-        store.set('biz', id);
-        S.tab = 'ajustes';
-        await start();
-        toast('Negócio criado! Agora revise seus serviços e preços.', 'ok');
-      });
+    const W = { i: 0, kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial' };
+    const url = { logo: null, cover: null }; // prévia das imagens escolhidas (ainda não enviadas)
+    const box = $('#onboard');
+
+    const render = () => {
+      const step = WIZ_STEPS[W.i];
+      const total = WIZ_STEPS.length - 1;
+      let body = '';
+      let next = 'Continuar';
+      let canSkip = false;
+      if (step === 'oi') {
+        body = `<div class="wiz-hero"><span class="logo-badge big">${LOGO('anim')}</span></div>
+          <h2>Boas-vindas ao Entre</h2>
+          <p class="wiz-sub">Vamos deixar o app com a cara do seu negócio. São poucas perguntas e você pode mudar tudo depois.</p>`;
+        next = 'Começar';
+      } else if (step === 'tipo') {
+        body = `<h2>Com o que você trabalha?</h2><p class="wiz-sub">Assim já trazemos serviços de exemplo do seu ramo.</p>
+          <div class="kind-grid">${Object.entries(KINDS).map(([k, v]) => `<button type="button" class="kind-opt" data-kind="${k}" aria-pressed="${W.kind === k}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(v.label)}</span></button>`).join('')}</div>`;
+      } else if (step === 'nome') {
+        body = `<h2>Como se chama o seu negócio?</h2><p class="wiz-sub">É o nome que aparece no topo do app e que a secretária usa no WhatsApp.</p>
+          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" placeholder="${W.kind === 'barbearia' ? 'Ex.: Barbearia do Zé' : 'Ex.: Studio Bela Unha'}" value="${esc(W.name)}">`;
+      } else if (step === 'voce') {
+        body = `<h2>E como podemos te chamar?</h2><p class="wiz-sub">Aparece na saudação, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>
+          <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" placeholder="Seu nome" value="${esc(W.owner)}">`;
+      } else if (step === 'whats') {
+        body = `<h2>Seu WhatsApp, para receber avisos</h2><p class="wiz-sub">A secretária avisa você quando chegar um pedido novo ou quando alguém precisar de você.</p>
+          <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
+        canSkip = true;
+      } else if (step === 'estilo') {
+        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Toque para ver na hora. Cada estilo tem versão clara e escura.</p>${stylePickerHtml(W.theme)}`;
+      } else if (step === 'imagens') {
+        body = `<h2>Logo e capa</h2><p class="wiz-sub">A logo aparece no topo; a capa, no início do app. Se não tiver agora, pode pular.</p>
+          <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
+            <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
+          <div class="wiz-files">
+            <label class="btn ghost">${url.logo ? 'Trocar a logo' : 'Escolher logo'}<input type="file" id="wLogo" accept="image/png,image/jpeg,image/webp" hidden></label>
+            <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label>
+          </div>`;
+        canSkip = !W.logo && !W.cover;
+      } else if (step === 'horario') {
+        body = `<h2>Quando vocês atendem?</h2><p class="wiz-sub">Escolha o mais perto. Dá para ajustar dia por dia depois, em Ajustes.</p>
+          <div class="hours-opts">${Object.entries(HOURS_PRESETS).map(([k, h]) => `<button type="button" class="hours-opt" data-hours="${k}" aria-pressed="${W.hours === k}">${esc(h.label)}</button>`).join('')}</div>`;
+      } else if (step === 'pronto') {
+        body = `<h2>Tudo pronto, ${esc(firstName(W.owner))}!</h2><p class="wiz-sub">Assim vai ficar o seu app:</p>
+          <div class="wiz-preview big">${url.cover ? '<div class="wp-cover" id="wpCover"></div>' : ''}
+            <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name)}</b></div>
+            <div class="wp-greet">${(() => { const hr = new Date().getHours(); return hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'; })()}, ${esc(firstName(W.owner))}.</div></div>
+          <ul class="wiz-sum"><li><b>Ramo:</b> ${esc(KINDS[W.kind]?.label || '')}</li><li><b>Estilo:</b> ${esc(STYLES[W.theme].nome)}</li><li><b>Horário:</b> ${esc(HOURS_PRESETS[W.hours].label)}</li>
+            <li><b>Serviços:</b> criamos alguns de exemplo, <b>desativados e sem preço</b>. Você coloca seus preços e ativa só o que faz.</li></ul>`;
+        next = 'Entrar no meu app';
+      }
+      box.innerHTML = `<form class="wiz card narrow" novalidate>
+        <div class="wiz-top">${W.i > 0 ? '<button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>' : '<span></span>'}
+          ${W.i > 0 ? `<div class="wiz-progress" aria-label="Passo ${W.i} de ${total}"><i style="width:${Math.round((W.i / total) * 100)}%"></i></div><small>${W.i}/${total}</small>` : ''}</div>
+        <div class="wiz-step">${body}</div>
+        <p class="error" id="wErr" role="alert"></p>
+        <div class="wiz-nav"><button type="submit" class="btn primary block">${next}</button>
+          ${canSkip ? '<button type="button" class="btn ghost block" id="wSkip">Pular</button>' : ''}
+          ${W.i === 0 ? '<button type="button" class="btn ghost block" id="wOut">Sair</button>' : ''}</div>
+      </form>`;
+      const form = $('form', box);
+      const err = (m) => { $('#wErr', box).textContent = m; };
+      // imagens escolhidas aparecem na prévia
+      const pc = $('#wpCover', box), pl = $('#wpLogo', box);
+      if (pc && url.cover) pc.style.backgroundImage = `url("${url.cover}")`;
+      if (pl && url.logo) pl.style.backgroundImage = `url("${url.logo}")`;
+      $('#wBack', box)?.addEventListener('click', () => { W.i--; render(); });
+      $('#wOut', box)?.addEventListener('click', () => sb.auth.signOut());
+      $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; W.i++; render(); });
+      $$('[data-kind]', box).forEach((b) => { b.onclick = () => { W.kind = b.dataset.kind; W.i++; render(); }; });
+      $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
+      if (step === 'estilo') bindStylePicker(form, (id) => { W.theme = id; applyStyle(id, { persist: false }); });
+      for (const [kind, id] of [['logo', '#wLogo'], ['cover', '#wCover']]) {
+        const input = $(id, box);
+        if (!input) continue;
+        input.onchange = () => {
+          const f = input.files?.[0];
+          if (!f) return;
+          if (!/^image\//.test(f.type)) return err('Escolha uma imagem (foto ou PNG).');
+          if (f.size > 15 * 1024 * 1024) return err('Essa imagem é grande demais (máx. 15 MB).');
+          if (url[kind]) URL.revokeObjectURL(url[kind]);
+          W[kind] = f; url[kind] = URL.createObjectURL(f);
+          render();
+        };
+      }
+      const firstInput = $('.wiz-input', box);
+      if (firstInput) setTimeout(() => firstInput.focus(), 50);
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        err('');
+        if (step === 'tipo' && !W.kind) return err('Toque numa das opções.');
+        if (step === 'nome') { W.name = $('#wName', box).value.trim(); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
+        if (step === 'voce') { W.owner = $('#wOwner', box).value.trim(); if (!W.owner) return err('Escreva seu nome.'); }
+        if (step === 'whats') {
+          W.wa = $('#wWa', box).value.trim();
+          const d = W.wa.replace(/\D/g, '');
+          if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".');
+        }
+        if (step !== 'pronto') { W.i++; return render(); }
+        await busy($('button[type=submit]', form), () => finishOnboarding(W));
+      };
     };
+    render();
+  }
+
+  async function finishOnboarding(W) {
+    const id = crypto.randomUUID();
+    must(await sb.from('businesses').insert({
+      id, owner_id: S.session.user.id, name: W.name.slice(0, 80), kind: W.kind,
+      health_business: !!KINDS[W.kind].health, owner_whatsapp: phoneDigits(W.wa),
+      theme: STYLES[W.theme] ? W.theme : 'entre', owner_name: W.owner.slice(0, 60),
+    }));
+    const person = must(await sb.from('staff').insert({ business_id: id, name: W.owner.slice(0, 60) }).select().single());
+    must(await sb.from('opening_hours').insert(HOURS_PRESETS[W.hours].rows.map(([w, o, c]) => ({ business_id: id, weekday: w, opens: o, closes: c }))));
+    const svcs = must(await sb.from('services').insert(KINDS[W.kind].services.map(([name, dur, ret]) => ({
+      business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false,
+    }))).select('id'));
+    if (svcs.length) must(await sb.from('staff_services').insert(svcs.map((s) => ({ staff_id: person.id, service_id: s.id }))));
+    // Imagens só sobem agora (a pasta é do negócio, que acabou de nascer). Se falhar, o negócio já existe: dá para subir depois.
+    let imgFail = false;
+    for (const [kind, col] of [['logo', 'logo_url'], ['cover', 'cover_url']]) {
+      if (!W[kind]) continue;
+      try {
+        const u = await uploadBrandImage(kind, W[kind], id);
+        must(await sb.from('businesses').update({ [col]: u }).eq('id', id));
+      } catch (e) { console.error(e); imgFail = true; }
+    }
+    store.set('biz', id);
+    S.tab = 'inicio';
+    await start();
+    if (imgFail) toast('Tudo criado, mas uma imagem não subiu. Tente de novo em Ajustes › Aparência.', 'warn');
+    else toast('Pronto! Agora ative seus serviços e coloque os preços.', 'ok');
   }
 
   // ------------------------------------------------------------------ navegação
@@ -1000,7 +1109,7 @@
           <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura, que troca sozinha conforme o celular.</p>
           ${stylePickerHtml(S.previewStyle || b.theme || 'entre')}
           <label>Seu nome (aparece em "Bom dia, …")<input name="owner_name" maxlength="60" value="${esc(b.owner_name || '')}" placeholder="Ex.: Ana"></label>
-          <p class="label">Logo do salão (aparece no topo)</p>
+          <p class="label">Logo do negócio (aparece no topo)</p>
           <div class="img-pick"><span class="thumb" id="logoThumb"></span><div class="grow"><input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp">
             ${b.logo_url ? '<button type="button" class="btn small ghost" id="logoDel">Tirar a logo</button>' : ''}</div></div>
           <p class="label">Foto de capa (aparece no Início)</p>
