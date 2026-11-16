@@ -198,6 +198,16 @@
     session: null, bizList: [], biz: null, services: [], staff: [], links: [], hours: [],
     tab: 'inicio', day: null, conv: null, convFilter: 'todas', clientQuery: '', bk: new Map(), started: false,
   };
+  const ORIGIN = { assistant: 'Secretária (WhatsApp)', link: 'Link de agendamento', owner: 'Você' };
+  const money = (c) => 'R$ ' + ((c || 0) / 100).toLocaleString('pt-BR', { minimumFractionDigits: (c || 0) % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  const ymOf = (d) => d.slice(0, 7);
+  const ymAdd = (ym, n) => { const [y, m] = ym.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + n, 1)); return t.toISOString().slice(0, 7); };
+  const monthName = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+  // Link de agendamento: endereço público (agendar.html) e sugestão de endereço a partir do nome.
+  const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
+  const slugify = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+  const bookingUrl = (slug) => new URL((location.pathname.includes('/testes/') ? '../painel/' : '') + 'agendar.html?n=' + encodeURIComponent(slug), location.href).href;
+  const linkOn = () => !!(S.biz?.booking_link_enabled && S.biz?.booking_slug);
   const svcName = (id) => S.services.find((s) => s.id === id)?.name || '';
   const staffName = (id) => S.staff.find((p) => p.id === id)?.name || '';
   const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, note, created_by, service_id, staff_id, clients(name, phone, username)';
@@ -649,7 +659,7 @@
       b.status !== 'block' && ['Valor', esc(brl(b.price_cents))],
       ['Situação', `<span class="chip ${cls}">${lab}</span>`],
       b.note && ['Observação', esc(b.note)],
-      ['Criado por', b.created_by === 'assistant' ? 'Secretária (WhatsApp)' : 'Você'],
+      ['Criado por', ORIGIN[b.created_by] || 'Você'],
     ].filter(Boolean);
     const acts = [];
     if (b.status === 'pending') acts.push(['confirmed', 'Confirmar e avisar', 'primary'], ['cancelled', 'Recusar e avisar', 'danger']);
@@ -704,13 +714,16 @@
   }
 
   VIEWS.inicio = async (opts = {}) => {
-    const id = S.biz.id, t = today();
-    const [pend, hoje, convs] = await Promise.all([
+    const id = S.biz.id, t = today(), ym = ymOf(t);
+    const [pend, hoje, convs, mes] = await Promise.all([
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).eq('status', 'pending').gte('starts_at', new Date().toISOString()).order('starts_at').limit(50),
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).gte('starts_at', dayStartIso(t)).lt('starts_at', dayStartIso(addDays(t, 1))).in('status', ['pending', 'confirmed', 'done', 'noshow', 'block']).order('starts_at'),
       sb.from('conversations').select('id, last_message_at, clients(name, phone, username)').eq('business_id', id).eq('needs_human', true).order('last_message_at', { ascending: false }).limit(20),
+      sb.from('bookings').select('starts_at, status, price_cents').eq('business_id', id).in('status', ['done', 'confirmed'])
+        .gte('starts_at', dayStartIso(ym + '-01')).lt('starts_at', new Date().toISOString()).limit(5000),
     ]);
-    const P = must(pend), H = must(hoje), C = must(convs);
+    const P = must(pend), H = must(hoje), C = must(convs), M = must(mes);
+    const mesTotal = M.reduce((s, b) => s + (b.price_cents || 0), 0);
     const list = checklist();
     const done = list.filter((x) => x[0]).length;
     const hojeAtend = H.filter((b) => b.status !== 'block');
@@ -738,7 +751,7 @@
     html += `<section class="card"><h3>Pedidos para confirmar ${P.length ? `<span class="count">${P.length}</span>` : ''}</h3>
       ${P.length ? P.map((b) => { S.bk.set(b.id, b); return `<div class="pend">
           <button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
-          <small>${esc(svcName(b.service_id))}${staffName(b.staff_id) ? ' com ' + esc(staffName(b.staff_id)) : ''} · ${esc(whenLabel(b.starts_at))}</small></button>
+          <small>${b.created_by === 'link' ? 'Pelo link · ' : ''}${esc(svcName(b.service_id))}${staffName(b.staff_id) ? ' com ' + esc(staffName(b.staff_id)) : ''} · ${esc(whenLabel(b.starts_at))}</small></button>
           <div class="actions"><button type="button" class="btn small primary" data-decide="confirmed" data-id="${b.id}">Confirmar</button>
           <button type="button" class="btn small ghost" data-decide="cancelled" data-id="${b.id}">Recusar</button></div></div>`; }).join('')
         : '<p class="muted">Nenhum pedido esperando. Quando a secretária marcar algo pelo WhatsApp, aparece aqui.</p>'}
@@ -752,6 +765,9 @@
     html += `<section class="card"><h3>Hoje, ${esc(dayLabel(t))}</h3>
       ${H.length ? `<div class="list">${H.map((b) => bookingRow(b)).join('')}</div>` : '<p class="muted">Agenda livre hoje.</p>'}
       <button type="button" class="btn ghost block" id="toAgenda">Ver agenda completa</button></section>`;
+    html += `<button type="button" class="card rep-card" id="toReport">
+      <span class="grow"><small>${esc(MONTHS[Number(ym.slice(5, 7)) - 1])} até agora</small><b>${esc(money(mesTotal))}</b>
+      <small>${M.length} atendimento${M.length === 1 ? '' : 's'} · ver relatório do mês</small></span><b class="go">›</b></button>`;
 
     if (stale(opts)) return;
     const v = $('#view');
@@ -760,6 +776,12 @@
     $$('[data-goto]', v).forEach((b) => { b.onclick = () => go('ajustes', { open: b.dataset.goto }); });
     $$('[data-conv]', v).forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
     $('#toAgenda').onclick = () => go('agenda');
+    $('#toReport').onclick = (e) => {
+      const b = e.currentTarget;
+      if (b.disabled) return;
+      b.disabled = true;
+      openReport(ym).catch(fatal).finally(() => { b.disabled = false; });
+    };
     $$('[data-decide]', v).forEach((btn) => {
       btn.onclick = () => busy(btn, async () => {
         if (btn.dataset.decide === 'cancelled' && !confirm('Recusar este pedido? A cliente recebe uma mensagem pedindo para escolher outro horário.')) return;
@@ -768,6 +790,80 @@
       });
     });
   };
+
+  // ------------------------------------------------------------------ Relatório do mês
+  // Atendido = marcado como "Foi atendida" ou confirmado com horário que já passou (muita gente não marca).
+  // Faltas e cancelados ficam fora do faturamento.
+  async function openReport(ym) {
+    const cur = ymOf(today());
+    const from = dayStartIso(ymAdd(ym, -1) + '-01'), mid = dayStartIso(ym + '-01'), to = dayStartIso(ymAdd(ym, 1) + '-01');
+    const [bk, nc] = await Promise.all([
+      sb.from('bookings').select('starts_at, status, price_cents, service_id, staff_id, client_id, created_by')
+        .eq('business_id', S.biz.id).neq('status', 'block').gte('starts_at', from).lt('starts_at', to).limit(10000),
+      sb.from('clients').select('id', { count: 'exact', head: true }).eq('business_id', S.biz.id).gte('created_at', mid).lt('created_at', to),
+    ]);
+    const all = must(bk);
+    if (nc.error) throw new Error(friendly(nc.error));
+    const now = Date.now();
+    const attended = (b) => b.status === 'done' || (b.status === 'confirmed' && new Date(b.starts_at).getTime() < now);
+    const inMonth = all.filter((b) => b.starts_at >= mid);
+    const prevRev = all.filter((b) => b.starts_at < mid && attended(b)).reduce((s, b) => s + (b.price_cents || 0), 0);
+    const A = inMonth.filter(attended);
+    const rev = A.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const ahead = inMonth.filter((b) => ['pending', 'confirmed'].includes(b.status) && new Date(b.starts_at).getTime() >= now);
+    const aheadRev = ahead.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const noshow = inMonth.filter((b) => b.status === 'noshow').length;
+    const cancelled = inMonth.filter((b) => b.status === 'cancelled').length;
+    const priced = A.filter((b) => b.price_cents != null);
+    const ticket = priced.length ? Math.round(priced.reduce((s, b) => s + b.price_cents, 0) / priced.length) : 0;
+    const people = new Set(A.map((b) => b.client_id).filter(Boolean)).size;
+    const diff = prevRev ? Math.round(((rev - prevRev) / prevRev) * 100) : null;
+
+    const group = (list, key) => {
+      const m = new Map();
+      for (const b of list) { const k = key(b); if (k == null) continue; const x = m.get(k) || { n: 0, c: 0 }; x.n++; x.c += b.price_cents || 0; m.set(k, x); }
+      return m;
+    };
+    const bars = (rows, fmt = (r) => `${r.n}`) => {
+      const max = Math.max(1, ...rows.map((r) => r.n));
+      return `<div class="rep-bars">${rows.map((r) => `<div class="rep-bar"><span>${esc(r.label)}</span><i style="--w:${Math.round((r.n / max) * 100)}%"></i><em>${esc(fmt(r))}</em></div>`).join('')}</div>`;
+    };
+    const bySvc = [...group(A, (b) => b.service_id)].map(([k, v]) => ({ label: svcName(k) || 'Serviço apagado', ...v })).sort((a, b) => b.n - a.n || b.c - a.c).slice(0, 6);
+    const byWd = group(A, (b) => partsOf(b.starts_at).weekday);
+    const wdRows = WEEK_ORDER.filter((w) => byWd.has(w) || S.hours.some((h) => h.weekday === w)).map((w) => ({ label: WD[w], n: byWd.get(w)?.n || 0 }));
+    const byHour = group(A, (b) => partsOf(b.starts_at).time.slice(0, 2));
+    const hourRows = [...byHour].sort((a, b) => a[0].localeCompare(b[0])).map(([h, v]) => ({ label: `${Number(h)}h`, ...v }));
+    const byStaff = [...group(A, (b) => b.staff_id)].map(([k, v]) => ({ label: staffName(k) || '—', ...v })).sort((a, b) => b.n - a.n);
+    const valid = inMonth.filter((b) => b.status !== 'cancelled');
+    const byOrigin = group(valid, (b) => b.created_by);
+    const originRows = ['assistant', 'link', 'owner'].filter((k) => byOrigin.has(k)).map((k) => ({ label: ORIGIN[k], n: byOrigin.get(k).n }));
+    const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
+
+    const body = `<div class="rep-nav">
+        <button type="button" class="icon-btn" data-ym="${ymAdd(ym, -1)}" aria-label="Mês anterior">‹</button>
+        <b>${esc(monthName(ym))}</b>
+        <button type="button" class="icon-btn" data-ym="${ymAdd(ym, 1)}" aria-label="Próximo mês" ${ym >= cur ? 'disabled style="visibility:hidden"' : ''}>›</button>
+      </div>
+      <div class="rep-tiles">
+        <div class="big"><small>Faturamento${ym === cur ? ' até agora' : ''}</small><b>${esc(money(rev))}</b>
+          <small>${diff == null ? '' : `<span class="${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)}%</span> em relação a ${esc(MONTHS[Number(ymAdd(ym, -1).slice(5, 7)) - 1])}`}${ahead.length ? `${diff == null ? '' : ' · '}+ ${esc(money(aheadRev))} ainda agendado` : ''}</small></div>
+        <div><b>${A.length}</b><small>atendimentos</small></div>
+        <div><b>${people}</b><small>clientes atendidas</small></div>
+        <div><b>${esc(money(ticket))}</b><small>valor médio por atendimento</small></div>
+        <div><b>${nc.count || 0}</b><small>clientes novas</small></div>
+        <div><b>${noshow}</b><small>faltas${noshow ? ` (${pct(noshow, noshow + A.length)}%)` : ''}</small></div>
+        <div><b>${cancelled}</b><small>cancelados</small></div>
+      </div>
+      ${A.length ? `<h4>Serviços que mais saem</h4>${bars(bySvc, (r) => `${r.n}× · ${money(r.c)}`)}
+        <h4>Dias mais cheios</h4>${bars(wdRows)}
+        <h4>Horários mais procurados</h4>${bars(hourRows)}
+        ${byStaff.length > 1 ? `<h4>Quem atendeu</h4>${bars(byStaff, (r) => `${r.n} · ${money(r.c)}`)}` : ''}`
+        : '<p class="muted">Nenhum atendimento neste mês.</p>'}
+      ${originRows.length ? `<h4>De onde vieram os agendamentos</h4>${bars(originRows)}` : ''}
+      <p class="hint">Conta como atendimento o que foi marcado como "Foi atendida" ou confirmado com horário que já passou. Faltas e cancelados ficam fora do faturamento.</p>`;
+    const form = sheet('Relatório do mês', body);
+    $$('[data-ym]', form).forEach((b) => { b.onclick = () => { b.disabled = true; openReport(b.dataset.ym).catch(fatal); }; });
+  }
 
   // ------------------------------------------------------------------ Agenda
   VIEWS.agenda = async (opts = {}) => {
@@ -1052,12 +1148,25 @@
       const days = daysBetween(lastDay, t);
       return days >= svc.return_days ? { c, svc, days } : null;
     }).filter(Boolean).sort((a, b) => b.days - a.days);
+    // Clientes sumidas: já vieram, não voltam há N dias e não têm horário marcado (quem já está em "chamar de volta" não repete).
+    const goneDays = Number(S.goneDays || store.get('goneDays') || 60);
+    const dueIds = new Set(due.map((d) => d.c.id));
+    const gone = clients.map((c) => {
+      const x = info.get(c.id);
+      if (!x.last || x.next || !c.phone || dueIds.has(c.id)) return null;
+      const days = daysBetween(partsOf(x.last.starts_at).date, t);
+      return days >= goneDays ? { c, x, days } : null;
+    }).filter(Boolean).sort((a, b) => b.x.visits - a.x.visits || b.days - a.days);
+    const everCame = clients.some((c) => info.get(c.id).last);
     S.clientCache = { clients, info, books };
 
     const q = S.clientQuery.toLowerCase();
     const qd = q.replace(/\D/g, '');
     const shown = clients.filter((c) => !q || (c.name || '').toLowerCase().includes(q) || (c.username || '').toLowerCase().includes(q) || (qd && (c.phone || '').includes(qd)));
-    const msgFor = ({ c, svc, days }) => `Oi${c.name ? ', ' + firstName(c.name) : ''}! Tudo bem? Aqui é do ${S.biz.name} 😊 Já faz ${days} dias do seu último ${svc.name.toLowerCase()}. Quer que eu reserve um horário para você?`;
+    const linkLine = linkOn() ? `\nSe preferir, escolha o melhor horário por aqui: ${bookingUrl(S.biz.booking_slug)}` : '';
+    const msgFor = ({ c, svc, days }) => `Oi${c.name ? ', ' + firstName(c.name) : ''}! Tudo bem? Aqui é do ${S.biz.name} 😊 Já faz ${days} dias do seu último ${svc.name.toLowerCase()}. Quer que eu reserve um horário para você?${linkLine}`;
+    const goneMsg = ({ c }) => `Oi${c.name ? ', ' + firstName(c.name) : ''}! Tudo bem? Aqui é do ${S.biz.name} 😊 Faz tempo que você não aparece, estamos com saudade! Quer que eu reserve um horário para você?${linkLine}`;
+    const goneShown = S.goneAll ? gone : gone.slice(0, 8);
 
     if (stale(opts)) return;
     $('#view').innerHTML = `
@@ -1065,6 +1174,14 @@
         <p class="hint">Clientes que já passaram do tempo de retorno do serviço e não têm horário marcado. O botão abre o <b>seu</b> WhatsApp com a mensagem pronta.</p>
         ${due.slice(0, 30).map((d) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(d.c))}</b><small>${esc(d.svc.name)} há ${d.days} dias · retorno sugerido: ${d.svc.return_days} dias</small></div>
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(d.c.phone, msgFor(d))}">Chamar no WhatsApp</a></div></div>`).join('')}
+      </section>` : ''}
+      ${everCame ? `<section class="card"><h3>Clientes sumidas ${gone.length ? `<span class="count">${gone.length}</span>` : ''}</h3>
+        <p class="hint">Já vieram aqui, não voltam há mais de ${goneDays} dias e não têm horário marcado. O botão abre o <b>seu</b> WhatsApp com a mensagem pronta${linkOn() ? ' (com o seu link de agendamento)' : ''}.</p>
+        <div class="seg gone-seg" role="group" aria-label="Sumidas há quanto tempo">${[30, 60, 90].map((n) => `<button type="button" data-gone="${n}" class="${goneDays === n ? 'sel' : ''}">${n} dias</button>`).join('')}</div>
+        ${gone.length ? goneShown.map((g) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(g.c))}</b><small>${g.x.visits} visita${g.x.visits === 1 ? '' : 's'} · última há ${g.days} dias (${esc(dayLabel(partsOf(g.x.last.starts_at).date))})</small></div>
+          <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(g.c.phone, goneMsg(g))}">Chamar no WhatsApp</a></div></div>`).join('')
+          + (gone.length > goneShown.length ? `<button type="button" class="btn ghost block" id="goneAll">Ver todas (${gone.length})</button>` : '')
+        : `<p class="muted">Ninguém sumido há mais de ${goneDays} dias. 🎉</p>`}
       </section>` : ''}
       <label class="search"><input type="search" id="cq" placeholder="Buscar por nome ou telefone" value="${esc(S.clientQuery)}"></label>
       <p class="muted small">${clients.length} cliente${clients.length === 1 ? '' : 's'}</p>
@@ -1077,6 +1194,8 @@
     const cq = $('#cq');
     cq.oninput = () => { S.clientQuery = cq.value; clearTimeout(cq.t); cq.t = setTimeout(() => S.tab === 'clientes' && go('clientes', { quiet: true }).then(() => { const n = $('#cq'); if (!n || S.tab !== 'clientes') return; n.focus(); n.setSelectionRange(n.value.length, n.value.length); }), 250); };
     $$('[data-client]').forEach((b) => { b.onclick = () => openClient(b.dataset.client); });
+    $$('[data-gone]').forEach((b) => { b.onclick = () => { S.goneDays = Number(b.dataset.gone); store.set('goneDays', b.dataset.gone); S.goneAll = false; go('clientes', { quiet: true, keepScroll: true }); }; });
+    $('#goneAll')?.addEventListener('click', () => { S.goneAll = true; go('clientes', { quiet: true, keepScroll: true }); });
   };
 
   async function openClient(id) {
@@ -1145,6 +1264,21 @@
           <div class="img-pick"><span class="thumb wide" id="coverThumb"></span><div class="grow"><input type="file" id="coverFile" accept="image/png,image/jpeg,image/webp">
             ${b.cover_url ? '<button type="button" class="btn small ghost" id="coverDel">Tirar a capa</button>' : ''}</div></div>
           <button type="submit" class="btn primary block">Salvar aparência</button>
+        </form>
+      </details>
+      <details class="card" data-sec="link" ${open('link')}><summary>Link de agendamento</summary>
+        <form id="linkForm">
+          <p class="hint">Uma página onde a cliente escolhe o serviço, o dia e o horário sozinha, sem precisar conversar. Coloque na bio do Instagram, no Google e no status do WhatsApp.</p>
+          <label class="switch"><input type="checkbox" name="on" ${b.booking_link_enabled ? 'checked' : ''}><span>Deixar clientes marcarem pelo link</span></label>
+          <label>Endereço do link<span class="slug-field"><span>agendar.html?n=</span><input name="slug" maxlength="40" autocapitalize="off" autocomplete="off" spellcheck="false" value="${esc(b.booking_slug || slugify(b.name))}"></span></label>
+          <p class="hint">Só letras minúsculas, números e tracinho. Ex.: studio-da-ana</p>
+          ${b.booking_slug ? `<div class="link-box">${esc(bookingUrl(b.booking_slug))}</div>
+            <div class="link-actions"><button type="button" class="btn small" id="linkCopy">Copiar link</button>
+            ${navigator.share ? '<button type="button" class="btn small" id="linkShare">Compartilhar</button>' : ''}
+            <a class="btn small ghost" target="_blank" rel="noopener" href="${esc(bookingUrl(b.booking_slug))}">Abrir</a></div>
+            ${b.booking_link_enabled ? '' : '<p class="banner warn">O link está <b>desligado</b>: quem abrir vê um aviso. Marque a opção acima e salve para ligar.</p>'}` : ''}
+          <p class="hint">Os pedidos chegam em Início › Pedidos para confirmar${b.auto_confirm ? ' (já confirmados, porque "Confirmar automaticamente" está ligado)' : ''}. Só aparecem serviços ativos com alguém que faz.</p>
+          <button type="submit" class="btn primary block">Salvar link</button>
         </form>
       </details>
       <details class="card" data-sec="servicos" ${open('servicos') || (!opts.open ? 'open' : '')}><summary>Serviços e preços</summary>
@@ -1235,6 +1369,32 @@
       };
       $(`#${kind}Del`)?.addEventListener('click', (e) => busy(e.target, async () => { await setImage(col, null); toast('Pronto.', 'ok'); }));
     }
+
+    // ---- Link de agendamento
+    const linkForm = $('#linkForm');
+    linkForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const f = new FormData(linkForm);
+      const slug = slugify(f.get('slug'));
+      const on = !!f.get('on');
+      if (!SLUG_RE.test(slug)) return toast('O endereço precisa ter de 3 a 40 letras ou números (pode usar tracinho).', 'bad');
+      await busy($('button[type=submit]', linkForm), async () => {
+        const { error } = await sb.from('businesses').update({ booking_slug: slug, booking_link_enabled: on }).eq('id', b.id);
+        if (error) throw new Error(error.code === '23505' ? 'Esse endereço já está em uso por outro negócio. Escolha outro.' : friendly(error));
+        await reloadBiz();
+        S.bizList = S.bizList.map((x) => (x.id === S.biz.id ? S.biz : x));
+        toast(on ? 'Link ligado ✅ Copie e compartilhe.' : 'Link salvo (desligado).', 'ok');
+        go('ajustes', { quiet: true, open: 'link' });
+      });
+    };
+    const copyLink = async () => {
+      const url = bookingUrl(S.biz.booking_slug);
+      try { await navigator.clipboard.writeText(url); toast('Link copiado ✅', 'ok'); } catch { toast('Não consegui copiar. Toque e segure no link para copiar.', 'warn'); }
+    };
+    $('#linkCopy')?.addEventListener('click', copyLink);
+    $('#linkShare')?.addEventListener('click', () => {
+      navigator.share({ title: S.biz.name, text: `Agende seu horário em ${S.biz.name}:`, url: bookingUrl(S.biz.booking_slug) }).catch(() => { /* cancelou */ });
+    });
 
     $('#logout').onclick = () => sb.auth.signOut();
     $('#changePass').onclick = () => sheet('Trocar minha senha', `
