@@ -1101,10 +1101,12 @@
     $('#changePass').onclick = () => sheet('Trocar minha senha', `
       <label>Senha nova<input name="p1" type="password" autocomplete="new-password" minlength="8" required></label>
       <label>Repita a senha nova<input name="p2" type="password" autocomplete="new-password" minlength="8" required></label>
-      <p class="hint">Use pelo menos 8 caracteres. Não use a mesma senha de outro site.</p>`, { submitText: 'Trocar senha', onSubmit: async (f) => {
-      if (String(f.get('p1')) !== String(f.get('p2'))) throw new Error('As duas senhas não são iguais.');
-      const { error } = await sb.auth.updateUser({ password: String(f.get('p1')) });
-      if (error) throw new Error(/weak|pwned|leaked/i.test(error.message) ? 'Essa senha é fraca ou já vazou na internet. Escolha outra.' : friendly(error));
+      <p class="hint">Use pelo menos 8 caracteres, com letras e números. Não use a mesma senha de outro site.</p>`, { submitText: 'Trocar senha', onSubmit: async (f) => {
+      const p1 = String(f.get('p1'));
+      if (p1 !== String(f.get('p2'))) throw new Error('As duas senhas não são iguais.');
+      if (p1.length < 8 || !/[a-z]/i.test(p1) || !/\d/.test(p1)) throw new Error('A senha precisa ter pelo menos 8 caracteres, com letras e números.');
+      const { error } = await sb.auth.updateUser({ password: p1 });
+      if (error) throw new Error(error.code === 'weak_password' || /weak|pwned|leaked|password should/i.test(error.message) ? 'Essa senha é fraca ou já vazou na internet. Use pelo menos 8 caracteres, com letras e números.' : friendly(error));
       toast('Senha trocada ✅', 'ok');
     } });
     $('#addSvc').onclick = () => editService(null);
