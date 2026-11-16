@@ -402,6 +402,124 @@
     return sb.storage.from('marca').getPublicUrl(path).data.publicUrl;
   }
 
+  // ------------------------------------------------------------------ foto da tabela de preços
+  // O dono tira foto da tabela (ou escolhe um print); a função "ler-tabela" (IA) devolve os serviços com preço.
+  // Nada é salvo sem o dono conferir a lista. Usado em Ajustes › Serviços e no início guiado.
+  const CAM = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+  const normName = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const durLabel = (m) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, '0') : ''}`);
+  const DURS = [15, 20, 30, 40, 45, 50, 60, 75, 90, 120, 150, 180, 240];
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(',')[1] || '');
+      r.onerror = () => reject(new Error('Não consegui ler a foto.'));
+      r.readAsDataURL(blob);
+    });
+  }
+  /** Abre a câmera/galeria do celular e devolve a foto escolhida (ou null). */
+  function pickPhoto() {
+    if (typeof window.ENTRE_FAKE_PHOTO === 'function') return Promise.resolve(window.ENTRE_FAKE_PHOTO()); // só no painel-teste
+    return new Promise((resolve) => {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*';
+      inp.onchange = () => resolve(inp.files?.[0] || null);
+      inp.click();
+    });
+  }
+  async function readMenuPhoto(file, kind) {
+    if (file.size > 20 * 1024 * 1024) throw new Error('Essa foto é grande demais (máx. 20 MB).');
+    const imagem = await blobToBase64(await shrinkImage(file, 1600, 'image/jpeg'));
+    const { data, error } = await sb.functions.invoke('ler-tabela', { body: { imagem, tipo: KINDS[kind]?.label || '' } });
+    if (error) {
+      let msg = 'Não consegui ler a foto agora. Tente de novo.';
+      try { msg = (await error.context.json()).erro || msg; } catch { /* sem detalhe */ }
+      throw new Error(msg);
+    }
+    const tpl = KINDS[kind]?.services || [];
+    const items = (data?.servicos || []).map((s) => {
+      const t = tpl.find(([n]) => normName(n) === normName(s.nome)); // duração e retorno do modelo do ramo, quando bate o nome
+      return { name: String(s.nome || ''), price: s.preco > 0 ? Math.round(s.preco * 100) : null, dur: s.duracao_min || t?.[1] || 60, ret: t?.[2] ?? null, obs: String(s.obs || ''), on: true };
+    });
+    return { items, aviso: String(data?.aviso || '') };
+  }
+  const parsePrice = (v) => {
+    const s = String(v || '').replace(/[^\d.,]/g, '');
+    const n = s.includes(',') ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : parseFloat(s);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+  };
+  function menuReviewHtml(items) {
+    return `<div class="menu-list">${items.map((it, i) => `<div class="menu-row ${it.on ? '' : 'off'}" data-mi="${i}">
+      <input type="checkbox" class="menu-on" data-mf="on" ${it.on ? 'checked' : ''} aria-label="Incluir ${esc(it.name)}">
+      <div class="menu-fields">
+        <input data-mf="name" value="${esc(it.name)}" maxlength="80" aria-label="Nome do serviço">
+        <div class="menu-sub">
+          <label class="money-in"><span>R$</span><input data-mf="price" inputmode="decimal" placeholder="sob consulta" value="${it.price != null ? esc((it.price / 100).toFixed(2).replace('.', ',')) : ''}" aria-label="Preço"></label>
+          <select data-mf="dur" aria-label="Duração">${[...new Set([...DURS, it.dur])].sort((a, b) => a - b).map((m) => `<option value="${m}" ${m === it.dur ? 'selected' : ''}>${durLabel(m)}</option>`).join('')}</select>
+        </div>
+        ${it.obs ? `<small class="muted">${esc(it.obs)}</small>` : ''}
+      </div></div>`).join('')}</div>`;
+  }
+  function bindMenuReview(root, items, onChange) {
+    $$('[data-mi]', root).forEach((row) => {
+      const it = items[Number(row.dataset.mi)];
+      const upd = (e) => {
+        const f = e.target.dataset.mf;
+        if (f === 'on') { it.on = e.target.checked; row.classList.toggle('off', !it.on); }
+        if (f === 'name') it.name = e.target.value;
+        if (f === 'price') it.price = parsePrice(e.target.value);
+        if (f === 'dur') it.dur = Number(e.target.value);
+        onChange?.();
+      };
+      row.addEventListener('input', upd); row.addEventListener('change', upd);
+    });
+  }
+  const chosenMenu = (items) => items.filter((it) => it.on && it.name.trim().length >= 2);
+  const readingHtml = (txt) => `<div class="menu-loading"><span class="logo-badge">${LOGO('loop')}</span><p>${esc(txt)}</p></div>`;
+
+  /** Ajustes › Serviços: foto -> conferir -> salvar (atualiza o que já existe com o mesmo nome). */
+  async function openMenuReader() {
+    const file = await pickPhoto();
+    if (!file) return;
+    sheet('Lendo sua tabela…', readingHtml('Lendo os serviços e os preços da foto. Leva uns segundos.'));
+    let res;
+    try { res = await readMenuPhoto(file, S.biz.kind); } catch (err) { closeSheet(); return toast(friendly(err), 'bad'); }
+    if (!res.items.length) {
+      const f = sheet('Não encontrei serviços', `<p>${esc(res.aviso || 'Não consegui achar serviços com preço nessa foto.')}</p>
+        <p class="hint">Dica: foto de frente, com boa luz e a tabela inteira aparecendo. Print do Instagram também serve.</p>
+        <button type="button" class="btn primary block" id="menuAgain">${CAM} Tentar outra foto</button>`);
+      $('#menuAgain', f).onclick = () => openMenuReader();
+      return;
+    }
+    const items = res.items;
+    const count = () => chosenMenu(items).length;
+    const known = (it) => S.services.some((s) => normName(s.name) === normName(it.name));
+    const form = sheet('Confira o que eu li', `<p class="hint">Achei <b>${items.length}</b> serviço${items.length === 1 ? '' : 's'}. Arrume o que precisar e desmarque o que você não faz.${res.aviso ? ' ' + esc(res.aviso) : ''}</p>
+      ${menuReviewHtml(items)}
+      <p class="hint">${items.some(known) ? 'Os que já existem com o mesmo nome ganham o preço novo. ' : ''}${S.staff.some((p) => p.active) ? 'Os serviços novos ficam com todo mundo da equipe (dá para ajustar em cada um).' : ''}</p>`,
+    { submitText: `Salvar ${count()} serviços`, onSubmit: async () => {
+      const chosen = chosenMenu(items);
+      if (!chosen.length) throw new Error('Marque pelo menos um serviço.');
+      const staffIds = S.staff.filter((p) => p.active).map((p) => p.id);
+      const fresh = [];
+      for (const it of chosen) {
+        const old = S.services.find((s) => normName(s.name) === normName(it.name));
+        if (old) {
+          must(await sb.from('services').update({ price_cents: it.price, duration_min: it.dur, active: true, notes: old.notes || it.obs }).eq('id', old.id));
+          if (!S.links.some((l) => l.service_id === old.id) && staffIds.length) fresh.push(old.id);
+        } else {
+          const row = must(await sb.from('services').insert({ business_id: S.biz.id, name: it.name.trim().slice(0, 80), price_cents: it.price, duration_min: it.dur, return_days: it.ret, notes: it.obs, active: true }).select('id').single());
+          fresh.push(row.id);
+        }
+      }
+      if (fresh.length && staffIds.length) must(await sb.from('staff_services').insert(fresh.flatMap((sid) => staffIds.map((p) => ({ staff_id: p, service_id: sid })))));
+      await loadBizData();
+      toast(`${chosen.length} serviço${chosen.length === 1 ? '' : 's'} salvo${chosen.length === 1 ? '' : 's'} ✅ A secretária já pode oferecer.`, 'ok');
+      go('ajustes', { quiet: true, open: 'servicos' });
+    } });
+    bindMenuReview(form, items, () => { $('[type=submit]', form).textContent = `Salvar ${count()} serviço${count() === 1 ? '' : 's'}`; });
+  }
+
   // ------------------------------------------------------------------ primeiro acesso
   // Primeiro acesso: um passo por tela, como uma conversa. Nada é salvo até o último passo.
   const KIND_ICON = {
@@ -418,7 +536,7 @@
     longo: { label: 'Seg a sáb, 8h às 20h', rows: [1, 2, 3, 4, 5, 6].map((w) => [w, '08:00', '20:00']) },
     semana: { label: 'Seg a sex, 8h às 18h', rows: [1, 2, 3, 4, 5].map((w) => [w, '08:00', '18:00']) },
   };
-  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'estilo', 'imagens', 'horario', 'pronto'];
+  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'estilo', 'imagens', 'horario', 'tabela', 'pronto'];
 
   function showOnboarding() {
     show('onboard');
@@ -466,13 +584,30 @@
       } else if (step === 'horario') {
         body = `<h2>Quando vocês atendem?</h2><p class="wiz-sub">Escolha o mais perto. Dá para ajustar dia por dia depois, em Ajustes.</p>
           <div class="hours-opts">${Object.entries(HOURS_PRESETS).map(([k, h]) => `<button type="button" class="hours-opt" data-hours="${k}" aria-pressed="${W.hours === k}">${esc(h.label)}</button>`).join('')}</div>`;
+      } else if (step === 'tabela') {
+        if (W.reading) {
+          body = `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
+        } else if (W.menu?.items.length) {
+          body = `<h2>Achei ${W.menu.items.length} serviço${W.menu.items.length === 1 ? '' : 's'}!</h2>
+            <p class="wiz-sub">Confira, arrume o que precisar e desmarque o que você não faz.</p>
+            ${menuReviewHtml(W.menu.items)}
+            <button type="button" class="btn ghost block" id="wMenuAgain">${CAM} Tirar outra foto</button>`;
+        } else {
+          body = `<h2>Tem uma tabela de preços?</h2>
+            <p class="wiz-sub">Tire uma foto da tabela (ou escolha um print do Instagram) e eu cadastro seus serviços com os preços. Você confere antes.</p>
+            ${W.menu ? `<p class="banner warn">${esc(W.menu.aviso || 'Não encontrei serviços nessa foto.')} Tente outra, de frente e com boa luz.</p>` : ''}
+            <button type="button" class="photo-cta" id="wMenu">${CAM}<b>Tirar foto da tabela</b><small>ou escolher da galeria</small></button>`;
+          canSkip = true;
+        }
+        next = W.menu?.items.length ? 'Continuar' : 'Continuar sem foto';
       } else if (step === 'pronto') {
+        const menuN = W.menu ? chosenMenu(W.menu.items).length : 0;
         body = `<h2>Tudo pronto, ${esc(firstName(W.owner))}!</h2><p class="wiz-sub">Assim vai ficar o seu app:</p>
           <div class="wiz-preview big">${url.cover ? '<div class="wp-cover" id="wpCover"></div>' : ''}
             <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name)}</b></div>
             <div class="wp-greet">${(() => { const hr = new Date().getHours(); return hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'; })()}, ${esc(firstName(W.owner))}.</div></div>
           <ul class="wiz-sum"><li><b>Ramo:</b> ${esc(KINDS[W.kind]?.label || '')}</li><li><b>Estilo:</b> ${esc(STYLES[W.theme].nome)}</li><li><b>Horário:</b> ${esc(HOURS_PRESETS[W.hours].label)}</li>
-            <li><b>Serviços:</b> criamos alguns de exemplo, <b>desativados e sem preço</b>. Você coloca seus preços e ativa só o que faz.</li></ul>`;
+            <li><b>Serviços:</b> ${menuN ? `${menuN} da sua tabela, já com preço e prontos para a secretária oferecer.` : 'criamos alguns de exemplo, <b>desativados e sem preço</b>. Você coloca seus preços e ativa só o que faz.'}</li></ul>`;
         next = 'Entrar no meu app';
       }
       box.innerHTML = `<form class="wiz card narrow" novalidate>
@@ -492,10 +627,23 @@
       if (pl && url.logo) pl.style.backgroundImage = `url("${url.logo}")`;
       $('#wBack', box)?.addEventListener('click', () => { W.i--; render(); });
       $('#wOut', box)?.addEventListener('click', () => sb.auth.signOut());
-      $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; W.i++; render(); });
+      $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; if (step === 'tabela') W.menu = null; W.i++; render(); });
       $$('[data-kind]', box).forEach((b) => { b.onclick = () => { W.kind = b.dataset.kind; W.i++; render(); }; });
       $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
       if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; applyStyle(id, { persist: false }); }); bindModePicker(form); }
+      if (step === 'tabela') {
+        if (W.menu?.items.length) bindMenuReview(form, W.menu.items);
+        const readPhoto = async () => {
+          const f = await pickPhoto();
+          if (!f) return;
+          W.reading = true; render();
+          try { W.menu = await readMenuPhoto(f, W.kind); } catch (e) { W.menu = null; W.reading = false; render(); return $('#wErr', box) && ($('#wErr', box).textContent = friendly(e)); }
+          W.reading = false; render();
+        };
+        $('#wMenu', box)?.addEventListener('click', readPhoto);
+        $('#wMenuAgain', box)?.addEventListener('click', readPhoto);
+        if (W.reading) $('button[type=submit]', form).disabled = true;
+      }
       for (const [kind, id] of [['logo', '#wLogo'], ['cover', '#wCover']]) {
         const input = $(id, box);
         if (!input) continue;
@@ -539,9 +687,11 @@
     }));
     const person = must(await sb.from('staff').insert({ business_id: id, name: W.owner.slice(0, 60) }).select().single());
     must(await sb.from('opening_hours').insert(HOURS_PRESETS[W.hours].rows.map(([w, o, c]) => ({ business_id: id, weekday: w, opens: o, closes: c }))));
-    const svcs = must(await sb.from('services').insert(KINDS[W.kind].services.map(([name, dur, ret]) => ({
-      business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false,
-    }))).select('id'));
+    // Serviços: os da foto da tabela (já ativos, com preço) ou os de exemplo do ramo (desativados, sem preço).
+    const fromPhoto = W.menu ? chosenMenu(W.menu.items) : [];
+    const svcs = must(await sb.from('services').insert(fromPhoto.length
+      ? fromPhoto.map((it) => ({ business_id: id, name: it.name.trim().slice(0, 80), duration_min: it.dur, return_days: it.ret, price_cents: it.price, notes: it.obs, active: true }))
+      : KINDS[W.kind].services.map(([name, dur, ret]) => ({ business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false }))).select('id'));
     if (svcs.length) must(await sb.from('staff_services').insert(svcs.map((s) => ({ staff_id: person.id, service_id: s.id }))));
     // Imagens só sobem agora (a pasta é do negócio, que acabou de nascer). Se falhar, o negócio já existe: dá para subir depois.
     let imgFail = false;
@@ -556,7 +706,7 @@
     S.tab = 'inicio';
     await start();
     if (imgFail) toast('Tudo criado, mas uma imagem não subiu. Tente de novo em Ajustes › Aparência.', 'warn');
-    else toast('Pronto! Agora ative seus serviços e coloque os preços.', 'ok');
+    else toast(fromPhoto.length ? 'Pronto! Seus serviços já estão com preço.' : 'Pronto! Agora ative seus serviços e coloque os preços.', 'ok');
   }
 
   // ------------------------------------------------------------------ navegação
@@ -713,16 +863,36 @@
     ];
   }
 
+  /** O negócio estava aberto neste instante? (pelos horários de funcionamento) */
+  function wasOpen(iso) {
+    const p = partsOf(iso);
+    return S.hours.some((h) => h.weekday === p.weekday && h.opens.slice(0, 5) <= p.time && p.time < h.closes.slice(0, 5));
+  }
+  /** "Feito pela secretária": mostra em reais o que ela marcou sozinha (e quanto foi com o negócio fechado). */
+  function winCard(rows) {
+    if (!rows.length) return '';
+    const total = rows.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const night = rows.filter((b) => !wasOpen(b.created_at));
+    const nightTotal = night.reduce((s, b) => s + (b.price_cents || 0), 0);
+    return `<section class="card win-card"><h3>Feito pela secretária · últimos 7 dias</h3>
+      <div class="win"><b>${esc(money(total))}</b><span>em ${rows.length} horário${rows.length === 1 ? '' : 's'} marcado${rows.length === 1 ? '' : 's'} sem você precisar responder</span></div>
+      ${night.length ? `<p class="win-night"><span aria-hidden="true">🌙</span> ${night.length === rows.length ? 'Todos' : night.length} ${night.length === 1 ? 'foi marcado' : 'foram marcados'} com o negócio fechado${nightTotal ? ` (${esc(money(nightTotal))})` : ''}.</p>` : ''}
+    </section>`;
+  }
+
   VIEWS.inicio = async (opts = {}) => {
     const id = S.biz.id, t = today(), ym = ymOf(t);
-    const [pend, hoje, convs, mes] = await Promise.all([
+    const [pend, hoje, convs, mes, sec] = await Promise.all([
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).eq('status', 'pending').gte('starts_at', new Date().toISOString()).order('starts_at').limit(50),
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).gte('starts_at', dayStartIso(t)).lt('starts_at', dayStartIso(addDays(t, 1))).in('status', ['pending', 'confirmed', 'done', 'noshow', 'block']).order('starts_at'),
       sb.from('conversations').select('id, last_message_at, clients(name, phone, username)').eq('business_id', id).eq('needs_human', true).order('last_message_at', { ascending: false }).limit(20),
       sb.from('bookings').select('starts_at, status, price_cents').eq('business_id', id).in('status', ['done', 'confirmed'])
         .gte('starts_at', dayStartIso(ym + '-01')).lt('starts_at', new Date().toISOString()).limit(5000),
+      // O que a secretária (WhatsApp) e o link marcaram sozinhos nos últimos 7 dias
+      sb.from('bookings').select('created_at, price_cents').eq('business_id', id).in('created_by', ['assistant', 'link'])
+        .neq('status', 'cancelled').gte('created_at', dayStartIso(addDays(t, -6))).limit(2000),
     ]);
-    const P = must(pend), H = must(hoje), C = must(convs), M = must(mes);
+    const P = must(pend), H = must(hoje), C = must(convs), M = must(mes), W = must(sec);
     const mesTotal = M.reduce((s, b) => s + (b.price_cents || 0), 0);
     const list = checklist();
     const done = list.filter((x) => x[0]).length;
@@ -741,6 +911,7 @@
       <div><b>${C.length}</b><small>conversas esperando você</small></div>
       <div><b>${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : esc(brl(total))}</b><small>previsto hoje</small></div>
     </div>`;
+    html += winCard(W);
     if (done < list.length) {
       html += `<section class="card checklist"><h3>Para a secretária funcionar <span class="muted">${done}/${list.length}</span></h3>
         <div class="progress"><i style="width:${Math.round((done / list.length) * 100)}%"></i></div>
@@ -1018,6 +1189,12 @@
   // ------------------------------------------------------------------ Conversas
   VIEWS.conversas = async (opts = {}) => (S.conv ? viewThread(opts) : viewConvList(opts));
 
+  /** Texto da mensagem; foto da cliente aparece como "📷 Foto" (a imagem fica no WhatsApp). */
+  function msgBody(body) {
+    const s = String(body ?? '');
+    if (/^\[foto\]/.test(s)) return `<span class="msg-photo">📷 Foto</span>${s.length > 6 ? ' ' + esc(s.slice(7)) : ''}`;
+    return esc(s);
+  }
   async function viewConvList(opts = {}) {
     const id = S.biz.id;
     const [cv, ms] = await Promise.all([
@@ -1040,7 +1217,7 @@
         const paused = c.paused_until && new Date(c.paused_until) > new Date();
         return `<button type="button" class="row conv ${c.needs_human ? 'need' : ''}" data-conv="${c.id}">
           <span class="avatar">${esc(initials(clientLabel(c.clients)))}</span>
-          <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${m ? esc((who[m.author] + m.body).slice(0, 90)) : ''}</small></span>
+          <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${m ? esc((who[m.author] + String(m.body).replace(/^\[foto\]/, '📷 Foto')).slice(0, 90)) : ''}</small></span>
           <span class="meta"><small>${esc(ago(c.last_message_at))}</small>${c.needs_human ? '<i class="chip warn">Você</i>' : paused ? '<i class="chip muted">Pausada</i>' : ''}</span></button>`;
       }).join('')}</div>` : `<div class="empty">${S.convFilter === 'ajuda' ? 'Nenhuma conversa esperando você. 🎉' : 'Ainda não há conversas. Quando uma cliente mandar mensagem no WhatsApp do negócio, ela aparece aqui.'}</div>`}`;
     $$('[data-f]').forEach((b) => { b.onclick = () => { S.convFilter = b.dataset.f; go('conversas', { quiet: true }); }; });
@@ -1075,7 +1252,7 @@
       const p = partsOf(m.created_at);
       const sep = p.date !== lastDay ? `<div class="day-sep">${esc(relDay(p.date))}</div>` : '';
       lastDay = p.date;
-      return `${sep}<div class="msg ${m.author}">${label[m.author] ? `<small class="who">${label[m.author]}</small>` : ''}<p>${esc(m.body)}</p>
+      return `${sep}<div class="msg ${m.author}">${label[m.author] ? `<small class="who">${label[m.author]}</small>` : ''}<p>${msgBody(m.body)}</p>
         <small class="at">${p.time}${m.send_error ? ' · <b class="err">não entregue</b>' : ''}</small>${m.send_error ? `<small class="err">${esc(sendErrorText(m.send_error))}</small>` : ''}</div>`;
     }).join('');
 
@@ -1127,7 +1304,7 @@
   VIEWS.clientes = async (opts = {}) => {
     const id = S.biz.id;
     const [cl, bk] = await Promise.all([
-      sb.from('clients').select('id, name, phone, username, created_at').eq('business_id', id).order('name').limit(2000),
+      sb.from('clients').select('id, name, phone, username, notes, created_at').eq('business_id', id).order('name').limit(2000),
       sb.from('bookings').select('client_id, starts_at, status, service_id').eq('business_id', id).not('client_id', 'is', null).in('status', ['pending', 'confirmed', 'done', 'noshow']).order('starts_at').limit(5000),
     ]);
     const clients = must(cl), books = must(bk);
@@ -1206,6 +1383,8 @@
     const conv = must(await sb.from('conversations').select('id').eq('business_id', S.biz.id).eq('client_id', id).maybeSingle());
     const form = sheet(clientLabel(c), `
       <label>Nome<input name="name" value="${esc(c.name)}" maxlength="80"></label>
+      <label>Anotações <span class="muted small">(só você e a secretária veem)</span>
+        <textarea name="notes" rows="2" maxlength="500" placeholder="Ex.: prefere a Bia; gosta de cores claras; alérgica a acetona">${esc(c.notes || '')}</textarea></label>
       <dl class="details">
         ${c.phone ? `<dt>WhatsApp</dt><dd><a href="${waLink(c.phone)}" target="_blank" rel="noopener">${esc(phoneText(c.phone))}</a></dd>` : ''}
         ${c.username ? `<dt>Usuário</dt><dd>@${esc(c.username)}</dd>` : ''}
@@ -1215,8 +1394,8 @@
       ${conv ? '<button type="button" class="btn ghost block" id="openConv">Abrir conversa</button>' : ''}
       <h4>Histórico</h4>
       ${hist.length ? `<div class="list">${hist.map((b) => bookingRow(b, { showDay: true })).join('')}</div>` : '<p class="muted">Nenhum agendamento ainda.</p>'}`,
-    { submitText: 'Salvar nome', onSubmit: async (f) => {
-      must(await sb.from('clients').update({ name: String(f.get('name')).trim() }).eq('id', id));
+    { submitText: 'Salvar', onSubmit: async (f) => {
+      must(await sb.from('clients').update({ name: String(f.get('name')).trim(), notes: String(f.get('notes') || '').trim().slice(0, 500) }).eq('id', id));
       toast('Salvo.', 'ok');
       go('clientes', { quiet: true });
     } });
@@ -1277,6 +1456,9 @@
             ${navigator.share ? '<button type="button" class="btn small" id="linkShare">Compartilhar</button>' : ''}
             <a class="btn small ghost" target="_blank" rel="noopener" href="${esc(bookingUrl(b.booking_slug))}">Abrir</a></div>
             ${b.booking_link_enabled ? '' : '<p class="banner warn">O link está <b>desligado</b>: quem abrir vê um aviso. Marque a opção acima e salve para ligar.</p>'}` : ''}
+          <p class="label">Fotos dos seus trabalhos <span class="muted small">(aparecem na sua página · até 12)</span></p>
+          <div class="gal-edit">${(b.gallery || []).map((u, i) => `<span class="gal-th"><img alt="" loading="lazy" src="${esc(u)}"><button type="button" data-gal-del="${i}" aria-label="Tirar esta foto">✕</button></span>`).join('')}
+            ${(b.gallery || []).length < 12 ? '<label class="gal-add" aria-label="Adicionar fotos"><span>+</span><small>Fotos</small><input type="file" id="galAdd" accept="image/png,image/jpeg,image/webp" multiple hidden></label>' : ''}</div>
           <p class="hint">Os pedidos chegam em Início › Pedidos para confirmar${b.auto_confirm ? ' (já confirmados, porque "Confirmar automaticamente" está ligado)' : ''}. Só aparecem serviços ativos com alguém que faz.</p>
           <button type="submit" class="btn primary block">Salvar link</button>
         </form>
@@ -1284,7 +1466,8 @@
       <details class="card" data-sec="servicos" ${open('servicos') || (!opts.open ? 'open' : '')}><summary>Serviços e preços</summary>
         <p class="hint">A secretária só oferece serviços <b>ativos</b> e só informa os preços que estão aqui.</p>
         <div class="list">${svcRows || '<p class="muted">Nenhum serviço.</p>'}</div>
-        <button type="button" class="btn ghost block" id="addSvc">+ Novo serviço</button>
+        <div class="svc-actions"><button type="button" class="btn primary" id="readMenu">${CAM} Foto da tabela de preços</button>
+          <button type="button" class="btn ghost" id="addSvc">+ Novo serviço</button></div>
       </details>
       <details class="card" data-sec="horarios" ${open('horarios')}><summary>Horário de funcionamento</summary>
         <form id="hoursForm">${WEEK_ORDER.map(hoursRow).join('')}
@@ -1387,6 +1570,36 @@
         go('ajustes', { quiet: true, open: 'link' });
       });
     };
+    // Fotos dos trabalhos (vitrine da página de agendamento)
+    const saveGallery = async (list) => {
+      must(await sb.from('businesses').update({ gallery: list.slice(0, 12) }).eq('id', b.id));
+      await reloadBiz();
+      S.bizList = S.bizList.map((x) => (x.id === S.biz.id ? S.biz : x));
+      go('ajustes', { quiet: true, open: 'link', keepScroll: true });
+    };
+    const galAdd = $('#galAdd');
+    if (galAdd) galAdd.onchange = async () => {
+      const files = [...(galAdd.files || [])].slice(0, 12 - (b.gallery || []).length);
+      if (!files.length) return;
+      toast(files.length > 1 ? `Enviando ${files.length} fotos…` : 'Enviando a foto…');
+      const urls = [];
+      for (const f of files) {
+        if (f.size > 15 * 1024 * 1024) { toast('Uma foto é grande demais (máx. 15 MB) e ficou de fora.', 'warn'); continue; }
+        try { urls.push(await uploadBrandImage('galeria', f)); } catch (err) { toast(friendly(err), 'bad'); }
+      }
+      if (urls.length) { await saveGallery([...(b.gallery || []), ...urls]); toast(urls.length > 1 ? `${urls.length} fotos adicionadas ✅` : 'Foto adicionada ✅', 'ok'); }
+      galAdd.value = '';
+    };
+    $$('[data-gal-del]', v).forEach((x) => {
+      x.onclick = () => busy(x, async () => {
+        const list = [...(b.gallery || [])];
+        const [gone] = list.splice(Number(x.dataset.galDel), 1);
+        await saveGallery(list);
+        const path = String(gone || '').split('/object/public/marca/')[1];
+        if (path) sb.storage.from('marca').remove([decodeURIComponent(path)]).catch(() => { /* fica só o arquivo sobrando */ });
+        toast('Foto tirada.', 'ok');
+      });
+    });
     const copyLink = async () => {
       const url = bookingUrl(S.biz.booking_slug);
       try { await navigator.clipboard.writeText(url); toast('Link copiado ✅', 'ok'); } catch { toast('Não consegui copiar. Toque e segure no link para copiar.', 'warn'); }
@@ -1409,6 +1622,7 @@
       toast('Senha trocada ✅', 'ok');
     } });
     $('#addSvc').onclick = () => editService(null);
+    $('#readMenu').onclick = () => openMenuReader();
     $$('[data-svc]', v).forEach((x) => { x.onclick = () => editService(x.dataset.svc); });
     $$('[data-staff-edit]', v).forEach((x) => { x.onclick = () => editStaff(x.dataset.staffEdit); });
 

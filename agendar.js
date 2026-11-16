@@ -153,7 +153,27 @@
       <header class="ag-head">
         <span class="ag-logo">${n.logo ? `<img alt="" src="${esc(n.logo)}">` : `<i>${esc(initials(n.nome))}</i>`}</span>
         <div><h1 class="display">${esc(n.nome)}</h1>${n.endereco ? `<p class="muted">${esc(n.endereco)}</p>` : ''}</div>
-      </header>`;
+      </header>
+      ${n.endereco || n.whatsapp ? `<div class="ag-links">
+        ${n.endereco ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.endereco + ' ' + n.nome)}">${PIN} Como chegar</a>` : ''}
+        ${n.whatsapp ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://wa.me/${esc(n.whatsapp)}">${CHAT} WhatsApp</a>` : ''}
+      </div>` : ''}
+      ${(n.galeria || []).length && !S.done ? `<section class="ag-gal" aria-label="Nossos trabalhos"><h3>Nossos trabalhos</h3>
+        <div class="ag-gal-row">${n.galeria.map((u, i) => `<button type="button" class="ag-ph" data-ph="${i}" aria-label="Ver foto ${i + 1}"><img alt="" loading="lazy" src="${esc(u)}"></button>`).join('')}</div></section>` : ''}`;
+  }
+  const PIN = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+  const CHAT = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M5 6h14v10h-9l-5 4z"/></svg>';
+  // Foto em tela cheia (toque para fechar)
+  function bindGallery() {
+    $$('[data-ph]').forEach((b) => {
+      b.onclick = () => {
+        const v = document.createElement('div');
+        v.className = 'ag-view';
+        v.innerHTML = `<img alt="" src="${esc(S.info.negocio.galeria[Number(b.dataset.ph)])}"><button type="button" class="icon-btn" aria-label="Fechar">✕</button>`;
+        v.onclick = () => v.remove();
+        document.body.appendChild(v);
+      };
+    });
   }
 
   function render(scrollTo) {
@@ -162,6 +182,7 @@
     let html = header();
     if (!I.servicos.length) {
       root.innerHTML = html + '<div class="card empty">Ainda não há serviços disponíveis para marcar por aqui. Fale com o estabelecimento pelo WhatsApp.</div>';
+      bindGallery();
       return;
     }
     html += `<section class="card" data-step="servico"><h3><span class="ag-n">1</span>Escolha o serviço</h3><div class="list">
@@ -206,6 +227,7 @@
         </form></section>`;
     }
     root.innerHTML = html;
+    bindGallery();
 
     $$('[data-svc]').forEach((b) => { b.onclick = () => pickService(b.dataset.svc); });
     $$('[data-prof]').forEach((b) => { b.onclick = () => pickProf(b.dataset.prof); });

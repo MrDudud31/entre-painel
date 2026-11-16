@@ -490,6 +490,36 @@ dialog#sheet::backdrop { background: rgba(20, 12, 16, .45); }
 .toast.warn { background: var(--warn); color: #fff; }
 .toast.bad { background: var(--bad); color: #fff; }
 
+.msg-photo { display: inline-block; font-weight: 600; padding: .05rem .45rem; border-radius: 6px; background: var(--chip-muted); font-size: .88em; }
+/* foto da tabela de preços */
+.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; flex: none; }
+.svc-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; }
+.svc-actions .btn { flex: 1 1 160px; }
+.photo-cta {
+  width: 100%; display: grid; justify-items: center; gap: 4px; padding: 26px 16px; margin: .4rem 0 0; cursor: pointer;
+  border: 2px dashed var(--brand); border-radius: var(--radius); background: var(--brand-soft); color: var(--ink); font: inherit;
+}
+.photo-cta .ico { width: 40px; height: 40px; color: var(--brand); stroke-width: 1.4; }
+.photo-cta b { font-size: 1.05rem; }
+.photo-cta small { color: var(--muted); }
+.menu-loading { display: grid; justify-items: center; gap: 12px; padding: 22px 0 10px; text-align: center; color: var(--muted); }
+.menu-list { display: grid; gap: 8px; margin: .4rem 0 .8rem; }
+.menu-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: calc(var(--radius) * .6); background: var(--card); transition: opacity .15s; }
+.menu-row.off { opacity: .45; }
+.menu-on { width: 1.3rem; height: 1.3rem; margin: .7rem 0 0; accent-color: var(--brand); }
+.menu-fields { display: grid; gap: 6px; min-width: 0; }
+.menu-fields input, .menu-fields select { margin: 0; padding: .5rem .6rem; }
+.menu-fields > input { font-weight: 600; }
+.menu-sub { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.money-in { display: flex; align-items: center; gap: 4px; margin: 0; font-weight: 400; }
+.money-in span { color: var(--muted); font-size: .9rem; }
+.menu-fields small { font-size: .78rem; }
+/* "Feito pela secretária" (Início) */
+.win-card { background: linear-gradient(135deg, var(--brand-soft), var(--card) 70%); }
+.win { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+.win b { font-family: var(--font-display); font-weight: var(--dw); font-size: 2rem; line-height: 1; color: var(--hi); }
+.win span { color: var(--ink); font-size: .92rem; flex: 1 1 160px; }
+.win-night { margin: .6rem 0 0; padding-top: .55rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; }
 /* relatório do mês */
 .rep-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
 .rep-card .grow { flex: 1; min-width: 0; }
@@ -519,6 +549,13 @@ dialog#sheet::backdrop { background: rgba(20, 12, 16, .45); }
 .link-box { display: flex; gap: .5rem; align-items: center; background: var(--chip-muted); border-radius: calc(var(--radius) * .6); padding: .6rem .8rem; margin: 0 0 .7rem; font-size: .9rem; word-break: break-all; }
 .link-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 1rem; }
 .link-actions .btn { flex: 1; min-width: 110px; }
+.gal-edit { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin: 0 0 1rem; }
+.gal-th, .gal-add { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--chip-muted); }
+.gal-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gal-th button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .6); color: #fff; font-size: .75rem; cursor: pointer; display: grid; place-items: center; }
+.gal-add { display: grid; place-content: center; justify-items: center; border: 2px dashed var(--line); background: transparent; cursor: pointer; color: var(--muted); margin: 0; }
+.gal-add span { font-size: 1.6rem; line-height: 1; }
+.gal-add small { font-size: .72rem; font-weight: 600; }
 .slug-field { display: flex; align-items: center; gap: .3rem; }
 .slug-field span { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 
@@ -534,6 +571,17 @@ dialog#sheet::backdrop { background: rgba(20, 12, 16, .45); }
 .ag-logo i { font-style: normal; font-weight: 700; font-size: 1.5rem; font-family: var(--font-display); }
 .ag-head h1 { font-size: clamp(1.6rem, 7vw, 2.2rem); line-height: 1.05; text-wrap: balance; }
 .ag-head p { margin: .2rem 0 0; font-size: .88rem; }
+.ag-links { display: flex; gap: 8px; flex-wrap: wrap; margin: -4px 0 14px; }
+.ag-links .btn { background: var(--solid); }
+.ag-gal { margin: 0 0 14px; }
+.ag-gal h3 { font-size: .76rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 2px; }
+.ag-gal-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.ag-ph { flex: none; width: 128px; aspect-ratio: 4 / 5; padding: 0; border: 0; border-radius: calc(var(--radius) * .6); overflow: hidden; background: var(--chip-muted); cursor: zoom-in; scroll-snap-align: start; }
+.ag-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ag-view { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .88); display: grid; place-items: center; padding: 16px; cursor: zoom-out; animation: ag-fade .2s ease; }
+.ag-view img { max-width: 100%; max-height: 88vh; border-radius: 12px; }
+.ag-view .icon-btn { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 10px; color: #fff; }
+@keyframes ag-fade { from { opacity: 0; } }
 .ag-n { display: inline-grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: var(--brand); color: var(--brand-ink); font-size: .74rem; letter-spacing: 0; }
 .row.ag-opt { width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
 .ag-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; }
