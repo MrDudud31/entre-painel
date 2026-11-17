@@ -637,3 +637,48 @@ dialog#sheet::backdrop { background: rgba(20, 12, 16, .45); }
   .stats small { font-size: .7rem; }
   .two { grid-template-columns: 1fr; }
 }
+
+/* Caixa do dia, comissão, lista de espera, lembretes e aniversários (17/11) */
+.paid { color: var(--ok); font-weight: 600; }
+.pay-who { margin: 0 0 1rem; }
+.pay-who b, .pay-who small { display: block; }
+.pay-who small { color: var(--muted); }
+.money-big { display: flex; align-items: center; gap: .5rem; margin-top: .3rem; }
+.money-big span { font-family: var(--font-display); font-weight: var(--dw); font-size: 1.4rem; color: var(--muted); }
+.money-big input { margin: 0; font-family: var(--font-display); font-weight: var(--dw); font-size: 1.6rem; padding: .5rem .8rem; }
+.pay-opts, .seg:has(.seg-opt) { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 1rem; }
+.seg:has(.seg-opt) { background: none; padding: 0; }
+.pay-opts label, .seg-opt { margin: 0; position: relative; }
+.pay-opts input, .seg-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.pay-opts span, .seg-opt span { display: grid; place-items: center; min-height: 44px; padding: .4rem; border: 1.5px solid var(--line); border-radius: calc(var(--radius) * .6); background: var(--solid); font-weight: 600; font-size: .9rem; text-align: center; cursor: pointer; }
+.pay-opts input:checked + span, .seg-opt input:checked + span { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+.pay-opts input:focus-visible + span, .seg-opt input:focus-visible + span { outline: 2px solid var(--hi); outline-offset: 2px; }
+.cash-card .due { color: var(--warn); font-weight: 600; }
+.cash-card .grow b .small { font-family: var(--font-body); font-size: .85rem; font-weight: 400; }
+.actions .amt { align-self: center; font-size: .92rem; white-space: nowrap; }
+.wait-link { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.wait-link .grow { flex: 1; min-width: 0; }
+.wait-link .grow b, .wait-link .grow small { display: block; }
+.wait-link .grow small { color: var(--muted); font-size: .85rem; }
+.wait-link .go { color: var(--muted); font-size: 1.3rem; }
+.pend-info small.free { color: var(--ok); font-weight: 600; }
+.wait-item.past { opacity: .65; }
+.wait-card { border-left: 4px solid var(--ok); }
+.icon-btn.small { width: 36px; height: 36px; font-size: 1rem; color: var(--muted); }
+.pend.sent .pend-info b { color: var(--muted); }
+.actions .chip { align-self: center; }
+.today-tag { color: var(--hi); }
+.com-list { display: grid; gap: 2px; margin: .3rem 0 1rem; }
+.com-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .5rem 0; border-top: 1px solid var(--line); }
+.com-row:first-child { border-top: 0; }
+.com-row span b, .com-row span small { display: block; }
+.com-row span small { color: var(--muted); font-size: .82rem; }
+.com-row > b { white-space: nowrap; color: var(--hi); }
+.com-row.total > b { font-size: 1.1rem; }
+.pct-in { display: flex; align-items: center; gap: .5rem; margin-top: .3rem; max-width: 160px; }
+.pct-in input { margin: 0; }
+.pct-in span { color: var(--muted); font-weight: 600; }
+.bday-row { margin: 0 0 .8rem; }
+.bday-row > span { display: block; font-size: .9rem; font-weight: 600; margin-bottom: .3rem; }
+.bday-row .two { grid-template-columns: 1fr 1.6fr; }
+.bday-row select { margin: 0; }

@@ -213,7 +213,25 @@
   const linkOn = () => !!(S.biz?.booking_link_enabled && S.biz?.booking_slug);
   const svcName = (id) => S.services.find((s) => s.id === id)?.name || '';
   const staffName = (id) => S.staff.find((p) => p.id === id)?.name || '';
-  const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, note, created_by, service_id, staff_id, clients(name, phone, username)';
+  const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, paid_cents, paid_method, paid_at, note, created_by, service_id, staff_id, clients(name, phone, username)';
+  // Caixa: forma de pagamento e valor de verdade do atendimento (o recebido, se já recebeu; senão o preço)
+  const PAY = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro', outro: 'Outro' };
+  const charged = (b) => (b.paid_at ? b.paid_cents || 0 : b.price_cents || 0);
+  const centsIn = (c) => (c == null ? '' : (c / 100).toFixed(2).replace('.', ','));
+  /** Valor digitado ("50", "49,90", "R$ 1.200") em centavos; aceita 0 (cortesia). null = vazio/ inválido. */
+  const parseMoney = (v) => {
+    const s = String(v ?? '').replace(/r\$/i, '').trim();
+    if (!s) return null;
+    if (/^[0\s.,]+$/.test(s)) return 0;
+    return parsePrice(s);
+  };
+  /** Já foi atendido? ("Atendimento feito" ou confirmado com horário que já terminou) */
+  const attended = (b, now = Date.now()) => b.status === 'done' || (b.status === 'confirmed' && new Date(b.ends_at || b.starts_at).getTime() < now);
+  // Lembretes e parabéns já mandados (ficam só neste aparelho)
+  const sentGet = (k) => { try { return new Set(JSON.parse(store.get(k) || '[]')); } catch { return new Set(); } };
+  const sentAdd = (k, id) => { const s = [...sentGet(k), id].slice(-300); store.set(k, JSON.stringify(s)); };
+  // Mensagem que começa com o nome do negócio sem "do/da" (serve para qualquer negócio)
+  const hi = (name) => `Oi${name ? ', ' + firstName(name) : ''}! Tudo bem? 😊 ${S.biz.name} aqui.`;
 
   function friendly(error) {
     const msg = error?.message || String(error);
@@ -823,9 +841,10 @@
     const p = partsOf(b.starts_at), e = partsOf(b.ends_at);
     const [lab, cls] = STATUS[b.status] || ['', ''];
     const sub = [b.status === 'block' ? (b.staff_id ? staffName(b.staff_id) : 'Todos') : svcName(b.service_id), b.status === 'block' ? '' : staffName(b.staff_id)].filter(Boolean).join(' · ');
+    const paid = b.paid_at && b.status !== 'block' ? ` · <span class="paid">pago${PAY[b.paid_method] ? ' (' + PAY[b.paid_method] + ')' : ''}</span>` : '';
     return `<button type="button" class="row booking st-${b.status}" data-booking="${b.id}">
       <span class="time"><b>${p.time}</b><small>${e.time}</small></span>
-      <span class="grow"><b>${esc(bookingName(b))}</b><small>${esc(sub)}${showDay ? ' · ' + relDay(p.date) : ''}</small></span>
+      <span class="grow"><b>${esc(bookingName(b))}</b><small>${esc(sub)}${showDay ? ' · ' + relDay(p.date) : ''}${paid}</small></span>
       <span class="chip ${cls}">${lab}</span></button>`;
   }
   function bindBookingRows(root) { $$('[data-booking]', root).forEach((el) => { el.onclick = () => openBooking(el.dataset.booking); }); }
@@ -838,8 +857,8 @@
       throw new Error(msg);
     }
     const okMsg = status === 'confirmed' ? 'Confirmado' : 'Cancelado';
-    if (data?.avisada) toast(`${okMsg} e a cliente foi avisada no WhatsApp ✅`, 'ok');
-    else toast(`${okMsg}. A cliente NÃO foi avisada pelo WhatsApp${data?.aviso ? ': ' + data.aviso : '.'}`, 'warn');
+    if (data?.avisada) toast(`${okMsg} e a pessoa foi avisada no WhatsApp ✅`, 'ok');
+    else toast(`${okMsg}. A pessoa NÃO foi avisada pelo WhatsApp${data?.aviso ? ': ' + data.aviso : '.'}`, 'warn');
   }
 
   function openBooking(id) {
@@ -856,6 +875,9 @@
       ['Profissional', esc(staffName(b.staff_id) || (b.status === 'block' ? 'Todos' : '—'))],
       ['Quando', `${esc(WD[weekdayOf(p.date)])}, ${p.date.slice(8, 10)}/${p.date.slice(5, 7)} · ${p.time}–${e.time}`],
       b.status !== 'block' && ['Valor', esc(brl(b.price_cents))],
+      b.status !== 'block' && b.status !== 'cancelled' && ['Pagamento', b.paid_at
+        ? `<span class="paid">${esc(money(b.paid_cents))} · ${esc(PAY[b.paid_method] || '')}</span>`
+        : '<span class="muted">ainda não recebido</span>'],
       ['Situação', `<span class="chip ${cls}">${lab}</span>`],
       b.note && ['Observação', esc(b.note)],
       ['Criado por', ORIGIN[b.created_by] || 'Você'],
@@ -863,9 +885,11 @@
     const acts = [];
     if (b.status === 'pending') acts.push(['confirmed', 'Confirmar e avisar', 'primary'], ['cancelled', 'Recusar e avisar', 'danger']);
     if (b.status === 'confirmed') {
-      if (past) acts.push(['done', 'Foi atendida', 'primary'], ['noshow', 'Faltou', '']);
+      if (past) acts.push(['done', 'Atendimento feito', 'primary'], ['noshow', 'Faltou', '']);
+      if (!past || b.paid_at) acts.push(['pay', b.paid_at ? 'Ver pagamento' : 'Receber pagamento (sinal)', '']);
       acts.push(['cancelled', b.client_id && !past ? 'Cancelar e avisar' : 'Cancelar', 'danger']);
     }
+    if (b.status === 'done') acts.push(['pay', b.paid_at ? 'Ver pagamento' : 'Receber pagamento', b.paid_at ? '' : 'primary']);
     if ((b.status === 'done' || b.status === 'noshow')) acts.push(['confirmed-back', 'Desfazer', '']);
     if (b.status === 'block') acts.push(['unblock', 'Remover bloqueio', 'danger']);
     if (b.client_id) acts.push(['conversa', 'Abrir conversa', 'ghost']);
@@ -874,14 +898,15 @@
     $$('[data-act]', form).forEach((btn) => {
       btn.onclick = () => busy(btn, async () => {
         const a = btn.dataset.act;
+        if (a === 'pay') return openPayment(b);
         if (a === 'conversa') {
           const conv = must(await sb.from('conversations').select('id').eq('business_id', S.biz.id).eq('client_id', b.client_id).maybeSingle());
           closeSheet();
-          if (!conv) return toast('Essa cliente ainda não tem conversa.', 'warn');
+          if (!conv) return toast('Essa pessoa ainda não tem conversa.', 'warn');
           S.conv = conv.id; return go('conversas');
         }
         if (a === 'confirmed' || (a === 'cancelled' && b.client_id && !past)) {
-          if (a === 'cancelled' && !confirm('Cancelar este horário e avisar a cliente no WhatsApp?')) return;
+          if (a === 'cancelled' && !confirm('Cancelar este horário e avisar no WhatsApp?')) return;
           await decide(b.id, a);
         } else if (a === 'unblock') {
           must(await sb.from('bookings').delete().eq('id', b.id));
@@ -890,12 +915,94 @@
           const st = a === 'confirmed-back' ? 'confirmed' : a;
           if (st === 'cancelled' && !confirm('Cancelar este horário?')) return;
           must(await sb.from('bookings').update({ status: st }).eq('id', b.id));
+          // Atendimento feito e ainda não pago: já pergunta quanto recebeu (dá para pular)
+          if (st === 'done' && !b.paid_at) {
+            go(S.tab, { quiet: true, keepScroll: true });
+            return openPayment({ ...b, status: 'done' }, { justDone: true });
+          }
           toast('Pronto.', 'ok');
         }
         closeSheet();
-        go(S.tab, { quiet: true });
+        go(S.tab, { quiet: true, keepScroll: true });
+        if (a === 'cancelled' && !past) offerWaitlist(b);
       });
     });
+  }
+
+  // ------------------------------------------------------------------ Caixa (pagamentos)
+  /** Registrar/alterar o que foi recebido de um atendimento. `back` reabre a tela de onde veio (o caixa). */
+  function openPayment(b, { justDone = false, back = null } = {}) {
+    const last = store.get('payMethod');
+    const sel = b.paid_method || (PAY[last] ? last : 'pix');
+    const val = b.paid_at ? b.paid_cents : b.price_cents;
+    const what = [svcName(b.service_id), staffName(b.staff_id)].filter(Boolean).join(' · ');
+    const form = sheet(justDone ? 'Atendimento feito ✓' : b.paid_at ? 'Pagamento' : 'Receber pagamento', `
+      <p class="pay-who"><b>${esc(bookingName(b))}</b><small>${esc(what)}${what ? ' · ' : ''}${esc(whenLabel(b.starts_at))}</small></p>
+      <label>${justDone ? 'Quanto você recebeu?' : 'Valor recebido'}<span class="money-big"><span>R$</span><input name="value" inputmode="decimal" autocomplete="off" maxlength="12" value="${esc(centsIn(val))}" placeholder="0,00"></span></label>
+      <div class="pay-opts" role="radiogroup" aria-label="Como pagou">${Object.entries(PAY).map(([k, t]) =>
+        `<label><input type="radio" name="method" value="${k}" ${k === sel ? 'checked' : ''}><span>${t}</span></label>`).join('')}</div>
+      ${b.paid_at ? `<p class="hint">Registrado ${esc(whenLabel(b.paid_at))}.</p><button type="button" class="btn ghost block" id="unpay">Desfazer pagamento</button>`
+        : justDone ? '<button type="button" class="btn ghost block" id="payLater">Receber depois</button>' : ''}`,
+    { submitText: b.paid_at ? 'Salvar' : 'Recebido', onSubmit: async (f) => {
+      const cents = parseMoney(f.get('value'));
+      if (cents == null) throw new Error('Escreva o valor recebido (ex.: 50 ou 49,90).');
+      const method = PAY[f.get('method')] ? String(f.get('method')) : 'pix';
+      must(await sb.from('bookings').update({ paid_cents: cents, paid_method: method, paid_at: b.paid_at || new Date().toISOString() }).eq('id', b.id));
+      store.set('payMethod', method);
+      toast(`Recebido ${money(cents)} · ${PAY[method]} ✅`, 'ok');
+      go(S.tab, { quiet: true, keepScroll: true });
+      if (back) { back(); return false; }
+    } });
+    $('#unpay', form)?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
+      if (!confirm('Desfazer este pagamento?')) return;
+      must(await sb.from('bookings').update({ paid_cents: null, paid_method: null, paid_at: null }).eq('id', b.id));
+      toast('Pagamento desfeito.', 'ok');
+      go(S.tab, { quiet: true, keepScroll: true });
+      if (back) back(); else closeSheet();
+    }));
+    $('#payLater', form)?.addEventListener('click', () => { toast('Ok, fica em "A receber" no caixa do dia.'); closeSheet(); });
+  }
+
+  /** Caixa de um dia: o que entrou (por forma de pagamento) e o que ainda falta receber. */
+  async function openCash(date = today()) {
+    const from = dayStartIso(date), to = dayStartIso(addDays(date, 1));
+    const [dayRes, paidRes] = await Promise.all([
+      sb.from('bookings').select(BOOK_SEL).eq('business_id', S.biz.id).in('status', ['pending', 'confirmed', 'done'])
+        .gte('starts_at', from).lt('starts_at', to).order('starts_at'),
+      sb.from('bookings').select(BOOK_SEL).eq('business_id', S.biz.id).gte('paid_at', from).lt('paid_at', to).order('paid_at'),
+    ]);
+    const dayRows = must(dayRes), paid = must(paidRes);
+    const now = Date.now();
+    const toGet = dayRows.filter((b) => attended(b, now) && !b.paid_at);
+    const coming = dayRows.filter((b) => !attended(b, now) && !b.paid_at);
+    const total = paid.reduce((s, b) => s + (b.paid_cents || 0), 0);
+    const byM = Object.keys(PAY).map((k) => [k, paid.filter((b) => b.paid_method === k).reduce((s, b) => s + (b.paid_cents || 0), 0)]).filter(([, v]) => v);
+    const toGetSum = toGet.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const comingSum = coming.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const isToday = date === today();
+    [...dayRows, ...paid].forEach((b) => S.bk.set(b.id, b));
+    const line = (b, btn) => `<div class="pend"><button type="button" class="pend-info" data-pay="${b.id}"><b>${esc(bookingName(b))}</b>
+        <small>${esc([partsOf(b.starts_at).time, svcName(b.service_id), staffName(b.staff_id)].filter(Boolean).join(' · '))}</small></button>
+        ${btn}</div>`;
+    const body = `<div class="rep-nav">
+        <button type="button" class="icon-btn" data-cash="${addDays(date, -1)}" aria-label="Dia anterior">‹</button>
+        <b>${isToday ? 'Hoje' : esc(dayLabel(date))}</b>
+        <button type="button" class="icon-btn" data-cash="${addDays(date, 1)}" aria-label="Próximo dia" ${isToday ? 'disabled style="visibility:hidden"' : ''}>›</button>
+      </div>
+      <div class="rep-tiles">
+        <div class="big"><small>Recebido</small><b>${esc(money(total))}</b>
+          <small>${byM.length ? byM.map(([k, v]) => `${PAY[k]} ${esc(money(v))}`).join(' · ') : 'nada registrado ainda'}</small></div>
+        <div><b>${esc(money(toGetSum))}</b><small>a receber (${toGet.length} atendido${toGet.length === 1 ? '' : 's'})</small></div>
+        <div><b>${esc(money(comingSum))}</b><small>${isToday ? 'ainda na agenda hoje' : 'não atendido'}</small></div>
+      </div>
+      ${toGet.length ? `<h4>A receber</h4>${toGet.map((b) => line(b, `<div class="actions"><b class="amt">${esc(brl(b.price_cents))}</b><button type="button" class="btn small primary" data-pay="${b.id}">Receber</button></div>`)).join('')}` : ''}
+      ${paid.length ? `<h4>Recebido</h4>${paid.map((b) => line(b, `<div class="actions"><span class="paid amt">${esc(money(b.paid_cents))} · ${esc(PAY[b.paid_method] || '')}</span></div>`)).join('')}` : ''}
+      ${!toGet.length && !paid.length ? '<p class="muted">Nenhum pagamento neste dia.</p>' : ''}
+      <p class="hint">Para registrar: toque no atendimento › "Receber pagamento". Quando você marca "Atendimento feito", o app já pergunta quanto recebeu.</p>`;
+    const form = sheet('Caixa do dia', body);
+    const reopen = () => openCash(date).catch(fatal);
+    $$('[data-pay]', form).forEach((el) => { el.onclick = () => openPayment(S.bk.get(el.dataset.pay), { back: reopen }); });
+    $$('[data-cash]', form).forEach((el) => { el.onclick = () => { el.disabled = true; openCash(el.dataset.cash).catch(fatal); }; });
   }
 
   // ------------------------------------------------------------------ Início
@@ -929,20 +1036,77 @@
     </section>`;
   }
 
+  /** Caixa de hoje (resumo; o toque abre o caixa completo). Só aparece se teve atendimento ou pagamento hoje. */
+  function cashCard(H, paidToday) {
+    const now = Date.now();
+    const toGet = H.filter((b) => b.status !== 'block' && attended(b, now) && !b.paid_at);
+    const got = paidToday.reduce((s, b) => s + (b.paid_cents || 0), 0);
+    if (!toGet.length && !paidToday.length) return '';
+    const toGetSum = toGet.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const byM = Object.keys(PAY).map((k) => [k, paidToday.filter((b) => b.paid_method === k).reduce((s, b) => s + (b.paid_cents || 0), 0)]).filter(([, v]) => v);
+    return `<button type="button" class="card rep-card cash-card" id="toCash">
+      <span class="grow"><small>Caixa de hoje</small><b>${esc(money(got))} <span class="muted small">recebido</span></b>
+      <small>${toGet.length ? `<span class="due">${esc(money(toGetSum))} a receber (${toGet.length})</span>` : 'Tudo recebido ✓'}${byM.length ? ' · ' + byM.map(([k, v]) => `${PAY[k]} ${esc(money(v))}`).join(' · ') : ''}</small></span><b class="go">›</b></button>`;
+  }
+  /** Lembrar quem vem amanhã (só confirmados com WhatsApp; some quando todos foram lembrados). */
+  function remindCard(rows) {
+    const sent = sentGet('lembrados');
+    const list = rows.filter((b) => b.status === 'confirmed' && b.clients?.phone);
+    if (!list.length || list.every((b) => sent.has(b.id))) return '';
+    const left = list.filter((b) => !sent.has(b.id)).length;
+    return `<section class="card"><h3>Lembrar quem vem amanhã <span class="count">${left}</span></h3>
+      <p class="hint">Um toque abre o <b>seu</b> WhatsApp com o lembrete pronto. Diminui as faltas.</p>
+      ${list.map((b) => { S.bk.set(b.id, b); const done = sent.has(b.id); return `<div class="pend${done ? ' sent' : ''}"><button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
+        <small>${esc(partsOf(b.starts_at).time)}${svcName(b.service_id) ? ' · ' + esc(svcName(b.service_id)) : ''}</small></button>
+        <div class="actions">${done ? '<span class="chip ok">✓ Lembrado</span>' : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-remind="${b.id}" href="${waLink(b.clients.phone, remindMsg(b))}">${done ? 'De novo' : 'Lembrar'}</a></div></div>`; }).join('')}
+    </section>`;
+  }
+  /** Aniversários dos próximos 7 dias; o botão de parabéns aparece no dia. */
+  function bdayCard(clients) {
+    const up = upcomingBirthdays(clients);
+    if (!up.length) return '';
+    const year = today().slice(0, 4);
+    const sent = sentGet('parabens');
+    return `<section class="card"><h3>Aniversários 🎂 <span class="count">${up.length}</span></h3>
+      ${up.slice(0, 12).map(({ c, d, i }) => { const key = c.id + '-' + year; const done = sent.has(key); return `<div class="pend"><button type="button" class="pend-info" data-client-open="${c.id}"><b>${esc(clientLabel(c))}</b>
+        <small>${i === 0 ? '<b class="today-tag">hoje</b>' : esc(dayWords(d))}</small></button>
+        <div class="actions">${i === 0 && c.phone ? `${done ? '<span class="chip ok">✓ Enviado</span>' : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-bday="${esc(key)}" href="${waLink(c.phone, bdayMsg(c))}">${done ? 'De novo' : 'Dar parabéns'}</a>` : ''}</div></div>`; }).join('')}
+    </section>`;
+  }
+  /** Vagou horário no dia que alguém da lista de espera queria. */
+  function waitCard(rows, slots) {
+    const hits = rows.filter((w) => slots.has(w.id));
+    if (!hits.length) return '';
+    return `<section class="card wait-card"><h3>Vagou horário · lista de espera <span class="count">${hits.length}</span></h3>
+      ${hits.map((w) => { const sl = slots.get(w.id); return `<div class="pend"><div class="pend-info"><b>${esc(w.name || phoneText(w.phone))}</b>
+        <small>${esc(waitSub(w))}</small><small class="free">Livre: ${esc(sl.slice(0, 4).map((s) => s.time).join(', '))}${sl.length > 4 ? '…' : ''}</small></div>
+        <div class="actions">${w.phone ? `<a class="btn small primary" target="_blank" rel="noopener" href="${waLink(w.phone, waitMsg(w, sl))}">Avisar</a>` : ''}<button type="button" class="btn small ghost" data-wbook="${w.id}">Marcar</button></div></div>`; }).join('')}
+      <button type="button" class="btn ghost block" data-open-wait>Ver lista de espera</button>
+    </section>`;
+  }
+
   VIEWS.inicio = async (opts = {}) => {
     const id = S.biz.id, t = today(), ym = ymOf(t);
-    const [pend, hoje, convs, mes, sec] = await Promise.all([
+    const [pend, hoje, convs, mes, sec, pago, amanha, aniv, espera] = await Promise.all([
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).eq('status', 'pending').gte('starts_at', new Date().toISOString()).order('starts_at').limit(50),
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).gte('starts_at', dayStartIso(t)).lt('starts_at', dayStartIso(addDays(t, 1))).in('status', ['pending', 'confirmed', 'done', 'noshow', 'block']).order('starts_at'),
       sb.from('conversations').select('id, last_message_at, clients(name, phone, username)').eq('business_id', id).eq('needs_human', true).order('last_message_at', { ascending: false }).limit(20),
-      sb.from('bookings').select('starts_at, status, price_cents').eq('business_id', id).in('status', ['done', 'confirmed'])
+      sb.from('bookings').select('starts_at, ends_at, status, price_cents, paid_cents, paid_at').eq('business_id', id).in('status', ['done', 'confirmed'])
         .gte('starts_at', dayStartIso(ym + '-01')).lt('starts_at', new Date().toISOString()).limit(5000),
       // O que a secretária (WhatsApp) e o link marcaram sozinhos nos últimos 7 dias
       sb.from('bookings').select('created_at, price_cents').eq('business_id', id).in('created_by', ['assistant', 'link'])
         .neq('status', 'cancelled').gte('created_at', dayStartIso(addDays(t, -6))).limit(2000),
+      // Caixa: o que foi recebido hoje (de atendimentos de qualquer dia, inclusive sinal)
+      sb.from('bookings').select('paid_cents, paid_method').eq('business_id', id).gte('paid_at', dayStartIso(t)).lt('paid_at', dayStartIso(addDays(t, 1))).limit(2000),
+      sb.from('bookings').select(BOOK_SEL).eq('business_id', id).eq('status', 'confirmed')
+        .gte('starts_at', dayStartIso(addDays(t, 1))).lt('starts_at', dayStartIso(addDays(t, 2))).order('starts_at').limit(100),
+      sb.from('clients').select('id, name, phone, username, birthday').eq('business_id', id).not('birthday', 'is', null).limit(5000),
+      sb.from('waitlist').select('*').eq('business_id', id).eq('status', 'waiting').gte('day', t).order('day').limit(50),
     ]);
-    const P = must(pend), H = must(hoje), C = must(convs), M = must(mes), W = must(sec);
-    const mesTotal = M.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const P = must(pend), H = must(hoje), C = must(convs), M = must(mes).filter((b) => attended(b)), W = must(sec);
+    const PG = must(pago), AM = must(amanha), BD = must(aniv), WL = must(espera);
+    const WS = WL.length ? await waitSlots(WL) : new Map();
+    const mesTotal = M.reduce((s, b) => s + charged(b), 0);
     const list = checklist();
     const done = list.filter((x) => x[0]).length;
     const hojeAtend = H.filter((b) => b.status !== 'block');
@@ -982,9 +1146,13 @@
           <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${esc(ago(c.last_message_at))}</small></span><b class="go">›</b></button>`).join('')}
       </section>`;
     }
+    html += waitCard(WL, WS);
     html += `<section class="card"><h3>Hoje, ${esc(dayLabel(t))}</h3>
       ${H.length ? `<div class="list">${H.map((b) => bookingRow(b)).join('')}</div>` : '<p class="muted">Agenda livre hoje.</p>'}
       <button type="button" class="btn ghost block" id="toAgenda">Ver agenda completa</button></section>`;
+    html += cashCard(H, PG);
+    html += remindCard(AM);
+    html += bdayCard(BD);
     html += `<button type="button" class="card rep-card" id="toReport">
       <span class="grow"><small>${esc(MONTHS[Number(ym.slice(5, 7)) - 1])} até agora</small><b>${esc(money(mesTotal))}</b>
       <small>${M.length} atendimento${M.length === 1 ? '' : 's'} · ver relatório do mês</small></span><b class="go">›</b></button>`;
@@ -996,6 +1164,18 @@
     $$('[data-goto]', v).forEach((b) => { b.onclick = () => go('ajustes', { open: b.dataset.goto }); });
     $$('[data-conv]', v).forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
     $('#toAgenda').onclick = () => go('agenda');
+    $('#toCash')?.addEventListener('click', (e) => {
+      const b = e.currentTarget;
+      if (b.disabled) return;
+      b.disabled = true;
+      openCash().catch(fatal).finally(() => { b.disabled = false; });
+    });
+    // Abriu o WhatsApp: marca como lembrado/parabenizado (neste aparelho) e atualiza o cartão
+    $$('[data-remind]', v).forEach((a) => { a.addEventListener('click', () => { sentAdd('lembrados', a.dataset.remind); setTimeout(() => S.tab === 'inicio' && go('inicio', { quiet: true, keepScroll: true }), 800); }); });
+    $$('[data-bday]', v).forEach((a) => { a.addEventListener('click', () => { sentAdd('parabens', a.dataset.bday); setTimeout(() => S.tab === 'inicio' && go('inicio', { quiet: true, keepScroll: true }), 800); }); });
+    $$('[data-client-open]', v).forEach((el) => { el.onclick = () => openClientById(el.dataset.clientOpen).catch(fatal); });
+    $$('[data-wbook]', v).forEach((el) => { el.onclick = () => { const w = WL.find((x) => x.id === el.dataset.wbook); bookFromWait(w, WS.get(w.id)); }; });
+    $('[data-open-wait]', v)?.addEventListener('click', () => openWaitlist().catch(fatal));
     $('#toReport').onclick = (e) => {
       const b = e.currentTarget;
       if (b.disabled) return;
@@ -1004,46 +1184,55 @@
     };
     $$('[data-decide]', v).forEach((btn) => {
       btn.onclick = () => busy(btn, async () => {
-        if (btn.dataset.decide === 'cancelled' && !confirm('Recusar este pedido? A cliente recebe uma mensagem pedindo para escolher outro horário.')) return;
+        if (btn.dataset.decide === 'cancelled' && !confirm('Recusar este pedido? A pessoa recebe uma mensagem pedindo para escolher outro horário.')) return;
         await decide(btn.dataset.id, btn.dataset.decide);
         go('inicio', { quiet: true });
+        if (btn.dataset.decide === 'cancelled' && S.bk.get(btn.dataset.id)) offerWaitlist(S.bk.get(btn.dataset.id));
       });
     });
   };
 
   // ------------------------------------------------------------------ Relatório do mês
-  // Atendido = marcado como "Foi atendida" ou confirmado com horário que já passou (muita gente não marca).
+  // Atendido = marcado como "Atendimento feito" ou confirmado com horário que já passou (muita gente não marca).
   // Faltas e cancelados ficam fora do faturamento.
   async function openReport(ym) {
     const cur = ymOf(today());
     const from = dayStartIso(ymAdd(ym, -1) + '-01'), mid = dayStartIso(ym + '-01'), to = dayStartIso(ymAdd(ym, 1) + '-01');
-    const [bk, nc] = await Promise.all([
-      sb.from('bookings').select('starts_at, status, price_cents, service_id, staff_id, client_id, created_by')
+    const [bk, nc, pg] = await Promise.all([
+      sb.from('bookings').select('starts_at, ends_at, status, price_cents, paid_cents, paid_at, service_id, staff_id, client_id, created_by')
         .eq('business_id', S.biz.id).neq('status', 'block').gte('starts_at', from).lt('starts_at', to).limit(10000),
       sb.from('clients').select('id', { count: 'exact', head: true }).eq('business_id', S.biz.id).gte('created_at', mid).lt('created_at', to),
+      // Recebido no mês (pela data do pagamento, inclui sinal de horário de outro mês)
+      sb.from('bookings').select('paid_cents, paid_method').eq('business_id', S.biz.id).gte('paid_at', mid).lt('paid_at', to).limit(10000),
     ]);
-    const all = must(bk);
+    const all = must(bk), paidRows = must(pg);
     if (nc.error) throw new Error(friendly(nc.error));
     const now = Date.now();
-    const attended = (b) => b.status === 'done' || (b.status === 'confirmed' && new Date(b.starts_at).getTime() < now);
     const inMonth = all.filter((b) => b.starts_at >= mid);
-    const prevRev = all.filter((b) => b.starts_at < mid && attended(b)).reduce((s, b) => s + (b.price_cents || 0), 0);
-    const A = inMonth.filter(attended);
-    const rev = A.reduce((s, b) => s + (b.price_cents || 0), 0);
+    const prevRev = all.filter((b) => b.starts_at < mid && attended(b, now)).reduce((s, b) => s + charged(b), 0);
+    const A = inMonth.filter((b) => attended(b, now));
+    const rev = A.reduce((s, b) => s + charged(b), 0);
     const ahead = inMonth.filter((b) => ['pending', 'confirmed'].includes(b.status) && new Date(b.starts_at).getTime() >= now);
     const aheadRev = ahead.reduce((s, b) => s + (b.price_cents || 0), 0);
     const noshow = inMonth.filter((b) => b.status === 'noshow').length;
     const cancelled = inMonth.filter((b) => b.status === 'cancelled').length;
-    const priced = A.filter((b) => b.price_cents != null);
-    const ticket = priced.length ? Math.round(priced.reduce((s, b) => s + b.price_cents, 0) / priced.length) : 0;
+    const priced = A.filter((b) => b.paid_at || b.price_cents != null);
+    const ticket = priced.length ? Math.round(priced.reduce((s, b) => s + charged(b), 0) / priced.length) : 0;
     const people = new Set(A.map((b) => b.client_id).filter(Boolean)).size;
     const diff = prevRev ? Math.round(((rev - prevRev) / prevRev) * 100) : null;
 
     const group = (list, key) => {
       const m = new Map();
-      for (const b of list) { const k = key(b); if (k == null) continue; const x = m.get(k) || { n: 0, c: 0 }; x.n++; x.c += b.price_cents || 0; m.set(k, x); }
+      for (const b of list) { const k = key(b); if (k == null) continue; const x = m.get(k) || { n: 0, c: 0 }; x.n++; x.c += charged(b); m.set(k, x); }
       return m;
     };
+    // Comissão: % de cada profissional sobre o valor dos atendimentos dela no mês
+    const pctOf = (sid) => { const v = S.staff.find((p) => p.id === sid)?.commission_pct; return v == null ? null : Number(v); };
+    const comRows = [...group(A, (b) => b.staff_id)].map(([k, v]) => ({ id: k, name: staffName(k) || '—', ...v, pct: pctOf(k) }))
+      .filter((r) => r.pct != null).sort((a, b) => b.c - a.c);
+    const comTotal = comRows.reduce((s, r) => s + Math.round((r.c * r.pct) / 100), 0);
+    const recTotal = paidRows.reduce((s, b) => s + (b.paid_cents || 0), 0);
+    const recRows = Object.keys(PAY).map((k) => ({ label: PAY[k], n: paidRows.filter((b) => b.paid_method === k).reduce((s, b) => s + (b.paid_cents || 0), 0) })).filter((r) => r.n);
     const bars = (rows, fmt = (r) => `${r.n}`) => {
       const max = Math.max(1, ...rows.map((r) => r.n));
       return `<div class="rep-bars">${rows.map((r) => `<div class="rep-bar"><span>${esc(r.label)}</span><i style="--w:${Math.round((r.n / max) * 100)}%"></i><em>${esc(fmt(r))}</em></div>`).join('')}</div>`;
@@ -1068,9 +1257,9 @@
         <div class="big"><small>Faturamento${ym === cur ? ' até agora' : ''}</small><b>${esc(money(rev))}</b>
           <small>${diff == null ? '' : `<span class="${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '▲' : '▼'} ${Math.abs(diff)}%</span> em relação a ${esc(MONTHS[Number(ymAdd(ym, -1).slice(5, 7)) - 1])}`}${ahead.length ? `${diff == null ? '' : ' · '}+ ${esc(money(aheadRev))} ainda agendado` : ''}</small></div>
         <div><b>${A.length}</b><small>atendimentos</small></div>
-        <div><b>${people}</b><small>clientes atendidas</small></div>
+        <div><b>${people}</b><small>pessoas atendidas</small></div>
         <div><b>${esc(money(ticket))}</b><small>valor médio por atendimento</small></div>
-        <div><b>${nc.count || 0}</b><small>clientes novas</small></div>
+        <div><b>${nc.count || 0}</b><small>clientes novos</small></div>
         <div><b>${noshow}</b><small>faltas${noshow ? ` (${pct(noshow, noshow + A.length)}%)` : ''}</small></div>
         <div><b>${cancelled}</b><small>cancelados</small></div>
       </div>
@@ -1079,8 +1268,11 @@
         <h4>Horários mais procurados</h4>${bars(hourRows)}
         ${byStaff.length > 1 ? `<h4>Quem atendeu</h4>${bars(byStaff, (r) => `${r.n} · ${money(r.c)}`)}` : ''}`
         : '<p class="muted">Nenhum atendimento neste mês.</p>'}
+      ${comRows.length ? `<h4>Comissões</h4><div class="com-list">${comRows.map((r) => `<div class="com-row"><span><b>${esc(r.name)}</b><small>${r.n} atendimento${r.n === 1 ? '' : 's'} · ${esc(money(r.c))} × ${String(r.pct).replace('.', ',')}%</small></span><b>${esc(money(Math.round((r.c * r.pct) / 100)))}</b></div>`).join('')}
+        ${comRows.length > 1 ? `<div class="com-row total"><span><b>Total de comissões</b></span><b>${esc(money(comTotal))}</b></div>` : ''}</div>` : ''}
+      ${recRows.length ? `<h4>Recebido no mês · ${esc(money(recTotal))}</h4>${bars(recRows, (r) => money(r.n))}` : ''}
       ${originRows.length ? `<h4>De onde vieram os agendamentos</h4>${bars(originRows)}` : ''}
-      <p class="hint">Conta como atendimento o que foi marcado como "Foi atendida" ou confirmado com horário que já passou. Faltas e cancelados ficam fora do faturamento.</p>`;
+      <p class="hint">Conta como atendimento o que foi marcado como "Atendimento feito" ou confirmado com horário que já passou. Faltas e cancelados ficam fora do faturamento. Quando você registra o pagamento, vale o valor recebido.${comRows.length ? ' A comissão é calculada sobre esse valor.' : ''}</p>`;
     const form = sheet('Relatório do mês', body);
     $$('[data-ym]', form).forEach((b) => { b.onclick = () => { b.disabled = true; openReport(b.dataset.ym).catch(fatal); }; });
   }
@@ -1090,8 +1282,13 @@
     const d = S.day || today();
     const start = addDays(d, -weekdayOf(d)); // domingo da semana
     const end = addDays(start, 7);
-    const rows = must(await sb.from('bookings').select(BOOK_SEL).eq('business_id', S.biz.id)
-      .gte('starts_at', dayStartIso(start)).lt('starts_at', dayStartIso(end)).neq('status', 'cancelled').order('starts_at'));
+    const [bkRes, waitRes] = await Promise.all([
+      sb.from('bookings').select(BOOK_SEL).eq('business_id', S.biz.id)
+        .gte('starts_at', dayStartIso(start)).lt('starts_at', dayStartIso(end)).neq('status', 'cancelled').order('starts_at'),
+      sb.from('waitlist').select('id', { count: 'exact', head: true }).eq('business_id', S.biz.id).eq('status', 'waiting'),
+    ]);
+    const rows = must(bkRes);
+    const waitN = waitRes.error ? 0 : waitRes.count || 0;
     const byDay = {};
     rows.forEach((b) => { (byDay[partsOf(b.starts_at).date] ||= []).push(b); });
     const t = today();
@@ -1117,6 +1314,7 @@
         <h3>${esc(WD[weekdayOf(d)])}, ${d.slice(8, 10)}/${d.slice(5, 7)} <span class="muted small">${open.length ? open.map((h) => `${h.opens.slice(0, 5)}–${h.closes.slice(0, 5)}`).join(' e ') : 'fechado'}</span></h3>
         ${list.length ? `<div class="list">${list.map((b) => bookingRow(b)).join('')}</div>` : `<p class="muted">${open.length ? 'Nenhum horário marcado neste dia.' : 'Fechado neste dia.'}</p>`}
       </section>
+      <button type="button" class="card wait-link" id="waitBtn"><span class="grow"><b>Lista de espera</b><small>${waitN ? `${waitN} pessoa${waitN > 1 ? 's' : ''} esperando vaga` : 'Ninguém esperando · toque para colocar alguém'}</small></span>${waitN ? `<span class="count">${waitN}</span>` : ''}<b class="go">›</b></button>
       <div class="fab-row"><button type="button" class="btn primary" id="newBk">+ Marcar horário</button><button type="button" class="btn ghost" id="newBlock">Bloquear horário</button></div>`;
     const v = $('#view');
     bindBookingRows(v);
@@ -1126,6 +1324,7 @@
     $('#todayBtn')?.addEventListener('click', () => { S.day = t; go('agenda', { quiet: true }); });
     $('#newBk').onclick = () => newBooking(d);
     $('#newBlock').onclick = () => newBlock(d);
+    $('#waitBtn').onclick = (e) => { const b = e.currentTarget; if (b.disabled) return; b.disabled = true; openWaitlist().catch(fatal).finally(() => { b.disabled = false; }); };
   };
 
   async function busyOn(date) {
@@ -1134,18 +1333,19 @@
   }
   const staffFor = (serviceId) => S.links.filter((l) => l.service_id === serviceId).map((l) => l.staff_id).filter((sid) => S.staff.some((p) => p.id === sid && p.active));
 
-  function newBooking(date) {
+  function newBooking(date, pre = {}) {
     const act = S.services.filter((s) => s.active);
     if (!act.length) { toast('Ative pelo menos um serviço em Ajustes primeiro.', 'warn'); return go('ajustes', { open: 'servicos' }); }
     const form = sheet('Marcar horário', `
-      <label>Serviço<select name="service">${act.map((s) => `<option value="${s.id}">${esc(s.name)} · ${s.duration_min} min · ${esc(brl(s.price_cents))}</option>`).join('')}</select></label>
+      <label>Serviço<select name="service">${act.map((s) => `<option value="${s.id}" ${s.id === pre.service_id ? 'selected' : ''}>${esc(s.name)} · ${s.duration_min} min · ${esc(brl(s.price_cents))}</option>`).join('')}</select></label>
       <label>Com quem<select name="staff"></select></label>
       <label>Dia<input type="date" name="date" value="${date}" required></label>
       <label>Horário<select name="slot"></select></label>
       <label class="other-time" hidden>Outro horário (encaixe)<input type="time" name="time" step="300"></label>
       <p class="hint" id="slotHint"></p>
-      <label>Nome da cliente<input name="name" required maxlength="80"></label>
-      <label>WhatsApp da cliente (opcional)<input name="phone" inputmode="tel" placeholder="(11) 91234-5678"></label>
+      <button type="button" class="btn ghost block" id="toWait" hidden>Colocar na lista de espera</button>
+      <label>Nome<input name="name" required maxlength="80" value="${esc(pre.name || '')}"></label>
+      <label>WhatsApp (opcional)<input name="phone" inputmode="tel" placeholder="(11) 91234-5678" value="${esc(pre.phone ? phoneText(pre.phone) : '')}"></label>
       <label>Observação (opcional)<input name="note" maxlength="200"></label>`, { submitText: 'Marcar', onSubmit: async (f) => {
       const svc = S.services.find((s) => s.id === f.get('service'));
       const chosenStaff = f.get('staff') || null;
@@ -1166,18 +1366,13 @@
       const starts = localToUtc(day, time, tz());
       const ends = new Date(starts.getTime() + svc.duration_min * MIN);
       const name = String(f.get('name')).trim();
-      let clientId = null;
-      const phone = phoneDigits(f.get('phone'));
-      if (phone) {
-        const found = must(await sb.from('clients').select('id, name').eq('business_id', S.biz.id).in('phone', phoneVariants(phone)).order('created_at').limit(1).maybeSingle());
-        clientId = found?.id || must(await sb.from('clients').insert({ business_id: S.biz.id, phone, name }).select('id').single()).id;
-        if (found && !found.name) await sb.from('clients').update({ name }).eq('id', found.id);
-      }
+      const clientId = await clientFor(phoneDigits(f.get('phone')), name);
       must(await sb.from('bookings').insert({
         business_id: S.biz.id, client_id: clientId, service_id: svc.id, staff_id: staffId,
         starts_at: starts.toISOString(), ends_at: ends.toISOString(), status: 'confirmed',
         client_name: name, price_cents: svc.price_cents, note: String(f.get('note') || '').trim(), created_by: 'owner',
       }));
+      if (pre.waitId) await sb.from('waitlist').update({ status: 'done' }).eq('id', pre.waitId); // saiu da lista de espera
       toast('Horário marcado ✅', 'ok');
       S.day = day;
       go('agenda', { quiet: true });
@@ -1189,7 +1384,8 @@
       const seq = ++fillSeq; // se a pessoa trocar de dia/serviço rápido, só a última consulta vale
       const svc = S.services.find((s) => s.id === form.service.value);
       const ids = staffFor(svc.id);
-      const prevStaff = form.staff.value;
+      const prevStaff = form.staff.value || form._preStaff;
+      form._preStaff = null;
       form.staff.innerHTML = `<option value="">Qualquer pessoa disponível</option>` + ids.map((sid) => `<option value="${sid}">${esc(staffName(sid))}</option>`).join('');
       if (ids.includes(prevStaff)) form.staff.value = prevStaff;
       const day = form.date.value;
@@ -1207,10 +1403,19 @@
       form.slot.innerHTML = slots.map((s) => `<option value="${s.time}">${s.time}${form.staff.value ? '' : ' · ' + esc(s.staffIds.map(staffName).join(', '))}</option>`).join('') + '<option value="outro">Outro horário (encaixe)…</option>';
       hint.textContent = !ids.length ? 'Ninguém está marcado para fazer esse serviço (Ajustes › Serviços).' : slots.length ? `${slots.length} horário${slots.length > 1 ? 's' : ''} livre${slots.length > 1 ? 's' : ''}.` : 'Sem horário livre neste dia. Use "encaixe" se quiser marcar assim mesmo.';
       if (!slots.length) form.slot.value = 'outro';
+      else if (form._preTime && slots.some((s) => s.time === form._preTime)) form.slot.value = form._preTime;
+      form._preTime = null;
       $('.other-time', form).hidden = form.slot.value !== 'outro';
+      $('#toWait', form).hidden = !!slots.length || !ids.length || !!pre.waitId;
     };
+    form._preStaff = pre.staff_id || null;
+    form._preTime = pre.time || null;
     form.service.onchange = fill; form.staff.onchange = fill; form.date.onchange = fill;
     form.slot.onchange = () => { $('.other-time', form).hidden = form.slot.value !== 'outro'; };
+    $('#toWait', form).onclick = () => openWaitAdd({
+      service_id: form.service.value, staff_id: form.staff.value || null, day: form.date.value,
+      name: form.elements.name.value.trim(), phone: phoneDigits(form.elements.phone.value),
+    });
     fill().catch(fatal);
   }
 
@@ -1233,6 +1438,150 @@
       S.day = day;
       go('agenda', { quiet: true });
     } });
+  }
+
+  /** Acha a cliente pelo telefone (com e sem o 9) ou cadastra. Sem telefone, devolve null. */
+  async function clientFor(phone, name) {
+    if (!phone) return null;
+    const found = must(await sb.from('clients').select('id, name').eq('business_id', S.biz.id).in('phone', phoneVariants(phone)).order('created_at').limit(1).maybeSingle());
+    if (found) { if (!found.name && name) await sb.from('clients').update({ name }).eq('id', found.id); return found.id; }
+    return must(await sb.from('clients').insert({ business_id: S.biz.id, phone, name }).select('id').single()).id;
+  }
+
+  // ------------------------------------------------------------------ Lista de espera
+  // Quem queria um horário que estava cheio. Quando vaga (cancelamento, falta de pedido…), o app mostra
+  // no Início e um toque abre o WhatsApp do dono com a mensagem pronta.
+  const PERIODS = { any: 'Qualquer horário', manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' };
+  const inPeriod = (time, p) => (p === 'manha' ? time < '12:00' : p === 'tarde' ? time >= '12:00' && time < '18:00' : p === 'noite' ? time >= '18:00' : true);
+  const dayWords = (d) => { const r = relDay(d); return r === 'hoje' || r === 'amanhã' ? r : `${WD[weekdayOf(d)].toLowerCase()} (${d.slice(8, 10)}/${d.slice(5, 7)})`; };
+  const joinOr = (xs) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' ou ' + xs[xs.length - 1]);
+
+  /** Horários livres no dia que cada pessoa da lista queria (só quem escolheu um dia, de hoje em diante). */
+  async function waitSlots(entries, maxDays = 6) {
+    const t = today();
+    const withDay = entries.filter((w) => w.day && w.day >= t);
+    const days = [...new Set(withDay.map((w) => w.day))].sort().slice(0, maxDays);
+    const busyBy = new Map(await Promise.all(days.map(async (d) => [d, await busyOn(d)])));
+    const out = new Map();
+    for (const w of withDay) {
+      if (!busyBy.has(w.day)) continue;
+      const svc = S.services.find((s) => s.id === w.service_id && s.active);
+      const staffIds = w.staff_id ? (S.staff.some((p) => p.id === w.staff_id && p.active) ? [w.staff_id] : [])
+        : svc ? staffFor(svc.id) : S.staff.filter((p) => p.active).map((p) => p.id);
+      const slots = freeSlots({
+        date: w.day, tz: tz(), durationMin: svc ? svc.duration_min : S.biz.slot_minutes, slotMinutes: S.biz.slot_minutes,
+        hours: S.hours.filter((h) => h.weekday === weekdayOf(w.day)), busy: busyBy.get(w.day), staffIds,
+        now: new Date(), minNoticeMin: S.biz.min_notice_minutes || 0,
+      }).filter((s) => inPeriod(s.time, w.period));
+      if (slots.length) out.set(w.id, slots);
+    }
+    return out;
+  }
+  function waitMsg(w, slots) {
+    const svc = svcName(w.service_id);
+    const times = (slots || []).slice(0, 3).map((s) => s.time);
+    const link = linkOn() ? `\nSe preferir, escolha por aqui: ${bookingUrl(S.biz.booking_slug)}` : '';
+    return `${hi(w.name)} Abriu um horário${svc ? ' para ' + svc : ''}${w.day ? ' ' + dayWords(w.day) : ''}${times.length ? ' às ' + joinOr(times) : ''}. Quer que eu reserve para você?${link}`;
+  }
+  const waitSub = (w) => [svcName(w.service_id) || 'Qualquer serviço', w.staff_id && staffName(w.staff_id) ? 'com ' + staffName(w.staff_id) : '',
+    w.day ? dayWords(w.day) : 'qualquer dia', w.period !== 'any' ? PERIODS[w.period]?.toLowerCase() : ''].filter(Boolean).join(' · ');
+  const bookFromWait = (w, slots) => { closeSheet(); newBooking(w.day && w.day >= today() ? w.day : today(), { service_id: w.service_id, staff_id: w.staff_id, name: w.name, phone: w.phone, waitId: w.id, time: slots?.[0]?.time }); };
+
+  async function openWaitlist() {
+    const rows = must(await sb.from('waitlist').select('*').eq('business_id', S.biz.id).eq('status', 'waiting').order('created_at').limit(200));
+    const slots = await waitSlots(rows, 10);
+    const t = today();
+    const rank = (w) => (slots.has(w.id) ? 0 : w.day && w.day < t ? 3 : w.day ? 1 : 2);
+    rows.sort((a, b) => rank(a) - rank(b) || String(a.day || '9').localeCompare(String(b.day || '9')));
+    const body = `<p class="hint">Quem queria um horário que estava cheio. Quando vagar, aparece no Início e você avisa com um toque.</p>
+      <button type="button" class="btn primary block" id="waitAdd">+ Colocar alguém na lista</button>
+      ${rows.length ? rows.map((w) => {
+        const sl = slots.get(w.id);
+        const past = w.day && w.day < t;
+        return `<div class="pend wait-item${past ? ' past' : ''}"><div class="pend-info"><b>${esc(w.name || phoneText(w.phone) || 'Sem nome')}</b>
+          <small>${esc(waitSub(w))}${w.note ? ' · ' + esc(w.note) : ''}</small>
+          ${sl ? `<small class="free">Vagou: ${esc(sl.slice(0, 4).map((s) => s.time).join(', '))}${sl.length > 4 ? '…' : ''}</small>` : past ? '<small class="muted">O dia já passou</small>' : `<small class="muted">Na lista desde ${esc(relDay(partsOf(w.created_at).date))}</small>`}</div>
+          <div class="actions">${w.phone ? `<a class="btn small ${sl ? 'primary' : 'ghost'}" target="_blank" rel="noopener" href="${waLink(w.phone, waitMsg(w, sl))}">Avisar</a>` : ''}
+            <button type="button" class="btn small ghost" data-wbook="${w.id}">Marcar</button>
+            <button type="button" class="icon-btn small" data-wdel="${w.id}" aria-label="Tirar da lista" title="Tirar da lista">✕</button></div></div>`;
+      }).join('') : '<p class="muted center">Ninguém na lista agora.</p>'}`;
+    const form = sheet('Lista de espera', body);
+    $('#waitAdd', form).onclick = () => openWaitAdd();
+    $$('[data-wbook]', form).forEach((el) => { el.onclick = () => { const w = rows.find((x) => x.id === el.dataset.wbook); bookFromWait(w, slots.get(w.id)); }; });
+    $$('[data-wdel]', form).forEach((el) => { el.onclick = () => busy(el, async () => {
+      must(await sb.from('waitlist').update({ status: 'done' }).eq('id', el.dataset.wdel));
+      toast('Saiu da lista.', 'ok');
+      await openWaitlist();
+      if (['inicio', 'agenda'].includes(S.tab)) go(S.tab, { quiet: true, keepScroll: true });
+    }); });
+  }
+
+  function openWaitAdd(pre = {}) {
+    const act = S.services.filter((s) => s.active);
+    const staff = S.staff.filter((p) => p.active);
+    const form = sheet('Colocar na lista de espera', `
+      <label>Nome<input name="name" required maxlength="80" value="${esc(pre.name || '')}"></label>
+      <label>WhatsApp<input name="phone" inputmode="tel" placeholder="(11) 91234-5678" value="${esc(pre.phone ? phoneText(pre.phone) : '')}"></label>
+      <label>Serviço<select name="service"><option value="">Qualquer serviço</option>${act.map((s) => `<option value="${s.id}" ${s.id === pre.service_id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
+      ${staff.length > 1 ? `<label>Com quem<select name="staff"><option value="">Qualquer pessoa</option>${staff.map((p) => `<option value="${p.id}" ${p.id === pre.staff_id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
+      <label>Dia que queria <span class="muted small">(vazio = qualquer dia)</span><input type="date" name="day" min="${today()}" value="${esc(pre.day || '')}"></label>
+      <div class="seg" role="radiogroup" aria-label="Período">${Object.entries(PERIODS).map(([k, t]) => `<label class="seg-opt"><input type="radio" name="period" value="${k}" ${k === 'any' ? 'checked' : ''}><span>${k === 'any' ? 'Qualquer' : t}</span></label>`).join('')}</div>
+      <label>Observação (opcional)<input name="note" maxlength="200" placeholder="Ex.: só depois das 17h"></label>`,
+    { submitText: 'Colocar na lista', onSubmit: async (f) => {
+      const name = String(f.get('name')).trim();
+      const phone = phoneDigits(f.get('phone'));
+      if (!name) throw new Error('Escreva o nome.');
+      if (f.get('phone') && !phone) throw new Error('Confira o WhatsApp.');
+      const day = String(f.get('day') || '') || null;
+      if (day && day < today()) throw new Error('Escolha um dia de hoje em diante.');
+      const clientId = await clientFor(phone, name);
+      must(await sb.from('waitlist').insert({
+        business_id: S.biz.id, client_id: clientId, name, phone: phone || null, service_id: f.get('service') || null,
+        staff_id: f.get('staff') || null, day, period: PERIODS[f.get('period')] ? String(f.get('period')) : 'any', note: String(f.get('note') || '').trim(),
+      }));
+      toast('Na lista de espera ✅ Quando vagar, aparece no Início.', 'ok');
+      if (['inicio', 'agenda'].includes(S.tab)) go(S.tab, { quiet: true, keepScroll: true });
+    } });
+    return form;
+  }
+
+  /** Depois de cancelar um horário: se tem gente esperando por aquele dia (ou qualquer dia), mostra a lista. */
+  async function offerWaitlist(b) {
+    try {
+      const d = partsOf(b.starts_at).date;
+      const rows = must(await sb.from('waitlist').select('id, day').eq('business_id', S.biz.id).eq('status', 'waiting').limit(200));
+      const n = rows.filter((w) => !w.day || w.day === d).length;
+      if (!n) return;
+      toast(`Vagou um horário e tem ${n} pessoa${n > 1 ? 's' : ''} na lista de espera.`, 'ok');
+      await openWaitlist();
+    } catch (err) { console.error(err); }
+  }
+
+  // ------------------------------------------------------------------ Lembretes e aniversários
+  // Enquanto a Meta não libera mensagem automática, o app abre o WhatsApp do dono com o texto pronto.
+  function remindMsg(b) {
+    const p = partsOf(b.starts_at);
+    const svc = svcName(b.service_id), pro = staffName(b.staff_id);
+    const many = S.staff.filter((x) => x.active).length > 1;
+    return `${hi(b.client_name || b.clients?.name)} Passando para lembrar do seu horário ${dayWords(p.date)} às ${p.time}${svc ? ': ' + svc : ''}${pro && many ? ' com ' + pro : ''}.`
+      + `${S.biz.address ? `\n📍 ${S.biz.address}` : ''}\nSe precisar remarcar, é só responder aqui. Até lá!`;
+  }
+  const bdayMsg = (c) => `Feliz aniversário${c.name ? ', ' + firstName(c.name) : ''}! 🎉 Desejamos um dia incrível e um ano cheio de coisas boas. Um abraço de ${S.biz.name}!`;
+  const mdOf = (d) => d.slice(5, 10);
+  const isLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  /** Aniversários de hoje até daqui a `n` dias (29/02 cai em 28/02 nos anos que não são bissextos). */
+  function upcomingBirthdays(clients, n = 6) {
+    const t = today();
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const d = addDays(t, i);
+      const md = mdOf(d);
+      for (const c of clients) {
+        const b = c.birthday === '02-29' && !isLeap(Number(d.slice(0, 4))) ? '02-28' : c.birthday;
+        if (b === md) out.push({ c, d, i });
+      }
+    }
+    return out;
   }
 
   // ------------------------------------------------------------------ Conversas
@@ -1268,7 +1617,7 @@
           <span class="avatar">${esc(initials(clientLabel(c.clients)))}</span>
           <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${m ? esc((who[m.author] + String(m.body).replace(/^\[foto\]/, '📷 Foto')).slice(0, 90)) : ''}</small></span>
           <span class="meta"><small>${esc(ago(c.last_message_at))}</small>${c.needs_human ? '<i class="chip warn">Você</i>' : paused ? '<i class="chip muted">Pausada</i>' : ''}</span></button>`;
-      }).join('')}</div>` : `<div class="empty">${S.convFilter === 'ajuda' ? 'Nenhuma conversa esperando você. 🎉' : 'Ainda não há conversas. Quando uma cliente mandar mensagem no WhatsApp do negócio, ela aparece aqui.'}</div>`}`;
+      }).join('')}</div>` : `<div class="empty">${S.convFilter === 'ajuda' ? 'Nenhuma conversa esperando você. 🎉' : 'Ainda não há conversas. Quando alguém mandar mensagem no WhatsApp do negócio, a conversa aparece aqui.'}</div>`}`;
     $$('[data-f]').forEach((b) => { b.onclick = () => { S.convFilter = b.dataset.f; go('conversas', { quiet: true }); }; });
     $$('[data-conv]').forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
   }
@@ -1276,7 +1625,7 @@
   // Erros comuns da Meta em português
   function sendErrorText(e) {
     const s = String(e);
-    if (s.includes('131047')) return 'Passou de 24 h desde a última mensagem da cliente; o WhatsApp bloqueia.';
+    if (s.includes('131047')) return 'Passou de 24 h desde a última mensagem da pessoa; o WhatsApp bloqueia.';
     if (s.includes('131026')) return 'Esse número não recebe mensagens (pode não ter WhatsApp).';
     if (s.includes('131056')) return 'Muitas mensagens seguidas para essa pessoa. Espere um pouco.';
     if (s.includes('131031')) return 'A conta do WhatsApp do negócio está bloqueada ou restrita pela Meta. Avise a equipe Entre.';
@@ -1319,7 +1668,7 @@
       </div>
       <div class="thread" id="thread">${bubbles || '<p class="muted center">Sem mensagens.</p>'}</div>
       <form id="composer" class="composer">
-        ${expired ? `<p class="hint">Passaram 24 h desde a última mensagem da cliente: o WhatsApp não deixa responder por aqui. ${phone ? `<a href="${waLink(phone)}" target="_blank" rel="noopener">Chamar pelo seu WhatsApp</a>` : ''}</p>` : ''}
+        ${expired ? `<p class="hint">Passaram 24 h desde a última mensagem da pessoa: o WhatsApp não deixa responder por aqui. ${phone ? `<a href="${waLink(phone)}" target="_blank" rel="noopener">Chamar pelo seu WhatsApp</a>` : ''}</p>` : ''}
         <div class="compose-row"><textarea name="texto" rows="1" maxlength="4000" placeholder="Escreva sua resposta…">${esc(draft)}</textarea>
         <button type="submit" class="btn primary">Enviar</button></div>
         <small class="hint">Quando você responde, a secretária fica em silêncio nesta conversa por 12 h.</small>
@@ -1353,7 +1702,7 @@
   VIEWS.clientes = async (opts = {}) => {
     const id = S.biz.id;
     const [cl, bk] = await Promise.all([
-      sb.from('clients').select('id, name, phone, username, notes, created_at').eq('business_id', id).order('name').limit(2000),
+      sb.from('clients').select('id, name, phone, username, notes, birthday, created_at').eq('business_id', id).order('name').limit(2000),
       sb.from('bookings').select('client_id, starts_at, status, service_id').eq('business_id', id).not('client_id', 'is', null).in('status', ['pending', 'confirmed', 'done', 'noshow']).order('starts_at').limit(5000),
     ]);
     const clients = must(cl), books = must(bk);
@@ -1390,8 +1739,8 @@
     const qd = q.replace(/\D/g, '');
     const shown = clients.filter((c) => !q || (c.name || '').toLowerCase().includes(q) || (c.username || '').toLowerCase().includes(q) || (qd && (c.phone || '').includes(qd)));
     const linkLine = linkOn() ? `\nSe preferir, escolha o melhor horário por aqui: ${bookingUrl(S.biz.booking_slug)}` : '';
-    const msgFor = ({ c, svc, days }) => `Oi${c.name ? ', ' + firstName(c.name) : ''}! Tudo bem? Aqui é do ${S.biz.name} 😊 Já faz ${days} dias do seu último ${svc.name.toLowerCase()}. Quer que eu reserve um horário para você?${linkLine}`;
-    const goneMsg = ({ c }) => `Oi${c.name ? ', ' + firstName(c.name) : ''}! Tudo bem? Aqui é do ${S.biz.name} 😊 Faz tempo que você não aparece, estamos com saudade! Quer que eu reserve um horário para você?${linkLine}`;
+    const msgFor = ({ c, svc, days }) => `${hi(c.name)} Já faz ${days} dias desde o seu último atendimento (${svc.name}). Quer que eu reserve um horário para você?${linkLine}`;
+    const goneMsg = ({ c }) => `${hi(c.name)} Faz tempo que você não aparece, sentimos sua falta! Quer que eu reserve um horário para você?${linkLine}`;
     const goneShown = S.goneAll ? gone : gone.slice(0, 8);
 
     if (stale(opts)) return;
@@ -1401,9 +1750,9 @@
         ${due.slice(0, 30).map((d) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(d.c))}</b><small>${esc(d.svc.name)} há ${d.days} dias · retorno sugerido: ${d.svc.return_days} dias</small></div>
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(d.c.phone, msgFor(d))}">Chamar no WhatsApp</a></div></div>`).join('')}
       </section>` : ''}
-      ${everCame ? `<section class="card"><h3>Clientes sumidas ${gone.length ? `<span class="count">${gone.length}</span>` : ''}</h3>
+      ${everCame ? `<section class="card"><h3>Quem sumiu ${gone.length ? `<span class="count">${gone.length}</span>` : ''}</h3>
         <p class="hint">Já vieram aqui, não voltam há mais de ${goneDays} dias e não têm horário marcado. O botão abre o <b>seu</b> WhatsApp com a mensagem pronta${linkOn() ? ' (com o seu link de agendamento)' : ''}.</p>
-        <div class="seg gone-seg" role="group" aria-label="Sumidas há quanto tempo">${[30, 60, 90].map((n) => `<button type="button" data-gone="${n}" class="${goneDays === n ? 'sel' : ''}">${n} dias</button>`).join('')}</div>
+        <div class="seg gone-seg" role="group" aria-label="Sumiu há quanto tempo">${[30, 60, 90].map((n) => `<button type="button" data-gone="${n}" class="${goneDays === n ? 'sel' : ''}">${n} dias</button>`).join('')}</div>
         ${gone.length ? goneShown.map((g) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(g.c))}</b><small>${g.x.visits} visita${g.x.visits === 1 ? '' : 's'} · última há ${g.days} dias (${esc(dayLabel(partsOf(g.x.last.starts_at).date))})</small></div>
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(g.c.phone, goneMsg(g))}">Chamar no WhatsApp</a></div></div>`).join('')
           + (gone.length > goneShown.length ? `<button type="button" class="btn ghost block" id="goneAll">Ver todas (${gone.length})</button>` : '')
@@ -1413,7 +1762,7 @@
       <p class="muted small">${clients.length} cliente${clients.length === 1 ? '' : 's'}</p>
       ${shown.length ? `<div class="card list flush">${shown.slice(0, 300).map((c) => {
         const x = info.get(c.id);
-        const sub = [x.visits ? `${x.visits} visita${x.visits > 1 ? 's' : ''}` : 'nova', x.last ? 'última ' + relDay(partsOf(x.last.starts_at).date) : '', x.next ? 'próxima ' + whenLabel(x.next.starts_at) : '', x.noshow ? `${x.noshow} falta${x.noshow > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+        const sub = [c.birthday && c.birthday === mdOf(t) ? 'aniversário hoje 🎂' : '', x.visits ? `${x.visits} visita${x.visits > 1 ? 's' : ''}` : 'sem visitas ainda', x.last ? 'última ' + relDay(partsOf(x.last.starts_at).date) : '', x.next ? 'próxima ' + whenLabel(x.next.starts_at) : '', x.noshow ? `${x.noshow} falta${x.noshow > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
         return `<button type="button" class="row" data-client="${c.id}"><span class="avatar">${esc(initials(clientLabel(c)))}</span>
           <span class="grow"><b>${esc(clientLabel(c))}</b><small>${esc(sub)}</small></span><b class="go">›</b></button>`;
       }).join('')}</div>` : `<div class="empty">${clients.length ? 'Ninguém encontrado.' : 'As clientes aparecem aqui sozinhas quando mandam mensagem ou são marcadas.'}</div>`}`;
@@ -1424,16 +1773,32 @@
     $('#goneAll')?.addEventListener('click', () => { S.goneAll = true; go('clientes', { quiet: true, keepScroll: true }); });
   };
 
+  /** Abre a ficha de qualquer cliente (de fora da aba Clientes, ex.: aniversários no Início). */
+  async function openClientById(id) {
+    if (!S.clientCache?.clients.some((c) => c.id === id)) {
+      const c = must(await sb.from('clients').select('id, name, phone, username, notes, birthday, created_at').eq('id', id).single());
+      const bk = must(await sb.from('bookings').select('starts_at, status').eq('client_id', id).in('status', ['confirmed', 'done', 'noshow']).limit(1000));
+      const now = new Date(), x = { visits: 0, noshow: 0, last: null, next: null };
+      for (const b of bk) { if (b.status === 'noshow') x.noshow++; else if (new Date(b.starts_at) < now) x.visits++; }
+      S.clientCache = { clients: [c], info: new Map([[id, x]]), books: [] };
+    }
+    return openClient(id);
+  }
+
   async function openClient(id) {
     const { clients, info } = S.clientCache;
     const c = clients.find((x) => x.id === id);
     const x = info.get(id);
     const hist = must(await sb.from('bookings').select(BOOK_SEL).eq('client_id', id).order('starts_at', { ascending: false }).limit(30));
     const conv = must(await sb.from('conversations').select('id').eq('business_id', S.biz.id).eq('client_id', id).maybeSingle());
+    const [bm, bd] = c.birthday ? c.birthday.split('-').map(Number) : [0, 0];
     const form = sheet(clientLabel(c), `
       <label>Nome<input name="name" value="${esc(c.name)}" maxlength="80"></label>
+      <div class="bday-row"><span>Aniversário <span class="muted small">(opcional)</span></span>
+        <div class="two"><select name="bd" aria-label="Dia"><option value="">Dia</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}" ${bd === i + 1 ? 'selected' : ''}>${i + 1}</option>`).join('')}</select>
+        <select name="bm" aria-label="Mês"><option value="">Mês</option>${MONTHS.map((m, i) => `<option value="${i + 1}" ${bm === i + 1 ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select></div></div>
       <label>Anotações <span class="muted small">(só você e a secretária veem)</span>
-        <textarea name="notes" rows="2" maxlength="500" placeholder="Ex.: prefere a Bia; gosta de cores claras; alérgica a acetona">${esc(c.notes || '')}</textarea></label>
+        <textarea name="notes" rows="2" maxlength="500" placeholder="Ex.: prefere horário cedo; tem alergia a…; gosta de conversar">${esc(c.notes || '')}</textarea></label>
       <dl class="details">
         ${c.phone ? `<dt>WhatsApp</dt><dd><a href="${waLink(c.phone)}" target="_blank" rel="noopener">${esc(phoneText(c.phone))}</a></dd>` : ''}
         ${c.username ? `<dt>Usuário</dt><dd>@${esc(c.username)}</dd>` : ''}
@@ -1444,9 +1809,13 @@
       <h4>Histórico</h4>
       ${hist.length ? `<div class="list">${hist.map((b) => bookingRow(b, { showDay: true })).join('')}</div>` : '<p class="muted">Nenhum agendamento ainda.</p>'}`,
     { submitText: 'Salvar', onSubmit: async (f) => {
-      must(await sb.from('clients').update({ name: String(f.get('name')).trim(), notes: String(f.get('notes') || '').trim().slice(0, 500) }).eq('id', id));
+      const d = Number(f.get('bd')) || 0, m = Number(f.get('bm')) || 0;
+      if (!!d !== !!m) throw new Error('Para o aniversário, escolha o dia e o mês (ou deixe os dois vazios).');
+      if (d && d > [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]) throw new Error(`Esse dia não existe em ${MONTHS[m - 1]}.`);
+      const birthday = d ? `${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` : null;
+      must(await sb.from('clients').update({ name: String(f.get('name')).trim(), notes: String(f.get('notes') || '').trim().slice(0, 500), birthday }).eq('id', id));
       toast('Salvo.', 'ok');
-      go('clientes', { quiet: true });
+      go(S.tab, { quiet: true, keepScroll: true });
     } });
     $('#openConv', form)?.addEventListener('click', () => { closeSheet(); S.conv = conv.id; go('conversas'); });
     bindBookingRows(form);
@@ -1496,7 +1865,7 @@
       </details>
       <details class="card" data-sec="link" ${open('link')}><summary>Link de agendamento</summary>
         <form id="linkForm">
-          <p class="hint">Uma página onde a cliente escolhe o serviço, o dia e o horário sozinha, sem precisar conversar. Coloque na bio do Instagram, no Google e no status do WhatsApp.</p>
+          <p class="hint">Uma página onde a pessoa escolhe o serviço, o dia e o horário, sem precisar conversar. Coloque na bio do Instagram, no Google e no status do WhatsApp.</p>
           <label class="switch"><input type="checkbox" name="on" ${b.booking_link_enabled ? 'checked' : ''}><span>Deixar clientes marcarem pelo link</span></label>
           <label>Endereço do link<span class="slug-field"><span>agendar.html?n=</span><input name="slug" maxlength="40" autocapitalize="off" autocomplete="off" spellcheck="false" value="${esc(b.booking_slug || slugify(b.name))}"></span></label>
           <p class="hint">Só letras minúsculas, números e tracinho. Ex.: studio-da-ana</p>
@@ -1524,7 +1893,7 @@
       </details>
       <details class="card" data-sec="equipe" ${open('equipe')}><summary>Quem atende</summary>
         <div class="list">${S.staff.map((p) => `<div class="row static ${p.active ? '' : 'inactive'}"><span class="avatar">${esc(initials(p.name))}</span>
-          <span class="grow"><b>${esc(p.name)}</b><small>${S.links.filter((l) => l.staff_id === p.id).length} serviço(s)</small></span>
+          <span class="grow"><b>${esc(p.name)}</b><small>${S.links.filter((l) => l.staff_id === p.id).length} serviço(s)${p.commission_pct != null ? ` · comissão ${esc(String(Number(p.commission_pct)).replace('.', ','))}%` : ''}</small></span>
           <button type="button" class="btn small ghost" data-staff-edit="${p.id}">Editar</button></div>`).join('') || '<p class="muted">Ninguém cadastrado.</p>'}</div>
         <form id="addStaff" class="inline"><input name="name" placeholder="Nome de quem atende" maxlength="60" required><button class="btn" type="submit">Adicionar</button></form>
       </details>
@@ -1792,9 +2161,14 @@
     sheet('Editar pessoa', `
       <label>Nome<input name="name" value="${esc(p.name)}" required maxlength="60"></label>
       <label class="switch"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}><span>Atendendo (desligue em férias ou se saiu)</span></label>
-      <p class="hint">Os horários já marcados com essa pessoa continuam na agenda.</p>`,
+      <p class="hint">Os horários já marcados com essa pessoa continuam na agenda.</p>
+      <label>Comissão <span class="muted small">(opcional)</span><span class="pct-in"><input name="pct" inputmode="decimal" maxlength="5" value="${p.commission_pct == null ? '' : esc(String(Number(p.commission_pct)).replace('.', ','))}" placeholder="Ex.: 40"><span>%</span></span></label>
+      <p class="hint">Quanto essa pessoa ganha de cada atendimento. O relatório do mês mostra quanto pagar. Deixe vazio se não tiver comissão.</p>`,
     { onSubmit: async (f) => {
-      must(await sb.from('staff').update({ name: String(f.get('name')).trim(), active: !!f.get('active') }).eq('id', id));
+      const raw = String(f.get('pct') || '').replace('%', '').replace(',', '.').trim();
+      const pct = raw === '' ? null : Number(raw);
+      if (pct != null && !(pct >= 0 && pct <= 100)) throw new Error('A comissão precisa ser um número de 0 a 100.');
+      must(await sb.from('staff').update({ name: String(f.get('name')).trim(), active: !!f.get('active'), commission_pct: pct == null ? null : Math.round(pct * 100) / 100 }).eq('id', id));
       toast('Salvo.', 'ok');
       go('ajustes', { quiet: true, open: 'equipe' });
     } });
