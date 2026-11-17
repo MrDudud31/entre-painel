@@ -3,11 +3,14 @@
 (() => {
   'use strict';
   const CFG = window.ENTRE_CONFIG;
+  let splash = 'on', splashTo = null; // abertura: 'on' desenhando → 'wait' já sabe a tela → 'off'
   // Tela inicial: mostra "Carregando…" ou um erro com botão, em vez de ficar em branco.
   function bootMsg(text, retry) {
     const el = document.getElementById('boot');
     if (!el) return;
+    splash = 'error';
     el.hidden = false;
+    el.classList.remove('leave', 'out');
     el.innerHTML = '<div class="card narrow center"><p></p></div>';
     el.querySelector('p').textContent = text;
     if (retry) {
@@ -266,39 +269,55 @@
   }
 
   function show(id) {
+    // Enquanto a abertura roda, só guarda pra onde ir; ela troca de tela quando o símbolo terminar.
+    if (splash === 'on' || splash === 'wait') {
+      splashTo = id;
+      if (splash === 'on') { splash = 'wait'; splashReady.then(leaveSplash); }
+      return;
+    }
     for (const s of ['login', 'onboard', 'main']) $('#' + s).hidden = s !== id;
     const boot = $('#boot');
     if (boot) boot.hidden = true;
-    if (id === 'login') loginIntro();
   }
 
-  // Abertura da tela de entrar (só na primeira vez que abre): o símbolo se desenha sozinho
-  // no meio da tela, desliza pro cantinho dele e aí aparecem o nome, os campos e o botão.
-  let introDone = false;
-  function loginIntro() {
-    if (introDone) return;
-    introDone = true;
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const sec = $('#login'), badge = $('.brand .logo-badge', sec);
-    const fly = badge.cloneNode(true);
-    $('.entre-logo', badge).classList.remove('anim'); // o de verdade já aparece pronto
-    fly.classList.add('logo-fly');
-    fly.style.setProperty('--s', '1.6');
-    sec.classList.add('intro');
-    document.body.append(fly);
-    const finish = () => {
-      if (!fly.isConnected) return;
-      fly.remove();
-      sec.classList.remove('intro');
-      sec.classList.add('reveal');
+  // Abertura (toda vez que o app abre, logado ou não): o símbolo se desenha sozinho no meio
+  // da tela enquanto o resto carrega por trás. Terminou o desenho (e o carregamento):
+  // - sem login: o símbolo desliza pro cantinho dele e aparecem o nome, os campos e o botão;
+  // - logado: a abertura some suave e o painel já está pronto embaixo.
+  const splashReady = new Promise((res) => {
+    const dot = document.querySelector('#boot .entre-logo .d:last-of-type');
+    const a = dot && dot.getAnimations ? dot.getAnimations()[0] : null;
+    if (a) a.finished.then(() => setTimeout(res, 300), res); // vale mesmo se o desenho já acabou
+    setTimeout(res, 3000); // segurança: nunca prende a pessoa aqui
+  });
+  function leaveSplash() {
+    if (splash !== 'wait') return; // um aviso de erro já tomou a tela
+    splash = 'off';
+    const id = splashTo, boot = $('#boot'), badge = $('.boot-logo .logo-badge', boot);
+    for (const s of ['login', 'onboard', 'main']) $('#' + s).hidden = s !== id;
+    const sec = $('#' + id);
+    let done = false;
+    const end = (reveal) => {
+      if (done) return;
+      done = true;
+      boot.hidden = true;
+      boot.classList.remove('leave', 'out');
+      if (badge) badge.style.transform = '';
+      if (reveal) { sec.classList.remove('intro'); sec.classList.add('reveal'); }
     };
-    setTimeout(() => {
-      const r = badge.getBoundingClientRect(), v = document.documentElement;
-      fly.classList.add('go');
-      fly.style.transform = `translate(${r.left + r.width / 2 - v.clientWidth / 2}px, ${r.top + r.height / 2 - v.clientHeight / 2}px) scale(1)`;
-      fly.addEventListener('transitionend', finish, { once: true });
-      setTimeout(finish, 1100);
-    }, 1900);
+    const target = id === 'login' && $('.brand .logo-badge', sec);
+    if (target && badge && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      sec.classList.add('intro');
+      const to = target.getBoundingClientRect(), from = badge.getBoundingClientRect();
+      boot.classList.add('leave');
+      badge.style.transform = `translate(${to.left + to.width / 2 - from.left - from.width / 2}px, ${to.top + to.height / 2 - from.top - from.height / 2}px) scale(${to.width / from.width})`;
+      badge.addEventListener('transitionend', () => end(true), { once: true });
+      setTimeout(() => end(true), 1100);
+    } else {
+      if (id === 'login') sec.classList.add('reveal');
+      boot.classList.add('out');
+      setTimeout(() => end(false), 450);
+    }
   }
 
   // ------------------------------------------------------------------ login

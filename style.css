@@ -154,7 +154,7 @@ body {
 @keyframes logo-draw-loop { 0% { stroke-dashoffset: 240 } 45%, 100% { stroke-dashoffset: 0 } }
 @keyframes logo-dots-loop { 0%, 45% { opacity: 0 } 55% { opacity: 1; transform: translateY(-3px) } 65%, 92% { opacity: 1; transform: none } 100% { opacity: 0 } }
 @media (prefers-reduced-motion: reduce) {
-  .entre-logo .b, .entre-logo .d { animation: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; }
+  .entre-logo:not(.splash) .b, .entre-logo:not(.splash) .d { animation: none !important; stroke-dashoffset: 0 !important; opacity: 1 !important; } /* a abertura sempre desenha */
   * { transition-duration: 0s !important; }
 }
 [hidden] { display: none !important; }
@@ -221,10 +221,20 @@ legend { font-size: .9rem; font-weight: 600; padding: 0 .3rem; }
 .brand { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.4rem; }
 .brand b { display: block; font-size: 1.6rem; line-height: 1.1; }
 .brand small { color: var(--muted); }
-/* Abertura da tela de entrar: o símbolo aparece sozinho no meio, vai pro canto e o resto surge */
-.logo-fly { position: fixed; left: 50%; top: 50%; margin: -28px 0 0 -28px; z-index: 50; pointer-events: none; transform: translate(0, 0) scale(var(--s)); animation: fly-in .6s cubic-bezier(.2, .8, .2, 1) backwards; }
-.logo-fly.go { transition: transform .8s cubic-bezier(.65, 0, .25, 1); }
-@keyframes fly-in { from { opacity: 0; transform: translate(0, 0) scale(calc(var(--s) * .6)); } }
+/* Abertura (toda vez que o app abre): o símbolo se desenha no meio e o app carrega por trás.
+   Sem login ele desliza pro canto (.leave); logado a abertura some suave (.out). */
+#boot { position: fixed; inset: 0; z-index: 40; min-height: 0; overflow: auto; }
+#boot::before { content: ""; position: fixed; inset: 0; z-index: -1; background-color: var(--bg); background-image: var(--bg-pat); background-size: var(--bg-size); }
+#boot .boot-logo .logo-badge { animation: splash-in .5s cubic-bezier(.2, .8, .2, 1) backwards; }
+#boot .loading { padding: 0; opacity: 0; animation: splash-wait .4s ease 2.6s forwards; } /* só aparece se a internet estiver lenta */
+#boot.leave::before { animation: splash-bg-out .5s ease forwards; }
+#boot.leave .loading { visibility: hidden; }
+#boot.leave .boot-logo .logo-badge { transition: transform .8s cubic-bezier(.65, 0, .25, 1); }
+#boot.out { animation: splash-out .45s ease forwards; pointer-events: none; }
+@keyframes splash-in { from { opacity: 0; transform: scale(.7); } }
+@keyframes splash-wait { to { opacity: 1; } }
+@keyframes splash-bg-out { to { opacity: 0; } }
+@keyframes splash-out { to { opacity: 0; transform: scale(1.04); } }
 #login.intro .card.narrow { background-color: transparent; border-color: transparent; box-shadow: none; }
 #login.intro .brand .logo-badge, #login.intro .rv { opacity: 0; }
 #login.reveal .card.narrow { animation: card-in .5s ease-out backwards; }
