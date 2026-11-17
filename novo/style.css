@@ -725,3 +725,39 @@ dialog#sheet::backdrop { background: rgba(20, 12, 16, .45); }
 .gb.st-done { opacity: .7; }
 .gb.st-noshow { border-left-color: var(--bad); background: var(--bad-soft); }
 .gb.risky b::after { content: " ⚠"; color: var(--bad); }
+
+/* ---- Sem caixinhas (17/11) ----
+   As partes da tela ficam direto no fundo, separadas por uma linha fina e espaço,
+   como numa lista de app de banco ou do WhatsApp. Vale para o painel e a página do cliente. */
+.card {
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+  padding: 20px 0; margin: 0; border-top: 1px solid var(--line);
+}
+:root[data-style="editorial"] .card { border-top-color: var(--ink); }
+.card.flush { padding: 12px 0; }
+.card.flush .row { padding: .75rem 0; }
+.greet + .card, .stats + .card, .banner + .card, .cover + .card { margin-top: 4px; }
+#view > .card:first-child, .ag-wrap > .card:first-child { border-top: 0; padding-top: 6px; }
+.card.narrow, .card.wiz { border-top: 0; padding: 8px 4px; background: none; }
+.fill-card, .wait-card { border-left: 0; }
+.win-card { background: none; }
+.win-night { border-top: 0; padding-top: 0; }
+.card h3 { margin-bottom: .6rem; }
+/* números do topo: lado a lado, separados por um traço, sem quadradinho */
+.stats { gap: 0; margin: 4px 0 18px; }
+.stats div { background: none; border: 0; border-left: 1px solid var(--line); border-radius: 0; box-shadow: none; padding: 2px 12px; }
+.stats div:first-child { border-left: 0; padding-left: 0; }
+/* semana da agenda: só o dia escolhido fica marcado */
+.week button { background: none; }
+.week .sel { background: var(--brand); }
+/* relatório e lista de serviços da foto */
+.rep-tiles { gap: 0 16px; }
+.rep-tiles div { background: none; border-radius: 0; padding: 10px 0; border-top: 1px solid var(--line); }
+.svc-actions .btn { flex-basis: 240px; }
+.menu-list { gap: 0; }
+.menu-row { background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 0; }
+.menu-row:first-child { border-top: 0; }
+/* agenda por pessoa: sem moldura em volta de cada coluna */
+.gbody { border: 0; border-radius: 0; background: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent 69px); }
+/* página do cliente: os campos e o resumo continuam com fundo para ler bem sobre fotos e texturas */
+.ag-links .btn { background: var(--solid); }
