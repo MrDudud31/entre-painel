@@ -269,6 +269,36 @@
     for (const s of ['login', 'onboard', 'main']) $('#' + s).hidden = s !== id;
     const boot = $('#boot');
     if (boot) boot.hidden = true;
+    if (id === 'login') loginIntro();
+  }
+
+  // Abertura da tela de entrar (só na primeira vez que abre): o símbolo se desenha sozinho
+  // no meio da tela, desliza pro cantinho dele e aí aparecem o nome, os campos e o botão.
+  let introDone = false;
+  function loginIntro() {
+    if (introDone) return;
+    introDone = true;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const sec = $('#login'), badge = $('.brand .logo-badge', sec);
+    const fly = badge.cloneNode(true);
+    $('.entre-logo', badge).classList.remove('anim'); // o de verdade já aparece pronto
+    fly.classList.add('logo-fly');
+    fly.style.setProperty('--s', '1.6');
+    sec.classList.add('intro');
+    document.body.append(fly);
+    const finish = () => {
+      if (!fly.isConnected) return;
+      fly.remove();
+      sec.classList.remove('intro');
+      sec.classList.add('reveal');
+    };
+    setTimeout(() => {
+      const r = badge.getBoundingClientRect(), v = document.documentElement;
+      fly.classList.add('go');
+      fly.style.transform = `translate(${r.left + r.width / 2 - v.clientWidth / 2}px, ${r.top + r.height / 2 - v.clientHeight / 2}px) scale(1)`;
+      fly.addEventListener('transitionend', finish, { once: true });
+      setTimeout(finish, 1100);
+    }, 1900);
   }
 
   // ------------------------------------------------------------------ login

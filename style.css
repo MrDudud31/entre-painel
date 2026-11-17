@@ -221,6 +221,16 @@ legend { font-size: .9rem; font-weight: 600; padding: 0 .3rem; }
 .brand { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.4rem; }
 .brand b { display: block; font-size: 1.6rem; line-height: 1.1; }
 .brand small { color: var(--muted); }
+/* Abertura da tela de entrar: o símbolo aparece sozinho no meio, vai pro canto e o resto surge */
+.logo-fly { position: fixed; left: 50%; top: 50%; margin: -28px 0 0 -28px; z-index: 50; pointer-events: none; transform: translate(0, 0) scale(var(--s)); animation: fly-in .6s cubic-bezier(.2, .8, .2, 1) backwards; }
+.logo-fly.go { transition: transform .8s cubic-bezier(.65, 0, .25, 1); }
+@keyframes fly-in { from { opacity: 0; transform: translate(0, 0) scale(calc(var(--s) * .6)); } }
+#login.intro .card.narrow { background-color: transparent; border-color: transparent; box-shadow: none; }
+#login.intro .brand .logo-badge, #login.intro .rv { opacity: 0; }
+#login.reveal .card.narrow { animation: card-in .5s ease-out backwards; }
+#login.reveal .rv { animation: rv-in .5s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: calc(var(--i, 0) * 90ms + 80ms); }
+@keyframes card-in { from { background-color: transparent; border-color: transparent; box-shadow: none; } }
+@keyframes rv-in { from { opacity: 0; transform: translateY(10px); } }
 /* selo da logo (login, cadastro, carregando): fundo verde-floresta fixo, como no ícone do app */
 .logo-badge { width: 56px; height: 56px; border-radius: 16px; background: #163A32; color: #F6F7F3; display: grid; place-items: center; flex: none; }
 .logo-badge .entre-logo { width: 40px; }
