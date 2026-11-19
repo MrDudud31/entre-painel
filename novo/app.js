@@ -1335,8 +1335,8 @@
     const night = rows.filter((b) => !wasOpen(b.created_at));
     const nightTotal = night.reduce((s, b) => s + (b.price_cents || 0), 0);
     // nota de dinheiro (duas notas, a da frente na cor do tema) e lua desenhada: nada de emoji
-    const NOTE = `<svg class="win-note" viewBox="0 0 56 34" aria-hidden="true"><rect class="n1" x="1" y="2" width="54" height="30" rx="4"/>
-      <circle class="nl" cx="28" cy="17" r="7.5"/><path class="nl" d="M28 12.6v8.8M30.7 14.3h-3.6a1.6 1.6 0 0 0 0 3.2h1.8a1.6 1.6 0 0 1 0 3.2h-3.6"/><circle class="nd" cx="8.5" cy="9" r="1.7"/><circle class="nd" cx="47.5" cy="25" r="1.7"/></svg>`;
+    const NOTE = `<svg class="win-note" viewBox="0 0 64 42" aria-hidden="true"><rect class="n2" x="9" y="2" width="53" height="30" rx="4"/><rect class="n1" x="2" y="10" width="53" height="30" rx="4"/>
+      <circle class="nl" cx="28.5" cy="25" r="7.5"/><path class="nl" d="M28.5 20.6v8.8M31.2 22.3h-3.6a1.6 1.6 0 0 0 0 3.2h1.8a1.6 1.6 0 0 1 0 3.2h-3.6"/><circle class="nd" cx="9.5" cy="17" r="1.7"/><circle class="nd" cx="47.5" cy="33" r="1.7"/></svg>`;
     const MOON = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A7.8 7.8 0 1 1 9.2 4.5a6.2 6.2 0 0 0 10.3 10.3z"/><path class="st" d="M17 4.2l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg>';
     return `<section class="card win-card"><div class="win-head"><h3>Feito pela secretária</h3>${NOTE}</div>
       <b class="win-val">${esc(money(total))}</b>
