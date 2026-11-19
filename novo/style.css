@@ -963,3 +963,40 @@ dialog#sheet::backdrop { background: rgba(20, 12, 16, .45); }
 .win-night { display: flex; align-items: center; gap: 8px; margin: .7rem 0 0; color: var(--muted); font-size: .88rem; line-height: 1.3; }
 .win-night .moon { flex: none; width: 20px; height: 20px; fill: color-mix(in srgb, var(--moon) 22%, transparent); stroke: var(--moon); stroke-width: 1.5; stroke-linejoin: round; }
 .win-night .moon .st { fill: var(--moon); stroke: none; }
+
+/* ---- Primeiro acesso (18/11): secretária ao vivo, jeito de falar, equipe, pagamento ---- */
+.wchat { margin: 18px 0 2px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--solid); box-shadow: var(--shadow); }
+.wc-cap { margin: 0; padding: 8px 12px 0; font-size: .74rem; font-weight: 600; letter-spacing: .02em; color: var(--muted); background: var(--solid); }
+.wc-top { display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 9px 12px; background: var(--brand); color: var(--brand-ink); }
+.wc-av { width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: .78rem; background: color-mix(in srgb, var(--brand-ink) 22%, transparent); }
+.wc-top b { display: block; font-size: .95rem; line-height: 1.15; }
+.wc-top small { display: block; font-size: .72rem; opacity: .8; }
+.wc-body { display: flex; flex-direction: column; gap: 6px; padding: 12px; min-height: 84px; background-color: var(--bg); background-image: var(--bg-pat); background-size: var(--bg-size); }
+.wc-body p { margin: 0; max-width: 84%; padding: 7px 10px; border-radius: 14px; font-size: .9rem; line-height: 1.32; overflow-wrap: anywhere; box-shadow: var(--shadow); }
+.wc-in { align-self: flex-start; background: var(--bubble-in); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.wc-out { align-self: flex-end; background: color-mix(in srgb, var(--brand) 14%, var(--solid)); color: var(--ink); border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent); border-bottom-right-radius: 4px; }
+/* só desliza (sem sumir): se a animação não rodar, a conversa continua visível */
+.wchat.anim .wc-body p { animation: wcIn .38s ease-out backwards; animation-delay: min(calc(var(--d) * .3s + .1s), 1.2s); }
+@keyframes wcIn { from { transform: translateY(8px) scale(.97); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .wchat.anim .wc-body p { animation: none; } }
+.tone-opt span { display: flex; flex-direction: column; gap: 3px; }
+.tone-opt small, .hours-opt span small { font-weight: 400; color: var(--muted); font-size: .84rem; line-height: 1.3; }
+.hours-opt > span { display: flex; flex-direction: column; gap: 3px; }
+.wiz-seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 4px; }
+.wiz-seg button { min-width: 0; min-height: 44px; line-height: 1.2; padding: .45rem .4rem; font-size: .86rem; }
+.wiz-seg .sel { background: var(--brand-soft); color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.wiz .label { margin: 14px 0 6px; display: block; }
+.wiz textarea { width: 100%; font: inherit; font-size: 1rem; }
+.team-box { margin-top: 12px; }
+.team-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.team-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 6px 6px 12px; border-radius: 99px; background: var(--brand-soft); color: var(--ink); font-weight: 600; font-size: .9rem; }
+.team-chip.me { padding-right: 12px; }
+.team-chip button { border: 0; background: none; color: var(--muted); font-size: 1.15rem; line-height: 1; width: 36px; height: 36px; margin: -6px -4px -6px 0; border-radius: 50%; cursor: pointer; }
+.wpay-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.wpay-opts .hours-opt { position: relative; justify-content: center; padding: 12px 6px; font-size: .95rem; }
+.wpay-opts .hours-opt[aria-pressed="true"]::after { position: absolute; top: 4px; right: 7px; margin: 0; font-size: .8rem; }
+.fim-cfg .btn { margin-top: 8px; }
+.wiz-step.no-anim { animation: none; }
+#onboard.screen { align-items: start; }
+.wiz-nav { position: sticky; bottom: 0; z-index: 2; margin: 18px -4px 0; padding: 10px 4px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, var(--bg) 14px); }
+.wiz .hint { margin: -4px 0 8px; }

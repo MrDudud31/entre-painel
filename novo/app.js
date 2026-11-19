@@ -581,7 +581,7 @@
   const parsePrice = (v) => {
     const s = String(v || '').replace(/[^\d.,]/g, '');
     const n = s.includes(',') ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : parseFloat(s);
-    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+    return Number.isFinite(n) && n > 0 && n <= 100000 ? Math.round(n * 100) : null; // teto de R$ 100 mil (o banco recusa valores absurdos)
   };
   function menuReviewHtml(items) {
     return `<div class="menu-list">${items.map((it, i) => `<div class="menu-row ${it.on ? '' : 'off'}" data-mi="${i}">
@@ -677,15 +677,140 @@
     longo: { label: 'Seg a sáb, 8h às 20h', rows: [1, 2, 3, 4, 5, 6].map((w) => [w, '08:00', '20:00']) },
     semana: { label: 'Seg a sex, 8h às 18h', rows: [1, 2, 3, 4, 5].map((w) => [w, '08:00', '18:00']) },
   };
-  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'estilo', 'imagens', 'horario', 'tabela', 'pronto'];
+  // Ordem das telas do primeiro acesso. As perguntas novas podem ser puladas; o que ficar faltando aparece em
+  // Início › "Termine de configurar".
+  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'jeito', 'fala', 'equipe', 'servicos', 'horario', 'endereco', 'confirma', 'regras', 'pagamento', 'estilo', 'imagens', 'pronto'];
+
+  // Jeitos prontos da secretária. `tone` vai para businesses.tone, que entra no prompt da secretária ("com tom …").
+  // `pre` é a interjeição do exemplo; fica separada para não repetir quando a conversa já começou com a saudação.
+  const TONES = {
+    leve: { label: 'Descontraído', jeito: 'descontraído', tone: 'descontraído e próximo, como quem conversa com um conhecido', hi: 'Opa, tudo certo?', pre: 'Opa!', ex: 'Amanhã tem às 15h, serve?', ask: 'Quer marcar?' },
+    acolhe: { label: 'Acolhedor', jeito: 'acolhedor', tone: 'acolhedor e gentil, sem pressa', hi: 'Oi, tudo bem?', pre: 'Oi!', ex: 'Amanhã às 15h está livre. Fica bom?', ask: 'Quer que eu veja um horário?' },
+    direto: { label: 'Direto', jeito: 'direto', tone: 'direto e educado, sem enrolar', hi: 'Oi!', pre: '', ex: 'Amanhã tem 15h livre. Marco?', ask: 'Marco?' },
+    formal: { label: 'Formal', jeito: 'formal', tone: 'formal e cordial', hi: 'Olá.', pre: '', ex: 'Temos horário amanhã às 15h. Posso agendar?', ask: 'Posso agendar?' },
+  };
+  const DEFAULT_TONE = 'simpática, educada e objetiva'; // o mesmo padrão do banco
+  const KIND_TONE = { clinica: 'acolhe', dentista: 'acolhe', terapia: 'acolhe', spa: 'acolhe', pet: 'acolhe' };
+  const NOTICE_OPTS = [[30, '30 min'], [60, '1 h'], [120, '2 h'], [1440, '1 dia']];
+  const LATE_OPTS = [[0, 'Sem regra'], [10, '10 min'], [15, '15 min'], [20, '20 min']];
+  const CANCEL_OPTS = [[0, 'Sem regra'], [120, '2 h'], [720, '12 h'], [1440, '1 dia']];
+  const CANCEL_TXT = { 120: '2 horas', 720: '12 horas', 1440: '1 dia' };
+  const PAYS = [['pix', 'Pix'], ['cartao', 'Cartão'], ['dinheiro', 'Dinheiro']];
+
+  const joinE = (a) => (a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} e ${a[a.length - 1]}`);
+  const oneLine = (t, max) => String(t || '').replace(/["\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+  const payList = (W) => PAYS.filter(([k]) => W.pays[k]).map(([k, t]) => (k === 'pix' ? t : t.toLowerCase()));
+  const cleanGreet = (t) => { const g = oneLine(t, 40); return g && !/[.!?]$/.test(g) ? g + '!' : g; };
+  const sinalOn = (W) => !!(W.pays.pix && W.sinal);
+  const isSolo = (W) => W.solo || !W.team.length;
+  /** Monta o "jeito de falar" que a secretária recebe (frases inteiras: o prompt diz "com tom <isto>"). */
+  function composeTone(W) {
+    if (W.toneSkip) return DEFAULT_TONE;
+    const s = [(TONES[W.tone] || TONES.acolhe).tone + '.',
+      W.trato === 'senhor' ? 'Trate por "o senhor" ou "a senhora" só quando o nome deixar claro; na dúvida, escreva sem pronome (ex.: "Posso marcar?").' : 'Trate a pessoa por você.',
+      W.emoji ? 'Pode usar um emoji de vez em quando.' : 'Não use emoji nenhum.'];
+    const g = cleanGreet(W.greet);
+    if (g) s.push(`Ao cumprimentar pela primeira vez, comece com "${g}".`);
+    return s.join(' ').slice(0, 300);
+  }
+  /** Regras do negócio (businesses.policy), escritas como regra e não como ordem para a secretária. */
+  function composePolicy(W) {
+    const p = [];
+    if (W.late) p.push(`Atraso: tolerância de ${W.late} min; passou disso, pode ser preciso remarcar.`);
+    if (W.cancel) p.push(`Cancelar ou remarcar: avisar com pelo menos ${CANCEL_TXT[W.cancel]} de antecedência.`);
+    const r = W.rules.trim();
+    if (r) p.push(/[.!?]$/.test(r) ? r : r + '.');
+    return p.join(' ').slice(0, 1000);
+  }
+  /** Pagamento e sinal vão para "Outras informações" (businesses.extra_info). */
+  function composeExtra(W) {
+    const p = [];
+    const pays = payList(W);
+    if (pays.length) p.push(`Formas de pagamento: ${joinE(pays)}.`);
+    if (sinalOn(W)) { const v = oneLine(W.sinalVal, 20); p.push(v ? `Sinal: ${v}, por Pix, para segurar o horário.` : 'Sinal: pedido por Pix para segurar o horário; o valor a equipe informa.'); }
+    return p.join(' ').slice(0, 1500);
+  }
+  /** Serviços de exemplo do ramo, para a pessoa pôr o preço (ou trocar pela foto da tabela). */
+  const tplMenu = (kind) => ({ fromPhoto: false, touched: false, kind, items: (KINDS[kind]?.services || []).map(([name, dur, ret]) => ({ name, price: null, dur, ret, obs: '', on: true })) });
+  /** O que vai virar serviço, e quantos ficam ligados (com preço; os da foto entram ligados mesmo "sob consulta"). */
+  function wizServices(W) {
+    const list = W.menuSkip || !W.menu ? [] : chosenMenu(W.menu.items);
+    const on = list.filter((it) => W.menu.fromPhoto || it.price != null).length;
+    return { list, on, off: list.length - on };
+  }
+
+  /** Conversa de exemplo da secretária, montada com o que a pessoa já respondeu (não usa IA: é só a prévia). */
+  function wizChat(W, scenes, anim) {
+    const T = TONES[W.tone] || TONES.acolhe;
+    const formal = W.tone === 'formal' && !W.toneSkip;
+    const biz = W.name.trim() || 'Seu negócio';
+    const sen = W.trato === 'senhor';
+    const emo = (e) => (W.emoji ? ' ' + e : '');
+    const hi = cleanGreet(W.greet) || T.hi;
+    const items = wizServices(W).list;
+    const svc = items.find((it) => it.price != null) || items[0];
+    const who = isSolo(W) ? (firstName(W.owner) || 'a equipe') : 'a equipe';
+    const m = [];
+    const C = (t) => m.push(['in', t]);
+    const A = (t) => m.push(['out', t]);
+    for (const sc of scenes) {
+      if (sc === 'oi') { C('Oi, boa tarde!'); A(`${hi} ${biz} aqui, sou a assistente virtual. ${sen ? 'Em que posso ajudar?' : 'Quer marcar um horário?'}${emo('🙂')}`); }
+      if (sc === 'jeito') { C('Tem horário amanhã à tarde?'); A((scenes.includes('oi') || !T.pre ? '' : T.pre + ' ') + T.ex + (scenes.includes('oi') ? '' : emo('🙂'))); }
+      if (sc === 'preco') {
+        if (!svc) { C('Quanto custa?'); A(sen ? 'Qual serviço? Assim eu informo o valor.' : 'Qual serviço? Te passo o valor.'); continue; }
+        C(`Quanto é ${svc.name.toLowerCase()}?`);
+        A(svc.price != null ? `${svc.name}: ${brl(svc.price)}, ${formal ? 'duração de' : 'leva'} ${durLabel(svc.dur)}. ${T.ask}`
+          : `Esse valor a equipe confirma. ${sen ? 'Já peço para alguém responder.' : 'Já chamo alguém pra te responder.'}`);
+      }
+      if (sc === 'onde') {
+        const a = W.address.trim();
+        C('Onde fica?');
+        A(!a ? `O endereço a equipe ${sen ? 'passa em seguida' : 'te passa já, já'}.`
+          : /^(r\.|rua|av\.?|avenida|al\.?|alameda|travessa|tv\.|praça|estrada|rodovia)\s/i.test(a) ? `O endereço é ${a}.` : a.charAt(0).toUpperCase() + a.slice(1) + (/[.!?]$/.test(a) ? '' : '.'));
+      }
+      if (sc === 'marcar') {
+        C('Pode ser amanhã às 15h?');
+        A(W.auto ? `Pronto, ficou marcado: ${svc ? svc.name.toLowerCase() + ', ' : ''}amanhã às 15h. ${formal ? 'Até amanhã.' : 'Até lá!'}${emo('✅')}`
+          : `Anotei amanhã às 15h. Assim que ${who} confirmar, ${sen ? 'eu aviso' : 'te aviso'} por aqui.`);
+      }
+      if (sc === 'atraso') {
+        C('Se eu atrasar uns minutos tem problema?');
+        A(W.late ? `Tem tolerância de ${W.late} minutos. Passou disso, pode ser preciso remarcar.` : `${sen ? 'Basta avisar' : 'Só avisar'} por aqui que a equipe vê o que dá para fazer.`);
+        if (W.cancel) { C('E se eu precisar cancelar?'); A(`Sem problema, é só avisar com ${CANCEL_TXT[W.cancel]} de antecedência.`); }
+      }
+      if (sc === 'pagar') {
+        const pays = payList(W);
+        const v = oneLine(W.sinalVal, 20);
+        C('Aceita Pix?');
+        A((pays.length ? (W.pays.pix ? `${formal ? 'Aceitamos, sim.' : 'Aceita, sim!'} Dá para pagar com ${joinE(pays)}.` : `Pix não, mas dá para pagar com ${joinE(pays)}.`) : 'Isso a equipe confirma.')
+          + (sinalOn(W) ? ` Para segurar o horário, pedimos um sinal${v ? ' de ' + v : ''} por Pix.` : ''));
+      }
+    }
+    return `<div class="wchat${anim ? ' anim' : ''}" id="wChat"><p class="wc-cap">Exemplo de conversa (a secretária adapta ao que a pessoa escrever):</p>
+      <div class="wc-top"><span class="wc-av">${esc(initials(biz))}</span><span><b>${esc(biz)}</b><small>assistente virtual</small></span></div>
+      <div class="wc-body">${m.map(([w, t], i) => `<p class="wc-${w}" style="--d:${i}">${esc(t)}</p>`).join('')}</div></div>`;
+  }
+  const WIZ_CHAT = { nome: ['oi'], jeito: ['jeito'], fala: ['oi', 'jeito'], servicos: ['preco'], endereco: ['onde'], confirma: ['marcar'], regras: ['atraso'], pagamento: ['pagar'], pronto: ['oi', 'preco', 'marcar'] };
+  const segHtml = (attr, opts, cur, label) => `<p class="label" id="lb-${attr}">${label}</p><div class="seg wiz-seg" role="group" aria-labelledby="lb-${attr}">${opts.map(([v, t]) => {
+    const on = String(cur) === String(v);
+    return `<button type="button" data-${attr}="${v}" class="${on ? 'sel' : ''}" aria-pressed="${on}">${esc(t)}</button>`;
+  }).join('')}</div>`;
 
   function showOnboarding() {
     show('onboard');
-    const W = { i: 0, kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial' };
+    const W = {
+      i: 0, kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial',
+      tone: 'leve', toneSkip: false, emoji: true, trato: 'voce', greet: '', solo: true, team: [], menu: null, menuSkip: false,
+      address: '', auto: false, notice: 60, late: 15, cancel: 120, rules: '', pays: { pix: true, cartao: true, dinheiro: true },
+      pixKey: '', pixCity: '', sinal: false, sinalVal: '', saving: false, bizId: null,
+    };
     const url = { logo: null, cover: null }; // prévia das imagens escolhidas (ainda não enviadas)
     const box = $('#onboard');
+    // Atualiza só a conversa de exemplo (sem redesenhar a tela, para o teclado não fechar).
+    const refreshChat = () => { const el = $('#wChat', box); const sc = WIZ_CHAT[WIZ_STEPS[W.i]]; if (el && sc) el.outerHTML = wizChat(W, sc, false); };
 
-    const render = () => {
+    // quiet: redesenho por causa de um toque na mesma tela (sem repetir a animação de entrada)
+    const render = ({ quiet = false } = {}) => {
       const step = WIZ_STEPS[W.i];
       const total = WIZ_STEPS.length - 1;
       let body = '';
@@ -693,22 +818,86 @@
       let canSkip = false;
       if (step === 'oi') {
         body = `<div class="wiz-hero"><span class="logo-badge big">${LOGO('anim')}</span></div>
-          <h2>Boas-vindas ao Entre</h2>
-          <p class="wiz-sub">Vamos deixar o app com a cara do seu negócio. São poucas perguntas e você pode mudar tudo depois.</p>`;
+          <h2>Oi, tudo bem?</h2>
+          <p class="wiz-sub">Vou te fazer umas perguntas rápidas para montar o app e a secretária do seu jeito: como você trabalha, quem atende, seus preços e como ela deve falar no WhatsApp. São ${total} telas curtas.</p>
+          <p class="wiz-sub">Não sabe responder alguma agora? Toque em "Pular" ou deixe como está. Dá para mudar tudo depois, em Ajustes.</p>`;
         next = 'Começar';
       } else if (step === 'tipo') {
-        body = `<h2>Com o que você trabalha?</h2><p class="wiz-sub">Assim já trazemos serviços de exemplo do seu ramo.</p>
+        body = `<h2>Com o que você trabalha?</h2><p class="wiz-sub">Assim já trazemos serviços de exemplo e o tema do seu ramo.</p>
           <div class="kind-grid">${Object.entries(KINDS).map(([k, v]) => `<button type="button" class="kind-opt" data-kind="${k}" aria-pressed="${W.kind === k}">
             <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(v.label)}</span></button>`).join('')}</div>`;
       } else if (step === 'nome') {
         body = `<h2>Como se chama o seu negócio?</h2><p class="wiz-sub">É o nome que aparece no topo do app e que a secretária usa no WhatsApp.</p>
-          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Studio Bela Unha'}" value="${esc(W.name)}">`;
+          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" aria-label="Nome do negócio" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', manicure: 'Studio Bela Unha', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Espaço Silva'}" value="${esc(W.name)}">`;
       } else if (step === 'voce') {
-        body = `<h2>E como podemos te chamar?</h2><p class="wiz-sub">Aparece na saudação, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>
-          <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" placeholder="Seu nome" value="${esc(W.owner)}">`;
+        body = `<h2>E como posso te chamar?</h2><p class="wiz-sub">Aparece na saudação, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>
+          <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" aria-label="Seu nome" placeholder="Seu nome" value="${esc(W.owner)}">`;
       } else if (step === 'whats') {
-        body = `<h2>Seu WhatsApp, para receber avisos</h2><p class="wiz-sub">A secretária avisa você quando chegar um pedido novo ou quando alguém precisar de você.</p>
-          <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
+        body = `<h2>Seu WhatsApp, para receber avisos</h2><p class="wiz-sub">A secretária te avisa quando chegar um pedido novo ou quando alguém precisar de você. Use um número diferente do WhatsApp do negócio (o seu pessoal, por exemplo).</p>
+          <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" aria-label="Seu WhatsApp" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
+        canSkip = true;
+      } else if (step === 'jeito') {
+        body = `<h2>Como a secretária deve falar?</h2><p class="wiz-sub">Ela responde quem escreve no WhatsApp do negócio. Toque num jeito e veja o exemplo mudar.</p>
+          <div class="hours-opts">${Object.entries(TONES).map(([k, t]) => `<button type="button" class="hours-opt tone-opt" data-tone="${k}" aria-pressed="${!W.toneSkip && W.tone === k}"><span><b>${esc(t.label)}</b><small>"${esc((t.pre ? t.pre + ' ' : '') + t.ex)}"</small></span></button>`).join('')}</div>`;
+        canSkip = true;
+      } else if (step === 'fala') {
+        body = `<h2>Mais uns detalhes do jeito dela</h2>
+          ${segHtml('emoji', [[1, 'Um de vez em quando'], [0, 'Sem emoji']], W.emoji ? 1 : 0, 'Emoji')}
+          ${segHtml('trato', [['voce', 'Por você'], ['senhor', 'Senhor ou senhora']], W.trato, 'Como tratar quem escreve')}
+          <label class="label" for="wGreet">Como ela começa a conversa <span class="muted">(se quiser)</span></label>
+          <input class="wiz-input" id="wGreet" maxlength="40" placeholder="Ex.: ${['barbearia', 'tatuagem', 'academia'].includes(W.kind) ? 'E aí, tudo certo?' : W.trato === 'senhor' ? 'Olá, boa tarde!' : 'Oi, que bom que você chamou!'}" value="${esc(W.greet)}">`;
+        canSkip = true;
+      } else if (step === 'equipe') {
+        body = `<h2>Quem atende aí?</h2><p class="wiz-sub">A secretária marca cada horário na agenda de quem vai atender.</p>
+          <div class="hours-opts"><button type="button" class="hours-opt" data-solo="1" aria-pressed="${W.solo}">Só eu</button>
+            <button type="button" class="hours-opt" data-solo="0" aria-pressed="${!W.solo}">Eu e mais gente</button></div>
+          ${W.solo ? '' : `<div class="team-box"><div class="team-list"><span class="team-chip me">${esc(firstName(W.owner) || 'Você')}</span>${W.team.map((n, i) => `<span class="team-chip">${esc(n)}<button type="button" data-team-rm="${i}" aria-label="Tirar ${esc(n)}">×</button></span>`).join('')}</div>
+            <div class="inline"><input id="wTeam" maxlength="60" placeholder="Nome de quem atende" aria-label="Nome de quem atende" autocomplete="off"><button type="button" class="btn" id="wTeamAdd">Adicionar</button></div></div>`}`;
+        canSkip = true;
+      } else if (step === 'servicos') {
+        if (W.reading) {
+          body = `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
+        } else {
+          const n = W.menu.items.length;
+          // aqui a conversa vem antes da lista, para aparecer sem rolar a tela
+          body = `<h2>Seus serviços e preços</h2>
+            <p class="wiz-sub">${W.menu.fromPhoto ? `Achei ${n} serviço${n === 1 ? '' : 's'} na foto. Confira e desmarque o que você não faz.` : 'Deixei alguns do seu ramo. Coloque o preço, desmarque o que você não faz ou tire uma foto da sua tabela.'}</p>
+            ${W.menu.aviso ? `<p class="banner warn">${esc(W.menu.aviso)} Tente outra foto, de frente e com boa luz.</p>` : ''}
+            <button type="button" class="btn ghost block" id="wMenu">${CAM} ${W.menu.fromPhoto ? 'Tirar outra foto' : 'Foto da tabela de preços'}</button>
+            %%CHAT%%
+            ${menuReviewHtml(W.menu.items)}
+            <button type="button" class="btn ghost small" id="wMenuAdd">+ Outro serviço</button>`;
+          canSkip = true;
+        }
+      } else if (step === 'horario') {
+        body = `<h2>${isSolo(W) ? 'Quando você atende?' : 'Quando vocês atendem?'}</h2><p class="wiz-sub">Escolha o mais perto. Dá para ajustar dia por dia depois, em Ajustes.</p>
+          <div class="hours-opts">${Object.entries(HOURS_PRESETS).map(([k, h]) => `<button type="button" class="hours-opt" data-hours="${k}" aria-pressed="${W.hours === k}">${esc(h.label)}</button>`).join('')}</div>`;
+      } else if (step === 'endereco') {
+        body = `<h2>Onde fica o seu negócio?</h2><p class="wiz-sub">A secretária manda isso quando alguém perguntar. Atende on-line ou vai até a pessoa? Escreva assim mesmo (ex.: "Atendimento on-line, por vídeo" ou "Vou até a casa da pessoa").</p>
+          <input class="wiz-input" id="wAddr" maxlength="200" autocomplete="street-address" aria-label="Endereço" placeholder="Rua, número, bairro, cidade" value="${esc(W.address)}">`;
+        canSkip = true;
+      } else if (step === 'confirma') {
+        body = `<h2>Quando alguém marcar pela secretária ou pelo link…</h2>
+          <div class="hours-opts"><button type="button" class="hours-opt" data-auto="0" aria-pressed="${!W.auto}"><span><b>Eu confirmo antes</b><small>Fica como pedido até você tocar em Confirmar.</small></span></button>
+            <button type="button" class="hours-opt" data-auto="1" aria-pressed="${W.auto}"><span><b>Já fica marcado</b><small>O horário entra confirmado na hora.</small></span></button></div>
+          ${segHtml('notice', NOTICE_OPTS, W.notice, 'Prazo mínimo para marcar')}
+          <p class="hint">Ex.: com 1 h, ninguém marca para daqui a 20 minutos.</p>`;
+        canSkip = true;
+      } else if (step === 'regras') {
+        body = `<h2>Suas regras</h2><p class="wiz-sub">A secretária explica quando alguém perguntar.</p>
+          ${segHtml('late', LATE_OPTS, W.late, 'Tolerância de atraso')}
+          ${segHtml('cancel', CANCEL_OPTS, W.cancel, 'Para cancelar, avisar com quanto tempo antes')}
+          <label class="label" for="wRules">Mais alguma regra? <span class="muted">(se quiser)</span></label>
+          <textarea id="wRules" rows="2" maxlength="400" placeholder="${KINDS[W.kind]?.health ? 'Ex.: chegar 10 min antes para o cadastro' : 'Ex.: criança só com responsável'}">${esc(W.rules)}</textarea>`;
+        canSkip = true;
+      } else if (step === 'pagamento') {
+        body = `<h2>Como as pessoas pagam?</h2><p class="wiz-sub">Toque em todas as formas que você aceita.</p>
+          <div class="wpay-opts" role="group" aria-label="Formas de pagamento">${PAYS.map(([k, t]) => `<button type="button" class="hours-opt" data-pay="${k}" aria-pressed="${!!W.pays[k]}">${t}</button>`).join('')}</div>
+          ${W.pays.pix ? `<div class="pix-row"><label>Chave Pix <span class="muted small">(se quiser)</span><input id="wPix" maxlength="77" autocomplete="off" value="${esc(W.pixKey)}" placeholder="CPF, CNPJ, e-mail, celular ou aleatória"></label>
+            <label>Cidade<input id="wPixCity" maxlength="15" value="${esc(W.pixCity)}" placeholder="Ex.: São Paulo"></label></div>
+            <p class="hint">Com a chave, o app monta o Pix do sinal. O dinheiro vai direto para a sua conta; o Entre não cobra nada por isso. Cidade: até 15 letras (se for maior, abrevie).</p>
+            ${segHtml('sinal', [[0, 'Não peço'], [1, 'Peço sinal por Pix']], W.sinal ? 1 : 0, 'Sinal para marcar')}
+            ${W.sinal ? `<input class="wiz-input" id="wSinal" maxlength="20" aria-label="Valor do sinal" placeholder="Quanto? Ex.: R$ 20 ou 30%" value="${esc(W.sinalVal)}">` : ''}` : ''}`;
         canSkip = true;
       } else if (step === 'estilo') {
         body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Já separamos o tema do seu ramo. Toque em outro para ver na hora. Todos têm versão clara e escura.</p>${stylePickerHtml(W.theme, W.kind)}
@@ -722,40 +911,29 @@
             <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label>
           </div>`;
         canSkip = !W.logo && !W.cover;
-      } else if (step === 'horario') {
-        body = `<h2>Quando vocês atendem?</h2><p class="wiz-sub">Escolha o mais perto. Dá para ajustar dia por dia depois, em Ajustes.</p>
-          <div class="hours-opts">${Object.entries(HOURS_PRESETS).map(([k, h]) => `<button type="button" class="hours-opt" data-hours="${k}" aria-pressed="${W.hours === k}">${esc(h.label)}</button>`).join('')}</div>`;
-      } else if (step === 'tabela') {
-        if (W.reading) {
-          body = `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
-        } else if (W.menu?.items.length) {
-          body = `<h2>Achei ${W.menu.items.length} serviço${W.menu.items.length === 1 ? '' : 's'}!</h2>
-            <p class="wiz-sub">Confira, arrume o que precisar e desmarque o que você não faz.</p>
-            ${menuReviewHtml(W.menu.items)}
-            <button type="button" class="btn ghost block" id="wMenuAgain">${CAM} Tirar outra foto</button>`;
-        } else {
-          body = `<h2>Tem uma tabela de preços?</h2>
-            <p class="wiz-sub">Tire uma foto da tabela (ou escolha um print do Instagram) e eu cadastro seus serviços com os preços. Você confere antes.</p>
-            ${W.menu ? `<p class="banner warn">${esc(W.menu.aviso || 'Não encontrei serviços nessa foto.')} Tente outra, de frente e com boa luz.</p>` : ''}
-            <button type="button" class="photo-cta" id="wMenu">${CAM}<b>Tirar foto da tabela</b><small>ou escolher da galeria</small></button>`;
-          canSkip = true;
-        }
-        next = W.menu?.items.length ? 'Continuar' : 'Continuar sem foto';
       } else if (step === 'pronto') {
-        const menuN = W.menu ? chosenMenu(W.menu.items).length : 0;
+        const sv = wizServices(W);
+        const people = new Set([W.owner, ...(W.solo ? [] : W.team)].map(normName).filter(Boolean)).size;
+        const T = TONES[W.tone] || TONES.acolhe;
         body = `<h2>Tudo pronto, ${esc(firstName(W.owner))}!</h2><p class="wiz-sub">Assim vai ficar o seu app:</p>
           <div class="wiz-preview big">${url.cover ? '<div class="wp-cover" id="wpCover"></div>' : ''}
             <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name)}</b></div>
             <div class="wp-greet">${(() => { const hr = new Date().getHours(); return hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'; })()}, ${esc(firstName(W.owner))}.</div></div>
           <ul class="wiz-sum"><li><b>Ramo:</b> ${esc(KINDS[W.kind]?.label || '')}</li><li><b>Estilo:</b> ${esc(STYLES[W.theme].nome)}</li><li><b>Horário:</b> ${esc(HOURS_PRESETS[W.hours].label)}</li>
-            <li><b>Serviços:</b> ${menuN ? `${menuN} da sua tabela, já com preço e prontos para a secretária oferecer.` : 'criamos alguns de exemplo, <b>desativados e sem preço</b>. Você coloca seus preços e ativa só o que faz.'}</li></ul>`;
+            <li><b>Secretária:</b> ${W.toneSkip ? 'fala do jeito padrão, simpática e objetiva' : `fala de um jeito ${esc(T.jeito)}`} e trata por ${W.trato === 'senhor' ? 'senhor ou senhora' : 'você'}.</li>
+            <li><b>Horários marcados por ela:</b> ${W.auto ? 'já ficam confirmados' : 'você confirma antes'}.</li>
+            <li><b>Quem atende:</b> ${people <= 1 ? 'só você' : `${people} pessoas`}.</li>
+            <li><b>Serviços:</b> ${sv.on ? `${sv.on} ${sv.on === 1 ? 'pronto' : 'prontos'} para a secretária oferecer.${sv.off ? ` ${sv.off} sem preço ${sv.off === 1 ? 'fica desligado' : 'ficam desligados'} até você pôr o valor em Ajustes › Serviços.` : ''}` : 'deixamos alguns de exemplo, desligados e sem preço. Ponha os valores em Ajustes › Serviços.'}</li></ul>`;
         next = 'Entrar no meu app';
       }
+      const sc = WIZ_CHAT[step];
+      const chat = sc && !(step === 'servicos' && W.reading) ? wizChat(W, sc, !quiet) : '';
+      const err0 = '<p class="error" id="wErr" role="alert"></p>';
+      body = body.includes('%%CHAT%%') ? body.replace('%%CHAT%%', chat) + err0 : body + err0 + chat;
       box.innerHTML = `<form class="wiz card narrow" novalidate>
         <div class="wiz-top">${W.i > 0 ? '<button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>' : '<span></span>'}
           ${W.i > 0 ? `<div class="wiz-progress" aria-label="Passo ${W.i} de ${total}"><i style="width:${Math.round((W.i / total) * 100)}%"></i></div><small>${W.i}/${total}</small>` : ''}</div>
-        <div class="wiz-step">${body}</div>
-        <p class="error" id="wErr" role="alert"></p>
+        <div class="wiz-step${quiet ? ' no-anim' : ''}">${body}</div>
         <div class="wiz-nav"><button type="submit" class="btn primary block">${next}</button>
           ${canSkip ? '<button type="button" class="btn ghost block" id="wSkip">Pular</button>' : ''}
           ${W.i === 0 ? '<button type="button" class="btn ghost block" id="wOut">Sair</button>' : ''}</div>
@@ -766,30 +944,88 @@
       const pc = $('#wpCover', box), pl = $('#wpLogo', box);
       if (pc && url.cover) pc.style.backgroundImage = `url("${url.cover}")`;
       if (pl && url.logo) pl.style.backgroundImage = `url("${url.logo}")`;
-      $('#wBack', box)?.addEventListener('click', () => { W.i--; render(); });
+      $('#wBack', box)?.addEventListener('click', () => { if (W.saving) return; W.i--; render(); });
       $('#wOut', box)?.addEventListener('click', () => sb.auth.signOut());
-      $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; if (step === 'tabela') W.menu = null; W.i++; render(); });
+      $('#wSkip', box)?.addEventListener('click', () => {
+        if (W.saving) return;
+        if (step === 'whats') W.wa = '';
+        if (step === 'jeito') W.toneSkip = true;
+        if (step === 'equipe') { W.solo = true; W.team = []; }
+        if (step === 'servicos') W.menuSkip = true;
+        if (step === 'endereco') W.address = '';
+        if (step === 'confirma') { W.auto = false; W.notice = 60; }
+        if (step === 'regras') { W.late = 0; W.cancel = 0; W.rules = ''; }
+        if (step === 'pagamento') { W.pays = {}; W.sinal = false; W.sinalVal = ''; W.pixKey = ''; W.pixCity = ''; }
+        W.i++; render();
+      });
       $$('[data-kind]', box).forEach((b) => { b.onclick = () => {
         W.kind = b.dataset.kind;
-        // o tema do ramo já vem escolhido (até a pessoa escolher outro na tela de estilo)
+        // tema, jeito de falar e serviços de exemplo do ramo já vêm escolhidos (até a pessoa trocar)
         if (!W.themePicked) { W.theme = KIND_THEME[W.kind] || 'entre'; applyStyle(W.theme, { persist: false }); }
+        if (!W.tonePicked) W.tone = KIND_TONE[W.kind] || 'leve';
+        if (!W.menu || (!W.menu.fromPhoto && !W.menu.touched && W.menu.kind !== W.kind)) W.menu = tplMenu(W.kind);
         W.i++; render();
       }; });
       $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
+      // escolhas que só mudam o estado e a conversa de exemplo
+      const pick = (attr, fn) => $$(`[data-${attr}]`, box).forEach((b) => { b.onclick = () => {
+        if (fn(b.dataset[attr]) === 'render') return render({ quiet: true });
+        $$(`[data-${attr}]`, box).forEach((x) => { x.setAttribute('aria-pressed', String(x === b)); if (!x.classList.contains('hours-opt')) x.classList.toggle('sel', x === b); });
+        refreshChat();
+      }; });
+      pick('tone', (v) => { W.tone = v; W.tonePicked = true; W.toneSkip = false; if (!W.emojiPicked) W.emoji = v !== 'formal'; });
+      pick('emoji', (v) => { W.emoji = v === '1'; W.emojiPicked = true; });
+      pick('trato', (v) => { W.trato = v; });
+      pick('auto', (v) => { W.auto = v === '1'; });
+      pick('notice', (v) => { W.notice = Number(v); });
+      pick('late', (v) => { W.late = Number(v); });
+      pick('cancel', (v) => { W.cancel = Number(v); });
+      pick('sinal', (v) => { W.sinal = v === '1'; return 'render'; }); // mostra ou esconde o campo do valor
+      $$('[data-solo]', box).forEach((b) => { b.onclick = () => { W.solo = b.dataset.solo === '1'; render({ quiet: true }); }; });
+      $$('[data-pay]', box).forEach((b) => { b.onclick = () => {
+        W.pays[b.dataset.pay] = !W.pays[b.dataset.pay];
+        if (b.dataset.pay === 'pix') { if (!W.pays.pix) W.sinal = false; return render({ quiet: true }); } // mostra ou esconde chave e sinal
+        b.setAttribute('aria-pressed', String(!!W.pays[b.dataset.pay])); refreshChat();
+      }; });
+      // campos de texto: a conversa de exemplo muda enquanto a pessoa digita
+      for (const [id, key] of [['#wName', 'name'], ['#wGreet', 'greet'], ['#wAddr', 'address'], ['#wRules', 'rules'], ['#wPix', 'pixKey'], ['#wPixCity', 'pixCity'], ['#wSinal', 'sinalVal']]) {
+        const el = $(id, box);
+        if (el) el.addEventListener('input', () => { W[key] = el.value; refreshChat(); });
+      }
+      if (step === 'equipe' && !W.solo) {
+        const addTeam = () => {
+          const inp = $('#wTeam', box);
+          const n = inp.value.trim().replace(/\s+/g, ' ').slice(0, 60);
+          if (n.length < 2) return err('Escreva o nome de quem atende.');
+          if (W.team.length >= 15) return err('Dá para pôr até 15 pessoas agora. O resto, em Ajustes › Quem atende.');
+          if ([W.owner, ...W.team].some((x) => normName(x) === normName(n))) return err('Essa pessoa já está na lista.');
+          W.team.push(n); render({ quiet: true }); setTimeout(() => $('#wTeam', box)?.focus(), 30);
+        };
+        $('#wTeamAdd', box).onclick = addTeam;
+        $('#wTeam', box).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTeam(); } });
+        $$('[data-team-rm]', box).forEach((b) => { b.onclick = () => { W.team.splice(Number(b.dataset.teamRm), 1); render({ quiet: true }); }; });
+      }
       if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; W.themePicked = true; applyStyle(id, { persist: false }); }); bindModePicker(form); }
-      if (step === 'tabela') {
-        if (W.menu?.items.length) bindMenuReview(form, W.menu.items);
-        const readPhoto = async () => {
+      if (step === 'servicos' && !W.reading) {
+        bindMenuReview(form, W.menu.items, () => { W.menu.touched = true; refreshChat(); });
+        $('#wMenu', box)?.addEventListener('click', async () => {
           const f = await pickPhoto();
           if (!f) return;
           W.reading = true; render();
-          try { W.menu = await readMenuPhoto(f, W.kind); } catch (e) { W.menu = null; W.reading = false; render(); return $('#wErr', box) && ($('#wErr', box).textContent = friendly(e)); }
+          try {
+            const res = await readMenuPhoto(f, W.kind);
+            W.menu = res.items.length ? { fromPhoto: true, touched: true, kind: W.kind, items: res.items } : { ...W.menu, aviso: res.aviso || 'Não encontrei serviços nessa foto.' };
+          } catch (e) { W.reading = false; render(); return err(friendly(e)); }
           W.reading = false; render();
-        };
-        $('#wMenu', box)?.addEventListener('click', readPhoto);
-        $('#wMenuAgain', box)?.addEventListener('click', readPhoto);
-        if (W.reading) $('button[type=submit]', form).disabled = true;
+        });
+        $('#wMenuAdd', box)?.addEventListener('click', () => {
+          W.menu.items.push({ name: '', price: null, dur: 60, ret: null, obs: '', on: true });
+          W.menu.touched = true;
+          render({ quiet: true });
+          const rows = $$('[data-mf="name"]', box); rows[rows.length - 1]?.focus();
+        });
       }
+      if (step === 'servicos' && W.reading) $('button[type=submit]', form).disabled = true;
       for (const [kind, id] of [['logo', '#wLogo'], ['cover', '#wCover']]) {
         const input = $(id, box);
         if (!input) continue;
@@ -800,45 +1036,88 @@
           if (f.size > 15 * 1024 * 1024) return err('Essa imagem é grande demais (máx. 15 MB).');
           if (url[kind]) URL.revokeObjectURL(url[kind]);
           W[kind] = f; url[kind] = URL.createObjectURL(f);
-          render();
+          render({ quiet: true });
         };
       }
       const firstInput = $('.wiz-input', box);
-      if (firstInput) setTimeout(() => firstInput.focus(), 50);
+      if (firstInput && !quiet && ['nome', 'voce', 'whats', 'endereco'].includes(step)) setTimeout(() => firstInput.focus(), 50);
 
       form.onsubmit = async (e) => {
         e.preventDefault();
+        if (W.saving) return;
         err('');
         if (step === 'tipo' && !W.kind) return err('Toque numa das opções.');
         if (step === 'nome') { W.name = $('#wName', box).value.trim(); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
-        if (step === 'voce') { W.owner = $('#wOwner', box).value.trim(); if (!W.owner) return err('Escreva seu nome.'); }
+        if (step === 'voce') {
+          W.owner = $('#wOwner', box).value.trim();
+          if (!W.owner) return err('Escreva seu nome.');
+          W.team = W.team.filter((n) => normName(n) !== normName(W.owner)); // não deixa a mesma pessoa duas vezes
+        }
         if (step === 'whats') {
           W.wa = $('#wWa', box).value.trim();
           const d = W.wa.replace(/\D/g, '');
           if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".');
         }
+        if (step === 'jeito') W.toneSkip = false;
+        if (step === 'equipe' && !W.solo) {
+          const pend = $('#wTeam', box)?.value.trim();
+          if (pend) return err('Toque em "Adicionar" para pôr essa pessoa na lista (ou apague o nome).');
+          if (!W.team.length) W.solo = true;
+        }
+        if (step === 'servicos') W.menuSkip = false;
+        if (step === 'pagamento') {
+          if (!W.pays.pix) { W.pixKey = ''; W.pixCity = ''; W.sinal = false; }
+          else if (W.pixKey.trim()) {
+            const k = normPixKey(W.pixKey); // mesma regra de Ajustes (CPF/CNPJ só números, celular com +55…)
+            if (k === null) return err('Não reconheci a chave Pix. Use CPF ou CNPJ, e-mail, celular com DDD ou a chave aleatória.');
+            W.pixKey = k;
+            W.pixCity = W.pixCity.trim();
+            if (W.pixCity.length < 2) return err('Escreva a cidade. Ela aparece no Pix para quem paga.');
+          }
+        }
         if (step !== 'pronto') { W.i++; return render(); }
-        await busy($('button[type=submit]', form), () => finishOnboarding(W));
+        W.saving = true;
+        const back = $('#wBack', box); if (back) back.disabled = true;
+        try { await busy($('button[type=submit]', form), () => finishOnboarding(W)); }
+        finally { W.saving = false; if (back) back.disabled = false; }
       };
     };
     render();
   }
 
   async function finishOnboarding(W) {
-    const id = crypto.randomUUID();
+    // O id do negócio é um só por tentativa: se algo falhar no meio, o negócio parcial é apagado e dá para tentar de novo.
+    const id = (W.bizId ||= crypto.randomUUID());
+    const pixKey = W.pays.pix && W.pixKey ? W.pixKey.slice(0, 77) : null;
+    const pixCity = pixKey && W.pixCity.trim().length >= 2 ? W.pixCity.trim().slice(0, 15) : null;
     must(await sb.from('businesses').insert({
       id, owner_id: S.session.user.id, name: W.name.slice(0, 80), kind: W.kind,
       health_business: !!KINDS[W.kind].health, owner_whatsapp: phoneDigits(W.wa),
       theme: STYLES[W.theme] ? W.theme : 'entre', owner_name: W.owner.slice(0, 60),
+      tone: composeTone(W), address: oneLine(W.address, 200), policy: composePolicy(W), extra_info: composeExtra(W),
+      auto_confirm: !!W.auto, min_notice_minutes: W.notice, pix_key: pixKey, pix_city: pixCity,
     }));
-    const person = must(await sb.from('staff').insert({ business_id: id, name: W.owner.slice(0, 60) }).select().single());
-    must(await sb.from('opening_hours').insert(HOURS_PRESETS[W.hours].rows.map(([w, o, c]) => ({ business_id: id, weekday: w, opens: o, closes: c }))));
-    // Serviços: os da foto da tabela (já ativos, com preço) ou os de exemplo do ramo (desativados, sem preço).
-    const fromPhoto = W.menu ? chosenMenu(W.menu.items) : [];
-    const svcs = must(await sb.from('services').insert(fromPhoto.length
-      ? fromPhoto.map((it) => ({ business_id: id, name: it.name.trim().slice(0, 80), duration_min: it.dur, return_days: it.ret, price_cents: it.price, notes: it.obs, active: true }))
-      : KINDS[W.kind].services.map(([name, dur, ret]) => ({ business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false }))).select('id'));
-    if (svcs.length) must(await sb.from('staff_services').insert(svcs.map((s) => ({ staff_id: person.id, service_id: s.id }))));
+    let rows;
+    try {
+      // Quem atende: a própria pessoa e, se disse, a equipe (sem nomes repetidos).
+      const seen = new Set();
+      const names = [W.owner, ...(W.solo ? [] : W.team)].map((n) => n.trim().slice(0, 60))
+        .filter((n) => n && !seen.has(normName(n)) && seen.add(normName(n)));
+      const people = must(await sb.from('staff').insert(names.map((name) => ({ business_id: id, name }))).select('id'));
+      must(await sb.from('opening_hours').insert(HOURS_PRESETS[W.hours].rows.map(([w, o, c]) => ({ business_id: id, weekday: w, opens: o, closes: c }))));
+      // Serviços: os que a pessoa conferiu (com preço = já ligados) ou, se pulou, os de exemplo do ramo (desligados, sem preço).
+      const sv = wizServices(W);
+      rows = sv.list.length
+        ? sv.list.map((it) => ({ business_id: id, name: it.name.trim().slice(0, 80), duration_min: it.dur, return_days: it.ret, price_cents: it.price, notes: it.obs, active: !!W.menu.fromPhoto || it.price != null }))
+        : KINDS[W.kind].services.map(([name, dur, ret]) => ({ business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false }));
+      const svcs = must(await sb.from('services').insert(rows).select('id'));
+      if (svcs.length && people.length) must(await sb.from('staff_services').insert(people.flatMap((p) => svcs.map((s) => ({ staff_id: p.id, service_id: s.id })))));
+    } catch (e) {
+      // desfaz o negócio pela metade (equipe, horários e serviços saem junto)
+      try { await sb.from('businesses').delete().eq('id', id); } catch { /* fica para a próxima tentativa */ }
+      W.bizId = null;
+      throw e;
+    }
     // Imagens só sobem agora (a pasta é do negócio, que acabou de nascer). Se falhar, o negócio já existe: dá para subir depois.
     let imgFail = false;
     for (const [kind, col] of [['logo', 'logo_url'], ['cover', 'cover_url']]) {
@@ -851,8 +1130,20 @@
     store.set('biz', id);
     S.tab = 'inicio';
     await start();
+    const active = rows.filter((r) => r.active).length;
     if (imgFail) toast('Tudo criado, mas uma imagem não subiu. Tente de novo em Ajustes › Aparência.', 'warn');
-    else toast(fromPhoto.length ? 'Pronto! Seus serviços já estão com preço.' : 'Pronto! Agora ative seus serviços e coloque os preços.', 'ok');
+    else toast(active ? 'Pronto! A secretária já sabe seus preços.' : 'Pronto! Agora coloque os preços em Ajustes › Serviços.', 'ok');
+  }
+
+  /** Início › "Termine de configurar": o que o primeiro acesso deixou para depois (não é obrigatório). */
+  function finishList() {
+    const b = S.biz;
+    return [
+      [!!b.address, 'Endereço do negócio', 'negocio'],
+      [!!b.policy, 'Regras de atraso e cancelamento', 'negocio'],
+      [!!(b.extra_info || b.pix_key), 'Formas de pagamento', 'negocio'],
+      [!!b.tone && b.tone !== DEFAULT_TONE, 'Jeito de falar da secretária', 'negocio'],
+    ];
   }
 
   // ------------------------------------------------------------------ navegação
@@ -1445,6 +1736,15 @@
         ${list.map(([ok, txt, sec]) => `<button type="button" class="check ${ok ? 'ok' : ''}" data-goto="${sec}"><i>${ok ? '✓' : ''}</i><span>${esc(txt)}</span>${ok ? '' : '<b>›</b>'}</button>`).join('')}
       </section>`;
     }
+    const fin = finishList();
+    const finDone = fin.filter((x) => x[0]).length;
+    if (finDone < fin.length && !store.get('fimcfg.' + S.biz.id)) {
+      html += `<section class="card checklist fim-cfg"><h3>Termine de configurar <span class="muted">${finDone}/${fin.length}</span></h3>
+        <p class="muted small">Com isso a secretária responde mais coisas sem precisar te chamar.</p>
+        ${fin.filter(([ok]) => !ok).map(([, txt, sec]) => `<button type="button" class="check" data-goto="${sec}"><i></i><span>${esc(txt)}</span><b>›</b></button>`).join('')}
+        <button type="button" class="btn small ghost" id="fimLater">Esconder</button>
+      </section>`;
+    }
     if (!S.biz.assistant_enabled) html += `<div class="banner warn">A secretária está <b>desligada</b>: ninguém está respondendo automaticamente. Toque no botão lá em cima para ligar.</div>`;
     html += `<section class="card"><h3>Pedidos para confirmar ${P.length ? `<span class="count">${P.length}</span>` : ''}</h3>
       ${P.length ? P.map((b) => { S.bk.set(b.id, b); return `<div class="pend">
@@ -1477,6 +1777,7 @@
     v.innerHTML = html;
     bindBookingRows(v);
     $$('[data-goto]', v).forEach((b) => { b.onclick = () => go('ajustes', { open: b.dataset.goto }); });
+    $('#fimLater', v)?.addEventListener('click', () => { store.set('fimcfg.' + S.biz.id, '1'); $('.fim-cfg', v)?.remove(); });
     $$('[data-conv]', v).forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
     $('#toAgenda').onclick = () => go('agenda');
     $('#toCash')?.addEventListener('click', (e) => {
@@ -2328,7 +2629,8 @@
           <p class="hint">Com a chave, o app gera o Pix "copia e cola" do sinal. O dinheiro cai direto na sua conta, sem taxa.</p>
           <label>Regras do negócio<textarea name="policy" rows="3" maxlength="1000" placeholder="Ex.: tolerância de 15 min de atraso; cancelamento até 2 h antes; sinal de 30% para alongamento">${esc(b.policy)}</textarea></label>
           <label>Outras informações para a secretária<textarea name="extra_info" rows="3" maxlength="1500" placeholder="Ex.: aceitamos Pix e cartão; tem estacionamento na rua; atendemos só mulheres">${esc(b.extra_info)}</textarea></label>
-          <label>Jeito de falar<input name="tone" value="${esc(b.tone)}" maxlength="120"></label>
+          <label>Jeito de falar<textarea name="tone" rows="4" maxlength="300" placeholder="Ex.: descontraído. Trate a pessoa por você. Pode usar um emoji de vez em quando.">${esc(b.tone)}</textarea></label>
+          <p class="hint">A secretária lê isto como instrução. Escreva como você explicaria para uma recepcionista nova.</p>
           <label class="switch"><input type="checkbox" name="auto_confirm" ${b.auto_confirm ? 'checked' : ''}><span>Confirmar automaticamente os horários marcados pela secretária</span></label>
           <p class="hint">Desligado: a secretária cria um <b>pedido</b> e você confirma aqui. Ligado: já fica confirmado.</p>
           <label class="switch"><input type="checkbox" name="health_business" ${b.health_business ? 'checked' : ''}><span>É serviço de saúde (a secretária nunca dá orientação de saúde)</span></label>
@@ -2530,7 +2832,7 @@
           pix_key: pixKey || null, pix_city: pixKey ? pixCity : null,
           name: String(f.get('name')).trim(), kind: String(f.get('kind')), address: String(f.get('address')).trim(),
           owner_whatsapp: phoneDigits(f.get('owner_whatsapp')), policy: String(f.get('policy')).trim(),
-          extra_info: String(f.get('extra_info')).trim(), tone: String(f.get('tone')).trim() || 'simpática, educada e objetiva',
+          extra_info: String(f.get('extra_info')).trim(), tone: String(f.get('tone')).replace(/\s*[\r\n]+\s*/g, ' ').trim() || 'simpática, educada e objetiva',
           auto_confirm: !!f.get('auto_confirm'), health_business: !!f.get('health_business'),
           slot_minutes: Number(f.get('slot_minutes')), min_notice_minutes: Number(f.get('min_notice_minutes')), days_ahead: days,
         }).eq('id', b.id));
