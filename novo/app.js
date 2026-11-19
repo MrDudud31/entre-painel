@@ -1334,9 +1334,14 @@
     const total = rows.reduce((s, b) => s + (b.price_cents || 0), 0);
     const night = rows.filter((b) => !wasOpen(b.created_at));
     const nightTotal = night.reduce((s, b) => s + (b.price_cents || 0), 0);
-    return `<section class="card win-card"><h3>Feito pela secretária · últimos 7 dias</h3>
-      <div class="win"><b>${esc(money(total))}</b><span>em ${rows.length} horário${rows.length === 1 ? '' : 's'} marcado${rows.length === 1 ? '' : 's'} sem você precisar responder</span></div>
-      ${night.length ? `<p class="win-night"><span aria-hidden="true">🌙</span> ${night.length === rows.length ? 'Todos' : night.length} ${night.length === 1 ? 'foi marcado' : 'foram marcados'} com o negócio fechado${nightTotal ? ` (${esc(money(nightTotal))})` : ''}.</p>` : ''}
+    // nota de dinheiro (duas notas, a da frente na cor do tema) e lua desenhada: nada de emoji
+    const NOTE = `<svg class="win-note" viewBox="0 0 64 42" aria-hidden="true"><rect class="n2" x="9" y="2" width="53" height="30" rx="4"/><rect class="n1" x="2" y="10" width="53" height="30" rx="4"/>
+      <circle class="nl" cx="28.5" cy="25" r="7.5"/><path class="nl" d="M28.5 20.6v8.8M31.2 22.3h-3.6a1.6 1.6 0 0 0 0 3.2h1.8a1.6 1.6 0 0 1 0 3.2h-3.6"/><circle class="nd" cx="9.5" cy="17" r="1.7"/><circle class="nd" cx="47.5" cy="33" r="1.7"/></svg>`;
+    const MOON = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A7.8 7.8 0 1 1 9.2 4.5a6.2 6.2 0 0 0 10.3 10.3z"/><path class="st" d="M17 4.2l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg>';
+    return `<section class="card win-card"><div class="win-head"><h3>Feito pela secretária</h3>${NOTE}</div>
+      <b class="win-val">${esc(money(total))}</b>
+      <p class="win-sub">${rows.length} horário${rows.length === 1 ? '' : 's'} em 7 dias · sem você responder</p>
+      ${night.length ? `<p class="win-night">${MOON}<span>${night.length === rows.length ? 'Todos' : night.length} ${night.length === 1 ? 'foi marcado' : 'foram marcados'} com o negócio fechado${nightTotal ? ` (${esc(money(nightTotal))})` : ''}.</span></p>` : ''}
     </section>`;
   }
 
@@ -1427,10 +1432,11 @@
     let html = S.biz.cover_url ? `<div class="cover"><img alt="" src="${esc(S.biz.cover_url)}"></div>` : '';
     html += `<div class="greet"><h2>${hello}${who ? ', ' + esc(who) : ''}.</h2>
       <p>${esc(dateLong)} · ${hojeAtend.length ? `${hojeAtend.length} atendimento${hojeAtend.length > 1 ? 's' : ''} hoje` : 'nenhum atendimento hoje até agora'}</p></div>`;
+    const stIc = (d) => `<svg class="st-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
     html += `<div class="stats">
-      <div><b>${P.length}</b><small>para confirmar</small></div>
-      <div><b>${C.length}</b><small>conversas esperando você</small></div>
-      <div><b>${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : esc(brl(total))}</b><small>previsto hoje</small></div>
+      <div>${stIc('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>')}<b>${P.length}</b><small>para confirmar</small></div>
+      <div>${stIc('<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A1.5 1.5 0 0 1 4 14.5z"/>')}<b>${C.length}</b><small>${C.length === 1 ? 'conversa esperando você' : 'conversas esperando você'}</small></div>
+      <div>${stIc('<rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/>')}<b>${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : esc(brl(total))}</b><small>previsto hoje</small></div>
     </div>`;
     html += winCard(W);
     if (done < list.length) {
