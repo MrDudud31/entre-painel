@@ -34,6 +34,17 @@
     botanico: 'Marcellus&family=Karla:wght@400;600;700',
     editorial: 'Instrument+Serif&family=Inter+Tight:wght@400;500;600;700',
     barbearia: 'Oswald:wght@500;600&family=Work+Sans:wght@400;500;600',
+    navalha: 'Bebas+Neue&family=Barlow:wght@400;500;600',
+    pet: 'Fredoka:wght@500;600&family=Nunito:wght@400;600;700',
+    sorriso: 'Lexend:wght@400;500;600',
+    salao: 'Playfair+Display:wght@500;600&family=Lato:wght@400;700',
+    unhas: 'DM+Serif+Display&family=Poppins:wght@400;500;600',
+    olhar: 'Prata&family=Mulish:wght@400;600;700',
+    pele: 'Lora:wght@500;600&family=Quicksand:wght@400;500;600',
+    consultorio: 'IBM+Plex+Sans:wght@400;500;600',
+    movimento: 'Archivo:wght@400;500;600;800',
+    tattoo: 'Abril+Fatface&family=Space+Grotesk:wght@400;500;600',
+    terapia: 'Young+Serif&family=Figtree:wght@400;500;600',
   };
   function applyStyle(id) {
     if (FONTS[id]) {

@@ -39,8 +39,16 @@
     barbearia: { label: 'Barbearia', services: [['Corte', 30, 21], ['Barba', 30, 14], ['Corte + barba', 60, 21]] },
     estetica: { label: 'Estética, sobrancelhas e cílios', services: [['Design de sobrancelhas', 30, 20], ['Extensão de cílios', 120, 21], ['Limpeza de pele', 60, 30]] },
     clinica: { label: 'Clínica / consultório (saúde)', health: true, services: [['Consulta', 50, null], ['Retorno', 30, null]] },
+    dentista: { label: 'Dentista', health: true, services: [['Avaliação', 30, null], ['Limpeza', 45, 180], ['Restauração', 60, null], ['Clareamento', 60, null]] },
+    pet: { label: 'Pet shop / veterinário', health: true, services: [['Banho', 60, 15], ['Banho e tosa', 90, 30], ['Consulta veterinária', 30, null], ['Vacina', 20, null]] },
+    academia: { label: 'Academia, pilates ou personal', services: [['Aula experimental', 60, null], ['Avaliação física', 45, 90], ['Aula de pilates', 50, 7], ['Treino com personal', 60, 7]] },
+    spa: { label: 'Spa e massagem', services: [['Massagem relaxante', 60, 30], ['Drenagem linfática', 60, 7], ['Day spa', 180, null]] },
+    tatuagem: { label: 'Estúdio de tatuagem', services: [['Orçamento', 30, null], ['Sessão de tatuagem', 180, null], ['Retoque', 60, null], ['Piercing', 30, null]] },
+    terapia: { label: 'Psicologia / terapia', health: true, services: [['Primeira sessão', 50, null], ['Sessão', 50, 7]] },
     outro: { label: 'Outro tipo de negócio', services: [['Atendimento', 60, null]] },
   };
+  // Tema desenhado de cada ramo (fundo com ícones do ramo). Vem escolhido no primeiro acesso; dá para trocar em Ajustes.
+  const KIND_THEME = { salao: 'salao', manicure: 'unhas', barbearia: 'navalha', estetica: 'olhar', clinica: 'consultorio', dentista: 'sorriso', pet: 'pet', academia: 'movimento', spa: 'pele', tatuagem: 'tattoo', terapia: 'terapia' };
 
   // ------------------------------------------------------------------ aparência (estilos que a dona escolhe)
   // As cores de cada estilo ficam no style.css (html[data-style]); aqui só nome, fontes e as cores da miniatura.
@@ -53,6 +61,18 @@
     botanico: { nome: 'Botânico', desc: 'Sálvia, creme e folhas.', fonts: 'Marcellus&family=Karla:wght@400;600;700', disp: '"Marcellus", serif', bg: '#E7ECE2', ink: '#243326', sw: ['#4E6B4A', '#A9C79C', '#DFE7D8'], theme: '#E7ECE2' },
     editorial: { nome: 'Editorial', desc: 'Preto e off-white, cara de revista.', fonts: 'Instrument+Serif&family=Inter+Tight:wght@400;500;600;700', disp: '"Instrument Serif", serif', bg: '#F2F0EB', ink: '#111111', sw: ['#111111', '#2433C7', '#E4E1DA'], theme: '#F2F0EB' },
     barbearia: { nome: 'Barbearia', desc: 'Verde-garrafa, couro e creme.', fonts: 'Oswald:wght@500;600&family=Work+Sans:wght@400;500;600', disp: '"Oswald", sans-serif', bg: '#EFE6D8', ink: '#1F3B2D', sw: ['#1F3B2D', '#8B5A3C', '#E7DAC6'], theme: '#EFE6D8' },
+    // Temas por ramo: cores e fundo desenhado ficam no style.css (bloco gerado por real/ferramentas/temas_ramo.py).
+    navalha: { ramo: true, nome: 'Navalha', desc: 'Barbearia: tesoura, navalha e bigode.', fonts: 'Bebas+Neue&family=Barlow:wght@400;500;600', disp: '"Bebas Neue", sans-serif', bg: '#F1ECE4', ink: '#1C2430', sw: ['#A3322A', '#1F4E79', '#1C2430'] },
+    pet: { ramo: true, nome: 'Pet', desc: 'Patinha, cão e gato.', fonts: 'Fredoka:wght@500;600&family=Nunito:wght@400;600;700', disp: '"Fredoka", sans-serif', bg: '#EDF4F1', ink: '#183B39', sw: ['#1F6F6A', '#C8641F', '#DCEBE7'] },
+    sorriso: { ramo: true, nome: 'Sorriso', desc: 'Dentista: dente, escova e brilho.', fonts: 'Lexend:wght@400;500;600', disp: '"Lexend", sans-serif', bg: '#EEF5F9', ink: '#123049', sw: ['#1D6FA3', '#1E8A82', '#DCEAF4'] },
+    salao: { ramo: true, nome: 'Salão', desc: 'Secador, mechas e tesoura.', fonts: 'Playfair+Display:wght@500;600&family=Lato:wght@400;700', disp: '"Playfair Display", serif', bg: '#F7EEF0', ink: '#3B1D2E', sw: ['#8E3460', '#A9652C', '#F2DDE6'] },
+    unhas: { ramo: true, nome: 'Unhas', desc: 'Esmalte, lixa e brilho.', fonts: 'DM+Serif+Display&family=Poppins:wght@400;500;600', disp: '"DM Serif Display", serif', bg: '#FBEFEB', ink: '#46202B', sw: ['#C23F57', '#9C7020', '#F7DEDF'] },
+    olhar: { ramo: true, nome: 'Olhar', desc: 'Sobrancelhas e cílios.', fonts: 'Prata&family=Mulish:wght@400;600;700', disp: '"Prata", serif', bg: '#F4EDE6', ink: '#36271F', sw: ['#6E4B36', '#8E6A33', '#EBDDD0'] },
+    pele: { ramo: true, nome: 'Pele', desc: 'Estética e spa: gota, folha e pedras.', fonts: 'Lora:wght@500;600&family=Quicksand:wght@400;500;600', disp: '"Lora", serif', bg: '#F1EFF5', ink: '#2C2843', sw: ['#5F4FA0', '#4C7A60', '#E5E0F2'] },
+    consultorio: { ramo: true, nome: 'Consultório', desc: 'Saúde: estetoscópio e batimento.', fonts: 'IBM+Plex+Sans:wght@400;500;600', disp: '"IBM Plex Sans", sans-serif', bg: '#EEF4F5', ink: '#15333D', sw: ['#1E6F78', '#B54542', '#DAEBED'] },
+    movimento: { ramo: true, nome: 'Movimento', desc: 'Academia e pilates: halter e cronômetro.', fonts: 'Archivo:wght@400;500;600;800', disp: '"Archivo", sans-serif', bg: '#F0F2EA', ink: '#1D2617', sw: ['#3E6B16', '#C2531A', '#E1EBD3'] },
+    tattoo: { ramo: true, nome: 'Tattoo', desc: 'Rosa, âncora e estrela.', fonts: 'Abril+Fatface&family=Space+Grotesk:wght@400;500;600', disp: '"Abril Fatface", serif', bg: '#EFECE7', ink: '#191716', sw: ['#1A1A1A', '#A8261D', '#E3DED6'] },
+    terapia: { ramo: true, nome: 'Terapia', desc: 'Conversa, sol e broto.', fonts: 'Young+Serif&family=Figtree:wght@400;500;600', disp: '"Young Serif", serif', bg: '#F4EEE8', ink: '#3A302B', sw: ['#A65F43', '#5B7757', '#EFDDD2'] },
   };
   const LOGO = (cls = '') => `<svg class="entre-logo ${cls}" viewBox="26 16 68 70" aria-hidden="true"><path class="b" d="M30 70 V34 A14 14 0 0 1 44 20 H76 A14 14 0 0 1 90 34 V56 A14 14 0 0 1 76 70 H48 L34 82 Z"/><circle class="d" cx="47" cy="45" r="5"/><circle class="d" cx="60" cy="45" r="5"/><circle class="d" cx="73" cy="45" r="5"/></svg>`;
   const loadedFonts = new Set(['entre']);
@@ -466,12 +486,19 @@
   };
 
   // Grade de estilos: cada opção é desenhada com as cores e a fonte do próprio estilo.
-  function stylePickerHtml(selected) {
+  // Primeiro os temas desenhados por ramo (o do ramo do negócio na frente), depois os estilos lisos.
+  function stylePickerHtml(selected, kind) {
     Object.keys(STYLES).forEach(loadFonts);
-    return `<div class="style-grid" role="group" aria-label="Estilos">${Object.entries(STYLES).map(([id, s]) => `
-      <button type="button" class="style-opt" data-style-opt="${id}" aria-pressed="${id === selected}" style="background:${s.bg};color:${s.ink}">
+    const mine = KIND_THEME[kind];
+    const opt = ([id, s]) => `
+      <button type="button" class="style-opt" data-style-opt="${id}" aria-pressed="${id === selected}" style="background-color:${s.bg};color:${s.ink}">
         <span class="sw">${s.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
-        <b style="font-family:${esc(s.disp)}">${esc(s.nome)}</b><small>${esc(s.desc)}</small></button>`).join('')}</div>`;
+        <b style="font-family:${esc(s.disp)}">${esc(s.nome)}${id === mine ? ' <em class="style-mine">seu ramo</em>' : ''}</b><small>${esc(s.desc)}</small></button>`;
+    const all = Object.entries(STYLES);
+    const ramo = all.filter(([, s]) => s.ramo).sort(([a], [b]) => (b === mine) - (a === mine));
+    const lisos = all.filter(([, s]) => !s.ramo);
+    return `<p class="label">Desenhados para cada ramo</p><div class="style-grid" role="group" aria-label="Temas por ramo">${ramo.map(opt).join('')}</div>
+      <p class="label">Estilos lisos</p><div class="style-grid" role="group" aria-label="Estilos">${lisos.map(opt).join('')}</div>`;
   }
   function bindStylePicker(root, onPick) {
     $$('[data-style-opt]', root).forEach((b) => {
@@ -633,9 +660,15 @@
   const KIND_ICON = {
     salao: '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3L20 17M8.2 15.7L20 7"/>',
     manicure: '<rect x="8" y="11" width="8" height="9" rx="2"/><path d="M10 11V5h4v6M10 15h4"/>',
-    barbearia: '<path d="M4 6h16l-2 4H6zM6 10v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8M10 14h4"/>',
+    barbearia: '<path d="M12 10.5c-1.6-2.4-5.2-2.6-7.2-.2-.9 1.1-1.9 1.4-2.8.9.6 2.9 4.6 4.1 7.4 2.3 1.2-.8 2-1.6 2.6-2.6.6 1 1.4 1.8 2.6 2.6 2.8 1.8 6.8.6 7.4-2.3-.9.5-1.9.2-2.8-.9-2-2.4-5.6-2.2-7.2.2z"/>',
     estetica: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
     clinica: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>',
+    dentista: '<path d="M12 5.6C10.6 4.2 9.1 3.6 7.6 3.6 5 3.6 3.5 5.6 3.5 8.2c0 2.3 1 3.8 1.5 5.8.6 2.6 1 6.4 2.5 6.4s1.9-3.1 2.5-5c.4-1.2 1.1-1.5 2-1.5s1.6.3 2 1.5c.6 1.9 1 5 2.5 5s1.9-3.8 2.5-6.4c.5-2 1.5-3.5 1.5-5.8 0-2.6-1.5-4.6-4.1-4.6-1.5 0-3 .6-4.4 2z"/>',
+    pet: '<ellipse cx="6.5" cy="10" rx="1.7" ry="2.1"/><ellipse cx="10.2" cy="6.6" rx="1.7" ry="2.2"/><ellipse cx="14.6" cy="6.6" rx="1.7" ry="2.2"/><ellipse cx="18.1" cy="10" rx="1.7" ry="2.1"/><path d="M12.4 11.5c-2.6 0-5.2 3.4-5.2 5.9 0 1.6 1.2 2.4 2.6 2.1 1-.2 1.7-.6 2.6-.6s1.6.4 2.6.6c1.4.3 2.6-.5 2.6-2.1 0-2.5-2.6-5.9-5.2-5.9z"/>',
+    academia: '<path d="M6.5 7v10M3.8 9.4v5.2M17.5 7v10M20.2 9.4v5.2M6.5 12h11"/>',
+    spa: '<path d="M12 5.5c2.5 2.6 2.5 8.4 0 12.5-2.5-4.1-2.5-9.9 0-12.5zM12 18c-3.2 0-7.2-2.2-8.2-7.2 3.2 0 6.8 2.2 8.2 7.2zM12 18c3.2 0 7.2-2.2 8.2-7.2-3.2 0-6.8 2.2-8.2 7.2z"/>',
+    tatuagem: '<path d="M7 6.5c0 4.3 2.2 7 5 7s5-2.7 5-7c-1.4.9-2.9 1-3.7.1L12 4.5l-1.3 2.1c-.8.9-2.3.8-3.7-.1zM9.8 8.8c.5 1.1 1.3 1.7 2.2 1.7s1.7-.6 2.2-1.7M12 13.5V21M12 17.5c-2-2-4.2-2.1-5.4-1.1 1.6 1.6 3.4 1.7 5.4 1.1zM12 18.8c1.6-2 3.8-2.5 5.3-1.6-1.5 1.5-3.2 1.9-5.3 1.6z"/>',
+    terapia: '<path d="M3 4.5h11v7.5H8l-3 3v-3H3zM10 15v2.5h6l3 3v-3h2V10h-4.5"/>',
     outro: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   };
   const HOURS_PRESETS = {
@@ -669,7 +702,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(v.label)}</span></button>`).join('')}</div>`;
       } else if (step === 'nome') {
         body = `<h2>Como se chama o seu negócio?</h2><p class="wiz-sub">É o nome que aparece no topo do app e que a secretária usa no WhatsApp.</p>
-          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" placeholder="${W.kind === 'barbearia' ? 'Ex.: Barbearia do Zé' : 'Ex.: Studio Bela Unha'}" value="${esc(W.name)}">`;
+          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Studio Bela Unha'}" value="${esc(W.name)}">`;
       } else if (step === 'voce') {
         body = `<h2>E como podemos te chamar?</h2><p class="wiz-sub">Aparece na saudação, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>
           <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" placeholder="Seu nome" value="${esc(W.owner)}">`;
@@ -678,7 +711,7 @@
           <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
         canSkip = true;
       } else if (step === 'estilo') {
-        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Toque para ver na hora. Cada estilo tem versão clara e escura.</p>${stylePickerHtml(W.theme)}
+        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Já separamos o tema do seu ramo. Toque em outro para ver na hora. Todos têm versão clara e escura.</p>${stylePickerHtml(W.theme, W.kind)}
           <p class="label">Claro ou escuro</p>${modePickerHtml()}`;
       } else if (step === 'imagens') {
         body = `<h2>Logo e capa</h2><p class="wiz-sub">A logo aparece no topo; a capa, no início do app. Se não tiver agora, pode pular.</p>
@@ -736,9 +769,14 @@
       $('#wBack', box)?.addEventListener('click', () => { W.i--; render(); });
       $('#wOut', box)?.addEventListener('click', () => sb.auth.signOut());
       $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; if (step === 'tabela') W.menu = null; W.i++; render(); });
-      $$('[data-kind]', box).forEach((b) => { b.onclick = () => { W.kind = b.dataset.kind; W.i++; render(); }; });
+      $$('[data-kind]', box).forEach((b) => { b.onclick = () => {
+        W.kind = b.dataset.kind;
+        // o tema do ramo já vem escolhido (até a pessoa escolher outro na tela de estilo)
+        if (!W.themePicked) { W.theme = KIND_THEME[W.kind] || 'entre'; applyStyle(W.theme, { persist: false }); }
+        W.i++; render();
+      }; });
       $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
-      if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; applyStyle(id, { persist: false }); }); bindModePicker(form); }
+      if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; W.themePicked = true; applyStyle(id, { persist: false }); }); bindModePicker(form); }
       if (step === 'tabela') {
         if (W.menu?.items.length) bindMenuReview(form, W.menu.items);
         const readPhoto = async () => {
@@ -2226,7 +2264,7 @@
       <details class="card" data-sec="aparencia" ${open('aparencia')}><summary>Aparência do app</summary>
         <form id="lookForm">
           <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura.</p>
-          ${stylePickerHtml(S.previewStyle || b.theme || 'entre')}
+          ${stylePickerHtml(S.previewStyle || b.theme || 'entre', b.kind)}
           <p class="label">Claro ou escuro (vale para este aparelho)</p>
           ${modePickerHtml()}
           <label>Seu nome (aparece em "Bom dia, …")<input name="owner_name" maxlength="60" value="${esc(b.owner_name || '')}" placeholder="Ex.: Ana"></label>
