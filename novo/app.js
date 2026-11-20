@@ -677,9 +677,16 @@
     longo: { label: 'Seg a sáb, 8h às 20h', rows: [1, 2, 3, 4, 5, 6].map((w) => [w, '08:00', '20:00']) },
     semana: { label: 'Seg a sex, 8h às 18h', rows: [1, 2, 3, 4, 5].map((w) => [w, '08:00', '18:00']) },
   };
-  // Ordem das telas do primeiro acesso. As perguntas novas podem ser puladas; o que ficar faltando aparece em
-  // Início › "Termine de configurar".
-  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'jeito', 'fala', 'equipe', 'servicos', 'horario', 'endereco', 'confirma', 'regras', 'pagamento', 'estilo', 'imagens', 'pronto'];
+  // Desenhos que flutuam no fundo do primeiro acesso (os mesmos dos temas por ramo; gerado de real/ferramentas/temas_ramo.py).
+  const RAMO_ICONS = {"navalha": ["<circle cx=\"6\" cy=\"6.5\" r=\"2.8\"/><circle cx=\"6\" cy=\"17.5\" r=\"2.8\"/><path d=\"M8.4 8 20 17.5M8.4 16 20 6.5M12.5 12h.01\"/>", "<path d=\"M3 9h12.5v4.5H6.5A3.5 3.5 0 0 1 3 10z\"/><path d=\"M15.5 11.3 21.5 17\"/><circle cx=\"15.5\" cy=\"11.3\" r=\".8\"/>", "<path d=\"M12 10.5c-1.6-2.4-5.2-2.6-7.2-.2-.9 1.1-1.9 1.4-2.8.9.6 2.9 4.6 4.1 7.4 2.3 1.2-.8 2-1.6 2.6-2.6.6 1 1.4 1.8 2.6 2.6 2.8 1.8 6.8.6 7.4-2.3-.9.5-1.9.2-2.8-.9-2-2.4-5.6-2.2-7.2.2z\"/>", "<path d=\"M3 7.5h18v3.5H3zM5 11v6M7.5 11v6M10 11v6M12.5 11v6M15 11v6M17.5 11v6M20 11v4\"/>", "<rect x=\"9\" y=\"5\" width=\"6\" height=\"14\" rx=\"1\"/><path d=\"M8 5h8M8 19h8M12 3v2M12 19v2M9 9.5l6-3M9 13.5l6-3M9 17.5l6-3\"/>"], "pet": ["<ellipse cx=\"6.5\" cy=\"10\" rx=\"1.7\" ry=\"2.1\"/><ellipse cx=\"10.2\" cy=\"6.6\" rx=\"1.7\" ry=\"2.2\"/><ellipse cx=\"14.6\" cy=\"6.6\" rx=\"1.7\" ry=\"2.2\"/><ellipse cx=\"18.1\" cy=\"10\" rx=\"1.7\" ry=\"2.1\"/><path d=\"M12.4 11.5c-2.6 0-5.2 3.4-5.2 5.9 0 1.6 1.2 2.4 2.6 2.1 1-.2 1.7-.6 2.6-.6s1.6.4 2.6.6c1.4.3 2.6-.5 2.6-2.1 0-2.5-2.6-5.9-5.2-5.9z\"/>", "<path d=\"M7 7.5c1.2-1.3 3-2 5-2s3.8.7 5 2c.8 1 1 2.3 1 3.5v3c0 3.6-2.7 6.5-6 6.5s-6-2.9-6-6.5v-3c0-1.2.2-2.5 1-3.5z\"/><path d=\"M7 7.5C5 7 3 8.5 3 11.8c0 2 1 3.7 2.5 3.7.8 0 1.2-.8 1.4-1.8M17 7.5c2-.5 4 1 4 4.3 0 2-1 3.7-2.5 3.7-.8 0-1.2-.8-1.4-1.8\"/><path d=\"M10 11.5h.01M14 11.5h.01M10.6 15h2.8L12 16.5zM12 16.5v1.3\"/>", "<path d=\"M8.6 9.8 14.2 15.4\"/><path d=\"M8.6 9.8a2.2 2.2 0 1 0-3-1.9 2.2 2.2 0 1 0 1.9 3zM14.2 15.4a2.2 2.2 0 1 0 3 1.9 2.2 2.2 0 1 0-1.9-3z\"/>", "<path d=\"M5.2 9.5 5 4l4.2 3.1a9 9 0 0 1 5.6 0L19 4l-.2 5.5c.8 1.2 1.2 2.6 1.2 4 0 3.9-3.6 6.5-8 6.5s-8-2.6-8-6.5c0-1.4.4-2.8 1.2-4z\"/><path d=\"M9.3 13h.01M14.7 13h.01M11 15.6l1 .8 1-.8M2 13.5l3.2.5M2.5 16.5l3-1M22 13.5l-3.2.5M21.5 16.5l-3-1\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "sorriso": ["<path d=\"M12 5.6C10.6 4.2 9.1 3.6 7.6 3.6 5 3.6 3.5 5.6 3.5 8.2c0 2.3 1 3.8 1.5 5.8.6 2.6 1 6.4 2.5 6.4s1.9-3.1 2.5-5c.4-1.2 1.1-1.5 2-1.5s1.6.3 2 1.5c.6 1.9 1 5 2.5 5s1.9-3.8 2.5-6.4c.5-2 1.5-3.5 1.5-5.8 0-2.6-1.5-4.6-4.1-4.6-1.5 0-3 .6-4.4 2z\"/>", "<path d=\"M2.5 16.5h11.5\"/><path d=\"M14 14.5h7.5v4H14zM15.5 14.5v-4M17.5 14.5v-4M19.5 14.5v-4M21.5 14.5v-3.2\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>", "<circle cx=\"15.5\" cy=\"8.5\" r=\"4\"/><path d=\"M12.7 11.4 4 20\"/>", "<path d=\"M4 10.5c2.2 4.2 4.9 6.3 8 6.3s5.8-2.1 8-6.3M4 10.5c2.5.9 5.2 1.3 8 1.3s5.5-.4 8-1.3M8.5 11.6v2.6M12 11.8v3.5M15.5 11.6v2.6\"/>"], "salao": ["<circle cx=\"9\" cy=\"9.5\" r=\"5.5\"/><circle cx=\"9\" cy=\"9.5\" r=\"1.8\"/><path d=\"M14 6.5h6.5v6H14M12 14.4 11 21h3.2l.8-6.4M20.5 8.5H22M20.5 10.5H22\"/>", "<path d=\"M8 3c-3.2 4 3.2 6 0 10s3.2 6 0 8M12.5 3c-3.2 4 3.2 6 0 10s3.2 6 0 8M17 3c-3.2 4 3.2 6 0 10s3.2 6 0 8\"/>", "<circle cx=\"6\" cy=\"6.5\" r=\"2.8\"/><circle cx=\"6\" cy=\"17.5\" r=\"2.8\"/><path d=\"M8.4 8 20 17.5M8.4 16 20 6.5M12.5 12h.01\"/>", "<path d=\"M8.5 21h7v-8.5h-7zM8.5 12.5h7M9.8 12.5V7.8L14.2 5v7.5\"/>", "<circle cx=\"12\" cy=\"8.5\" r=\"5.5\"/><path d=\"M12 14v6.5M9 21h6M9.6 6.2a3 3 0 0 1 2.4-1.2\"/>"], "unhas": ["<path d=\"M10 2.5h4v5.5h-4zM8.6 8h6.8l1.6 3.2v7.8a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-7.8zM7 14h10\"/>", "<path d=\"M8.5 21.5V9a3.5 3.5 0 0 1 7 0v12.5\"/><path d=\"M10.2 9.4a1.8 1.8 0 0 1 3.6 0v2.6h-3.6z\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>", "<path d=\"M4.6 18.2 16.8 4.4a1.6 1.6 0 0 1 2.4 2.1L7 20.3a1.6 1.6 0 0 1-2.4-2.1zM14 8.5l1.5 1.3M11.5 11.4 13 12.7M9 14.3l1.5 1.3\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "olhar": ["<path d=\"M2.5 13c2.5-4 6-6 9.5-6s7 2 9.5 6c-2.5 4-6 6-9.5 6s-7-2-9.5-6z\"/><circle cx=\"12\" cy=\"13\" r=\"2.7\"/><path d=\"M5.8 9.2 4.3 7.2M8.8 7.8 8.1 5.4M12 7.2V4.7M15.2 7.8l.7-2.4M18.2 9.2l1.5-2\"/>", "<path d=\"M3 12.5c3.6-4.2 9.6-5.4 18-2.5M3.4 13.6c3.8-3.4 9.4-4.2 16.4-2\"/>", "<path d=\"M8.5 2.5 11 16.5 12 21l1-4.5 2.5-14M10.3 12.5h3.4\"/>", "<path d=\"M3 10c2.5 3 5.6 4.5 9 4.5s6.5-1.5 9-4.5M6.2 12.9 4.8 15M9.5 14.2 9 16.6M14.5 14.2l.5 2.4M17.8 12.9 19.2 15\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>"], "pele": ["<path d=\"M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11zM9 14.5a3 3 0 0 0 2.5 3\"/>", "<path d=\"M5 19.5C5 11 10.6 5 20 4.5 19.6 13.6 13.6 19.6 5 19.5zM5 19.5 14 10\"/>", "<ellipse cx=\"12\" cy=\"18.3\" rx=\"7.5\" ry=\"2.6\"/><ellipse cx=\"12\" cy=\"12.8\" rx=\"5.3\" ry=\"2.3\"/><ellipse cx=\"12\" cy=\"8\" rx=\"3.3\" ry=\"1.9\"/>", "<path d=\"M12 5.5c2.5 2.6 2.5 8.4 0 12.5-2.5-4.1-2.5-9.9 0-12.5zM12 18c-3.2 0-7.2-2.2-8.2-7.2 3.2 0 6.8 2.2 8.2 7.2zM12 18c3.2 0 7.2-2.2 8.2-7.2-3.2 0-6.8 2.2-8.2 7.2z\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>"], "consultorio": ["<path d=\"M5.5 3.5v5.5a4 4 0 0 0 8 0V3.5M4.5 3.5h2M12.5 3.5h2M9.5 13v2.5a5 5 0 0 0 10 0v-3.2\"/><circle cx=\"19.5\" cy=\"10.5\" r=\"2\"/>", "<path d=\"M2 12.5h5l2-5 3.2 10 2.3-5H22\"/>", "<path d=\"M9 3.5h6v5.5h5.5v6H15v5.5H9V15H3.5V9H9z\"/>", "<path d=\"M8.6 19.4a3.6 3.6 0 0 1-5.1-5.1l10.8-10.8a3.6 3.6 0 0 1 5.1 5.1zM8.9 8.9l6.2 6.2\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "movimento": ["<path d=\"M6.5 7v10M3.8 9.4v5.2M17.5 7v10M20.2 9.4v5.2M6.5 12h11\"/>", "<path d=\"M8.3 10.2V7.5a3.7 3.7 0 0 1 7.4 0v2.7\"/><path d=\"M8 19.8a6 6 0 1 1 8 0z\"/>", "<circle cx=\"12\" cy=\"13.5\" r=\"7\"/><path d=\"M12 13.5V10M10 3h4M12 3v3.5M18 7.2l1.6-1.6\"/>", "<path d=\"M2 12.5h5l2-5 3.2 10 2.3-5H22\"/>", "<path d=\"M3 16.5h16.8a1.7 1.7 0 0 0 .2-3.3l-5-1.4-2.5-4.3H9.8c-.3 1.6-1.6 2.6-3.3 2.6-1.3 0-2.3-.5-3-1.4zM3 19h18M10.5 11.5l1.2-1M12.5 12.8l1.2-1\"/>"], "tattoo": ["<path d=\"M7 6.5c0 4.3 2.2 7 5 7s5-2.7 5-7c-1.4.9-2.9 1-3.7.1L12 4.5l-1.3 2.1c-.8.9-2.3.8-3.7-.1zM9.8 8.8c.5 1.1 1.3 1.7 2.2 1.7s1.7-.6 2.2-1.7M12 13.5V21M12 17.5c-2-2-4.2-2.1-5.4-1.1 1.6 1.6 3.4 1.7 5.4 1.1zM12 18.8c1.6-2 3.8-2.5 5.3-1.6-1.5 1.5-3.2 1.9-5.3 1.6z\"/>", "<circle cx=\"12\" cy=\"4.6\" r=\"1.9\"/><path d=\"M12 6.5v14.5M8 10h8M4.2 13.2c0 4.4 3.5 7.8 7.8 7.8s7.8-3.4 7.8-7.8M4.2 13.2 2.6 14.8M4.2 13.2l1.6 1.6M19.8 13.2l-1.6 1.6M19.8 13.2l1.6 1.6\"/>", "<path d=\"M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6-4.4-4.1 6-.8z\"/>", "<path d=\"M12 19s-6.5-4-6.5-9a3.5 3.5 0 0 1 6.5-2.2A3.5 3.5 0 0 1 18.5 10c0 5-6.5 9-6.5 9zM3 20 21 4M18 4h3v3M3 20l1-3M3 20l3-1\"/>", "<path d=\"M14.5 3.5 20.5 9.5 17.5 12.5 11.5 6.5zM12.8 7.8 5.5 15.1l3.4 3.4 7.3-7.3M5.5 15.1 3 21l5.9-2.5M17.5 4.5l2-2\"/>"], "terapia": ["<path d=\"M3 4.5h11v7.5H8l-3 3v-3H3zM10 15v2.5h6l3 3v-3h2V10h-4.5\"/>", "<path d=\"M12 21v-9M12 12c0-3.6-2.6-6-6.5-6 0 3.6 2.6 6 6.5 6zM12 14.5c0-3 2.2-5 5.5-5 0 3-2.2 5-5.5 5zM8 21h8\"/>", "<circle cx=\"12\" cy=\"12\" r=\"3.8\"/><path d=\"M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8\"/>", "<path d=\"M7 18.5h10a4 4 0 0 0 .6-8A6 6 0 0 0 6.2 11 3.8 3.8 0 0 0 7 18.5z\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "entre": ["<path d=\"M3 4.5h11v7.5H8l-3 3v-3H3zM10 15v2.5h6l3 3v-3h2V10h-4.5\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>", "<path d=\"M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6-4.4-4.1 6-.8z\"/>", "<circle cx=\"12\" cy=\"12\" r=\"3.8\"/><path d=\"M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8\"/>"]};
+  // ------------------------------------------------------------------ primeiro acesso, com cara de aplicativo
+  // Uma pergunta por tela (cabe sem rolar), um mini celular no topo com a secretária respondendo do jeito escolhido,
+  // telas que deslizam, botões que reagem, os desenhos do ramo flutuando no fundo e comemoração no fim.
+  // As perguntas novas podem ser puladas; o que ficar faltando aparece em Início › "Termine de configurar".
+  const WIZ_ALL = ['oi', 'tipo', 'nome', 'voce', 'whats', 'jeito', 'emoji', 'trato', 'saudacao', 'equipe', 'servicos', 'horario',
+    'endereco', 'confirma', 'prazo', 'atraso', 'cancela', 'pagamento', 'pix', 'sinal', 'estilo', 'imagens', 'pronto'];
+  const wizSteps = (W) => WIZ_ALL.filter((s) => !((s === 'pix' || s === 'sinal') && !W.pays.pix));
+  const WIZ_SKIP = new Set(['whats', 'jeito', 'emoji', 'trato', 'saudacao', 'equipe', 'servicos', 'endereco', 'confirma', 'prazo', 'atraso', 'cancela', 'pagamento', 'pix', 'sinal']);
 
   // Jeitos prontos da secretária. `tone` vai para businesses.tone, que entra no prompt da secretária ("com tom …").
   // `pre` é a interjeição do exemplo; fica separada para não repetir quando a conversa já começou com a saudação.
@@ -691,9 +698,10 @@
   };
   const DEFAULT_TONE = 'simpática, educada e objetiva'; // o mesmo padrão do banco
   const KIND_TONE = { clinica: 'acolhe', dentista: 'acolhe', terapia: 'acolhe', spa: 'acolhe', pet: 'acolhe' };
-  const NOTICE_OPTS = [[30, '30 min'], [60, '1 h'], [120, '2 h'], [1440, '1 dia']];
+  const KIND_SHORT = { salao: 'Salão', manicure: 'Unhas', barbearia: 'Barbearia', estetica: 'Sobrancelha e cílios', clinica: 'Clínica', dentista: 'Dentista', pet: 'Pet', academia: 'Academia e pilates', spa: 'Spa e massagem', tatuagem: 'Tatuagem', terapia: 'Terapia', outro: 'Outro' };
+  const NOTICE_OPTS = [[30, '30 min'], [60, '1 hora'], [120, '2 horas'], [1440, '1 dia']];
   const LATE_OPTS = [[0, 'Sem regra'], [10, '10 min'], [15, '15 min'], [20, '20 min']];
-  const CANCEL_OPTS = [[0, 'Sem regra'], [120, '2 h'], [720, '12 h'], [1440, '1 dia']];
+  const CANCEL_OPTS = [[0, 'Sem regra'], [120, '2 horas'], [720, '12 horas'], [1440, '1 dia']];
   const CANCEL_TXT = { 120: '2 horas', 720: '12 horas', 1440: '1 dia' };
   const PAYS = [['pix', 'Pix'], ['cartao', 'Cartão'], ['dinheiro', 'Dinheiro']];
 
@@ -739,8 +747,8 @@
     return { list, on, off: list.length - on };
   }
 
-  /** Conversa de exemplo da secretária, montada com o que a pessoa já respondeu (não usa IA: é só a prévia). */
-  function wizChat(W, scenes, anim) {
+  /** Mensagens da conversa de exemplo, montadas com o que a pessoa já respondeu (não usa IA: é só a prévia). */
+  function wizMsgs(W, scenes) {
     const T = TONES[W.tone] || TONES.acolhe;
     const formal = W.tone === 'formal' && !W.toneSkip;
     const biz = W.name.trim() || 'Seu negócio';
@@ -755,7 +763,7 @@
     const A = (t) => m.push(['out', t]);
     for (const sc of scenes) {
       if (sc === 'oi') { C('Oi, boa tarde!'); A(`${hi} ${biz} aqui, sou a assistente virtual. ${sen ? 'Em que posso ajudar?' : 'Quer marcar um horário?'}${emo('🙂')}`); }
-      if (sc === 'jeito') { C('Tem horário amanhã à tarde?'); A((scenes.includes('oi') || !T.pre ? '' : T.pre + ' ') + T.ex + (scenes.includes('oi') ? '' : emo('🙂'))); }
+      if (sc === 'jeito') { C('Tem horário amanhã à tarde?'); A((T.pre ? T.pre + ' ' : '') + T.ex + emo('🙂')); }
       if (sc === 'preco') {
         if (!svc) { C('Quanto custa?'); A(sen ? 'Qual serviço? Assim eu informo o valor.' : 'Qual serviço? Te passo o valor.'); continue; }
         C(`Quanto é ${svc.name.toLowerCase()}?`);
@@ -776,7 +784,10 @@
       if (sc === 'atraso') {
         C('Se eu atrasar uns minutos tem problema?');
         A(W.late ? `Tem tolerância de ${W.late} minutos. Passou disso, pode ser preciso remarcar.` : `${sen ? 'Basta avisar' : 'Só avisar'} por aqui que a equipe vê o que dá para fazer.`);
-        if (W.cancel) { C('E se eu precisar cancelar?'); A(`Sem problema, é só avisar com ${CANCEL_TXT[W.cancel]} de antecedência.`); }
+      }
+      if (sc === 'cancela') {
+        C('E se eu precisar cancelar?');
+        A(W.cancel ? `Sem problema, é só avisar com ${CANCEL_TXT[W.cancel]} de antecedência.` : `${sen ? 'Basta avisar' : 'Só avisar'} por aqui, que o horário fica livre para outra pessoa.`);
       }
       if (sc === 'pagar') {
         const pays = payList(W);
@@ -786,248 +797,353 @@
           + (sinalOn(W) ? ` Para segurar o horário, pedimos um sinal${v ? ' de ' + v : ''} por Pix.` : ''));
       }
     }
-    return `<div class="wchat${anim ? ' anim' : ''}" id="wChat"><p class="wc-cap">Exemplo de conversa (a secretária adapta ao que a pessoa escrever):</p>
-      <div class="wc-top"><span class="wc-av">${esc(initials(biz))}</span><span><b>${esc(biz)}</b><small>assistente virtual</small></span></div>
-      <div class="wc-body">${m.map(([w, t], i) => `<p class="wc-${w}" style="--d:${i}">${esc(t)}</p>`).join('')}</div></div>`;
+    return m;
   }
-  const WIZ_CHAT = { nome: ['oi'], jeito: ['jeito'], fala: ['oi', 'jeito'], servicos: ['preco'], endereco: ['onde'], confirma: ['marcar'], regras: ['atraso'], pagamento: ['pagar'], pronto: ['oi', 'preco', 'marcar'] };
-  const segHtml = (attr, opts, cur, label) => `<p class="label" id="lb-${attr}">${label}</p><div class="seg wiz-seg" role="group" aria-labelledby="lb-${attr}">${opts.map(([v, t]) => {
-    const on = String(cur) === String(v);
-    return `<button type="button" data-${attr}="${v}" class="${on ? 'sel' : ''}" aria-pressed="${on}">${esc(t)}</button>`;
-  }).join('')}</div>`;
+  // Quais telas mostram o mini celular, e com qual conversa
+  const WIZ_CHAT = { nome: ['oi'], jeito: ['jeito'], emoji: ['oi'], trato: ['oi'], saudacao: ['oi'], servicos: ['preco'], endereco: ['onde'], confirma: ['marcar'], atraso: ['atraso'], cancela: ['cancela'], pagamento: ['pagar'], sinal: ['pagar'] };
+  const CHECK = '<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  /** Botão de opção do primeiro acesso (o ✓ se desenha quando fica marcado). */
+  const optBtn = (attr, val, on, inner, cls = '') => `<button type="button" class="wz-opt ${cls}" data-${attr}="${val}" aria-pressed="${on}">${inner}${CHECK}</button>`;
+  // vibração leve (só Android; o iPhone não deixa site vibrar). Só depois de um toque de verdade, senão o navegador recusa.
+  const buzz = (p = 8) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(p); } catch { /* sem vibração */ } };
+  const calmMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  /** Fundo vivo: desenhos do ramo flutuando devagar. Troca com um esmaecer quando o ramo muda. */
+  function wizFloat(layer, kind) {
+    const set = RAMO_ICONS[KIND_THEME[kind]] || RAMO_ICONS.entre;
+    if (layer.dataset.set === (KIND_THEME[kind] || 'entre')) return;
+    layer.dataset.set = KIND_THEME[kind] || 'entre';
+    const old = [...layer.children];
+    old.forEach((n) => { n.classList.add('bye'); setTimeout(() => n.remove(), 700); });
+    const spots = [[8, 12], [72, 6], [40, 20], [86, 30], [14, 44], [60, 48], [30, 66], [80, 70], [6, 84], [52, 88], [92, 92], [24, 96]];
+    spots.forEach(([x, y], i) => {
+      const s = document.createElement('i');
+      s.className = 'wzf';
+      s.style.cssText = `left:${x}%;top:${y}%;--s:${26 + ((i * 7) % 20)}px;--dur:${16 + ((i * 5) % 11)}s;--del:-${(i * 2.3).toFixed(1)}s;--r:${((i % 2) ? 1 : -1) * (8 + (i * 3) % 14)}deg`;
+      s.innerHTML = `<svg viewBox="0 0 24 24">${set[i % set.length]}</svg>`;
+      layer.appendChild(s);
+    });
+  }
+
+  /** Comemoração do fim: confete nas cores do tema (canvas, ~3 s). */
+  function wizConfetti() {
+    if (calmMotion()) return;
+    const cv = document.createElement('canvas');
+    cv.className = 'wz-confetti';
+    document.body.appendChild(cv);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = (cv.width = innerWidth * dpr), h = (cv.height = innerHeight * dpr);
+    const ctx = cv.getContext('2d');
+    const css = getComputedStyle(document.documentElement);
+    const cols = ['--brand', '--hi', '--brand-soft', '--ok'].map((v) => css.getPropertyValue(v).trim() || '#E0A36B');
+    const P = Array.from({ length: 140 }, (_, i) => ({
+      x: w / 2 + (Math.random() - 0.5) * w * 0.3, y: h * 0.42, vx: (Math.random() - 0.5) * 16 * dpr, vy: (-6 - Math.random() * 12) * dpr,
+      s: (5 + Math.random() * 6) * dpr, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, c: cols[i % cols.length], sh: i % 3,
+    }));
+    const t0 = performance.now();
+    const tick = (t) => {
+      const k = (t - t0) / 1000;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of P) {
+        p.vy += 0.35 * dpr; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - Math.max(0, k - 2) / 1.2); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+        if (p.sh === 0) ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); else { ctx.beginPath(); ctx.arc(0, 0, p.s / 2.6, 0, 7); ctx.fill(); }
+        ctx.restore();
+      }
+      if (k < 3.3) requestAnimationFrame(tick); else cv.remove();
+    };
+    requestAnimationFrame(tick);
+  }
 
   function showOnboarding() {
     show('onboard');
     const W = {
-      i: 0, kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial',
+      step: 'oi', kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial',
       tone: 'leve', toneSkip: false, emoji: true, trato: 'voce', greet: '', solo: true, team: [], menu: null, menuSkip: false,
       address: '', auto: false, notice: 60, late: 15, cancel: 120, rules: '', pays: { pix: true, cartao: true, dinheiro: true },
       pixKey: '', pixCity: '', sinal: false, sinalVal: '', saving: false, bizId: null,
     };
     const url = { logo: null, cover: null }; // prévia das imagens escolhidas (ainda não enviadas)
     const box = $('#onboard');
-    // Atualiza só a conversa de exemplo (sem redesenhar a tela, para o teclado não fechar).
-    const refreshChat = () => { const el = $('#wChat', box); const sc = WIZ_CHAT[WIZ_STEPS[W.i]]; if (el && sc) el.outerHTML = wizChat(W, sc, false); };
-
-    // quiet: redesenho por causa de um toque na mesma tela (sem repetir a animação de entrada)
-    const render = ({ quiet = false } = {}) => {
-      const step = WIZ_STEPS[W.i];
-      const total = WIZ_STEPS.length - 1;
-      let body = '';
-      let next = 'Continuar';
-      let canSkip = false;
-      if (step === 'oi') {
-        body = `<div class="wiz-hero"><span class="logo-badge big">${LOGO('anim')}</span></div>
-          <h2>Oi, tudo bem?</h2>
-          <p class="wiz-sub">Vou te fazer umas perguntas rápidas para montar o app e a secretária do seu jeito: como você trabalha, quem atende, seus preços e como ela deve falar no WhatsApp. São ${total} telas curtas.</p>
-          <p class="wiz-sub">Não sabe responder alguma agora? Toque em "Pular" ou deixe como está. Dá para mudar tudo depois, em Ajustes.</p>`;
-        next = 'Começar';
-      } else if (step === 'tipo') {
-        body = `<h2>Com o que você trabalha?</h2><p class="wiz-sub">Assim já trazemos serviços de exemplo e o tema do seu ramo.</p>
-          <div class="kind-grid">${Object.entries(KINDS).map(([k, v]) => `<button type="button" class="kind-opt" data-kind="${k}" aria-pressed="${W.kind === k}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(v.label)}</span></button>`).join('')}</div>`;
-      } else if (step === 'nome') {
-        body = `<h2>Como se chama o seu negócio?</h2><p class="wiz-sub">É o nome que aparece no topo do app e que a secretária usa no WhatsApp.</p>
-          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" aria-label="Nome do negócio" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', manicure: 'Studio Bela Unha', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Espaço Silva'}" value="${esc(W.name)}">`;
-      } else if (step === 'voce') {
-        body = `<h2>E como posso te chamar?</h2><p class="wiz-sub">Aparece na saudação, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>
-          <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" aria-label="Seu nome" placeholder="Seu nome" value="${esc(W.owner)}">`;
-      } else if (step === 'whats') {
-        body = `<h2>Seu WhatsApp, para receber avisos</h2><p class="wiz-sub">A secretária te avisa quando chegar um pedido novo ou quando alguém precisar de você. Use um número diferente do WhatsApp do negócio (o seu pessoal, por exemplo).</p>
-          <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" aria-label="Seu WhatsApp" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
-        canSkip = true;
-      } else if (step === 'jeito') {
-        body = `<h2>Como a secretária deve falar?</h2><p class="wiz-sub">Ela responde quem escreve no WhatsApp do negócio. Toque num jeito e veja o exemplo mudar.</p>
-          <div class="hours-opts">${Object.entries(TONES).map(([k, t]) => `<button type="button" class="hours-opt tone-opt" data-tone="${k}" aria-pressed="${!W.toneSkip && W.tone === k}"><span><b>${esc(t.label)}</b><small>"${esc((t.pre ? t.pre + ' ' : '') + t.ex)}"</small></span></button>`).join('')}</div>`;
-        canSkip = true;
-      } else if (step === 'fala') {
-        body = `<h2>Mais uns detalhes do jeito dela</h2>
-          ${segHtml('emoji', [[1, 'Um de vez em quando'], [0, 'Sem emoji']], W.emoji ? 1 : 0, 'Emoji')}
-          ${segHtml('trato', [['voce', 'Por você'], ['senhor', 'Senhor ou senhora']], W.trato, 'Como tratar quem escreve')}
-          <label class="label" for="wGreet">Como ela começa a conversa <span class="muted">(se quiser)</span></label>
-          <input class="wiz-input" id="wGreet" maxlength="40" placeholder="Ex.: ${['barbearia', 'tatuagem', 'academia'].includes(W.kind) ? 'E aí, tudo certo?' : W.trato === 'senhor' ? 'Olá, boa tarde!' : 'Oi, que bom que você chamou!'}" value="${esc(W.greet)}">`;
-        canSkip = true;
-      } else if (step === 'equipe') {
-        body = `<h2>Quem atende aí?</h2><p class="wiz-sub">A secretária marca cada horário na agenda de quem vai atender.</p>
-          <div class="hours-opts"><button type="button" class="hours-opt" data-solo="1" aria-pressed="${W.solo}">Só eu</button>
-            <button type="button" class="hours-opt" data-solo="0" aria-pressed="${!W.solo}">Eu e mais gente</button></div>
-          ${W.solo ? '' : `<div class="team-box"><div class="team-list"><span class="team-chip me">${esc(firstName(W.owner) || 'Você')}</span>${W.team.map((n, i) => `<span class="team-chip">${esc(n)}<button type="button" data-team-rm="${i}" aria-label="Tirar ${esc(n)}">×</button></span>`).join('')}</div>
-            <div class="inline"><input id="wTeam" maxlength="60" placeholder="Nome de quem atende" aria-label="Nome de quem atende" autocomplete="off"><button type="button" class="btn" id="wTeamAdd">Adicionar</button></div></div>`}`;
-        canSkip = true;
-      } else if (step === 'servicos') {
-        if (W.reading) {
-          body = `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
-        } else {
-          const n = W.menu.items.length;
-          // aqui a conversa vem antes da lista, para aparecer sem rolar a tela
-          body = `<h2>Seus serviços e preços</h2>
-            <p class="wiz-sub">${W.menu.fromPhoto ? `Achei ${n} serviço${n === 1 ? '' : 's'} na foto. Confira e desmarque o que você não faz.` : 'Deixei alguns do seu ramo. Coloque o preço, desmarque o que você não faz ou tire uma foto da sua tabela.'}</p>
-            ${W.menu.aviso ? `<p class="banner warn">${esc(W.menu.aviso)} Tente outra foto, de frente e com boa luz.</p>` : ''}
-            <button type="button" class="btn ghost block" id="wMenu">${CAM} ${W.menu.fromPhoto ? 'Tirar outra foto' : 'Foto da tabela de preços'}</button>
-            %%CHAT%%
-            ${menuReviewHtml(W.menu.items)}
-            <button type="button" class="btn ghost small" id="wMenuAdd">+ Outro serviço</button>`;
-          canSkip = true;
-        }
-      } else if (step === 'horario') {
-        body = `<h2>${isSolo(W) ? 'Quando você atende?' : 'Quando vocês atendem?'}</h2><p class="wiz-sub">Escolha o mais perto. Dá para ajustar dia por dia depois, em Ajustes.</p>
-          <div class="hours-opts">${Object.entries(HOURS_PRESETS).map(([k, h]) => `<button type="button" class="hours-opt" data-hours="${k}" aria-pressed="${W.hours === k}">${esc(h.label)}</button>`).join('')}</div>`;
-      } else if (step === 'endereco') {
-        body = `<h2>Onde fica o seu negócio?</h2><p class="wiz-sub">A secretária manda isso quando alguém perguntar. Atende on-line ou vai até a pessoa? Escreva assim mesmo (ex.: "Atendimento on-line, por vídeo" ou "Vou até a casa da pessoa").</p>
-          <input class="wiz-input" id="wAddr" maxlength="200" autocomplete="street-address" aria-label="Endereço" placeholder="Rua, número, bairro, cidade" value="${esc(W.address)}">`;
-        canSkip = true;
-      } else if (step === 'confirma') {
-        body = `<h2>Quando alguém marcar pela secretária ou pelo link…</h2>
-          <div class="hours-opts"><button type="button" class="hours-opt" data-auto="0" aria-pressed="${!W.auto}"><span><b>Eu confirmo antes</b><small>Fica como pedido até você tocar em Confirmar.</small></span></button>
-            <button type="button" class="hours-opt" data-auto="1" aria-pressed="${W.auto}"><span><b>Já fica marcado</b><small>O horário entra confirmado na hora.</small></span></button></div>
-          ${segHtml('notice', NOTICE_OPTS, W.notice, 'Prazo mínimo para marcar')}
-          <p class="hint">Ex.: com 1 h, ninguém marca para daqui a 20 minutos.</p>`;
-        canSkip = true;
-      } else if (step === 'regras') {
-        body = `<h2>Suas regras</h2><p class="wiz-sub">A secretária explica quando alguém perguntar.</p>
-          ${segHtml('late', LATE_OPTS, W.late, 'Tolerância de atraso')}
-          ${segHtml('cancel', CANCEL_OPTS, W.cancel, 'Para cancelar, avisar com quanto tempo antes')}
-          <label class="label" for="wRules">Mais alguma regra? <span class="muted">(se quiser)</span></label>
-          <textarea id="wRules" rows="2" maxlength="400" placeholder="${KINDS[W.kind]?.health ? 'Ex.: chegar 10 min antes para o cadastro' : 'Ex.: criança só com responsável'}">${esc(W.rules)}</textarea>`;
-        canSkip = true;
-      } else if (step === 'pagamento') {
-        body = `<h2>Como as pessoas pagam?</h2><p class="wiz-sub">Toque em todas as formas que você aceita.</p>
-          <div class="wpay-opts" role="group" aria-label="Formas de pagamento">${PAYS.map(([k, t]) => `<button type="button" class="hours-opt" data-pay="${k}" aria-pressed="${!!W.pays[k]}">${t}</button>`).join('')}</div>
-          ${W.pays.pix ? `<div class="pix-row"><label>Chave Pix <span class="muted small">(se quiser)</span><input id="wPix" maxlength="77" autocomplete="off" value="${esc(W.pixKey)}" placeholder="CPF, CNPJ, e-mail, celular ou aleatória"></label>
-            <label>Cidade<input id="wPixCity" maxlength="15" value="${esc(W.pixCity)}" placeholder="Ex.: São Paulo"></label></div>
-            <p class="hint">Com a chave, o app monta o Pix do sinal. O dinheiro vai direto para a sua conta; o Entre não cobra nada por isso. Cidade: até 15 letras (se for maior, abrevie).</p>
-            ${segHtml('sinal', [[0, 'Não peço'], [1, 'Peço sinal por Pix']], W.sinal ? 1 : 0, 'Sinal para marcar')}
-            ${W.sinal ? `<input class="wiz-input" id="wSinal" maxlength="20" aria-label="Valor do sinal" placeholder="Quanto? Ex.: R$ 20 ou 30%" value="${esc(W.sinalVal)}">` : ''}` : ''}`;
-        canSkip = true;
-      } else if (step === 'estilo') {
-        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Já separamos o tema do seu ramo. Toque em outro para ver na hora. Todos têm versão clara e escura.</p>${stylePickerHtml(W.theme, W.kind)}
-          <p class="label">Claro ou escuro</p>${modePickerHtml()}`;
-      } else if (step === 'imagens') {
-        body = `<h2>Logo e capa</h2><p class="wiz-sub">A logo aparece no topo; a capa, no início do app. Se não tiver agora, pode pular.</p>
-          <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
-            <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
-          <div class="wiz-files">
-            <label class="btn ghost">${url.logo ? 'Trocar a logo' : 'Escolher logo'}<input type="file" id="wLogo" accept="image/png,image/jpeg,image/webp" hidden></label>
-            <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label>
-          </div>`;
-        canSkip = !W.logo && !W.cover;
-      } else if (step === 'pronto') {
-        const sv = wizServices(W);
-        const people = new Set([W.owner, ...(W.solo ? [] : W.team)].map(normName).filter(Boolean)).size;
-        const T = TONES[W.tone] || TONES.acolhe;
-        body = `<h2>Tudo pronto, ${esc(firstName(W.owner))}!</h2><p class="wiz-sub">Assim vai ficar o seu app:</p>
-          <div class="wiz-preview big">${url.cover ? '<div class="wp-cover" id="wpCover"></div>' : ''}
-            <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name)}</b></div>
-            <div class="wp-greet">${(() => { const hr = new Date().getHours(); return hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'; })()}, ${esc(firstName(W.owner))}.</div></div>
-          <ul class="wiz-sum"><li><b>Ramo:</b> ${esc(KINDS[W.kind]?.label || '')}</li><li><b>Estilo:</b> ${esc(STYLES[W.theme].nome)}</li><li><b>Horário:</b> ${esc(HOURS_PRESETS[W.hours].label)}</li>
-            <li><b>Secretária:</b> ${W.toneSkip ? 'fala do jeito padrão, simpática e objetiva' : `fala de um jeito ${esc(T.jeito)}`} e trata por ${W.trato === 'senhor' ? 'senhor ou senhora' : 'você'}.</li>
-            <li><b>Horários marcados por ela:</b> ${W.auto ? 'já ficam confirmados' : 'você confirma antes'}.</li>
-            <li><b>Quem atende:</b> ${people <= 1 ? 'só você' : `${people} pessoas`}.</li>
-            <li><b>Serviços:</b> ${sv.on ? `${sv.on} ${sv.on === 1 ? 'pronto' : 'prontos'} para a secretária oferecer.${sv.off ? ` ${sv.off} sem preço ${sv.off === 1 ? 'fica desligado' : 'ficam desligados'} até você pôr o valor em Ajustes › Serviços.` : ''}` : 'deixamos alguns de exemplo, desligados e sem preço. Ponha os valores em Ajustes › Serviços.'}</li></ul>`;
-        next = 'Entrar no meu app';
-      }
-      const sc = WIZ_CHAT[step];
-      const chat = sc && !(step === 'servicos' && W.reading) ? wizChat(W, sc, !quiet) : '';
-      const err0 = '<p class="error" id="wErr" role="alert"></p>';
-      body = body.includes('%%CHAT%%') ? body.replace('%%CHAT%%', chat) + err0 : body + err0 + chat;
-      box.innerHTML = `<form class="wiz card narrow" novalidate>
-        <div class="wiz-top">${W.i > 0 ? '<button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>' : '<span></span>'}
-          ${W.i > 0 ? `<div class="wiz-progress" aria-label="Passo ${W.i} de ${total}"><i style="width:${Math.round((W.i / total) * 100)}%"></i></div><small>${W.i}/${total}</small>` : ''}</div>
-        <div class="wiz-step${quiet ? ' no-anim' : ''}">${body}</div>
-        <div class="wiz-nav"><button type="submit" class="btn primary block">${next}</button>
-          ${canSkip ? '<button type="button" class="btn ghost block" id="wSkip">Pular</button>' : ''}
-          ${W.i === 0 ? '<button type="button" class="btn ghost block" id="wOut">Sair</button>' : ''}</div>
+    box.classList.add('wizapp');
+    box.innerHTML = `<div class="wz-float" aria-hidden="true"></div>
+      <form class="wz" novalidate>
+        <div class="wz-top"><button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>
+          <div class="wz-bar" aria-hidden="true"><i></i></div><button type="button" class="wz-out" id="wOut">Sair</button></div>
+        <div class="wz-phone" id="wzPhone" aria-label="Exemplo de conversa da secretária">
+          <div class="wzp"><div class="wzp-head"><span class="wc-av" id="wzpAv">?</span><span><b id="wzpName">Seu negócio</b><small>assistente virtual · online</small></span></div>
+          <div class="wzp-body" id="wzpBody" aria-live="polite"></div></div></div>
+        <div class="wz-stage" id="wzStage"></div>
+        <div class="wz-bottom"><p class="error" id="wErr" role="alert"></p>
+          <button type="submit" class="btn primary block" id="wNext">Continuar</button>
+          <button type="button" class="btn ghost block" id="wSkip">Pular</button></div>
       </form>`;
-      const form = $('form', box);
-      const err = (m) => { $('#wErr', box).textContent = m; };
-      // imagens escolhidas aparecem na prévia
-      const pc = $('#wpCover', box), pl = $('#wpLogo', box);
+    const form = $('form', box), stage = $('#wzStage', box), phone = $('#wzPhone', box), floatL = $('.wz-float', box);
+    const err = (m) => { $('#wErr', box).textContent = m; if (m) buzz([12, 40, 12]); };
+    wizFloat(floatL, '');
+
+    // ---------- mini celular
+    let chatSeq = 0, chatKey = '';
+    const bubbles = (msgs) => msgs.map(([w, t]) => `<p class="wc-${w}">${esc(t)}</p>`).join('');
+    /** typing=true: a secretária aparece "digitando…" antes de responder (escolha nova); false: troca na hora (digitando no campo). */
+    const setPhone = (typing) => {
+      const sc = WIZ_CHAT[W.step];
+      phone.classList.toggle('on', !!sc);
+      phone.classList.toggle('mini', W.step === 'servicos');
+      if (!sc) return;
+      $('#wzpName', box).textContent = W.name.trim() || 'Seu negócio';
+      $('#wzpAv', box).textContent = initials(W.name.trim() || 'Seu negócio');
+      const msgs = wizMsgs(W, sc).slice(-4);
+      const key = JSON.stringify(msgs);
+      if (key === chatKey) return;
+      chatKey = key;
+      const body = $('#wzpBody', box);
+      const seq = ++chatSeq;
+      if (!typing || calmMotion()) { body.innerHTML = bubbles(msgs); return; }
+      const ins = msgs.filter(([w]) => w === 'in');
+      body.innerHTML = bubbles(ins.slice(-1)) + '<p class="wc-out wc-typing"><i></i><i></i><i></i></p>';
+      setTimeout(() => { if (seq === chatSeq) { body.innerHTML = bubbles(msgs); body.lastElementChild?.classList.add('pop'); } }, 750);
+    };
+
+    // ---------- conteúdo de cada tela
+    const paneHtml = (step) => {
+      const T = TONES[W.tone] || TONES.acolhe;
+      switch (step) {
+        case 'oi': return `<div class="wz-hello"><span class="wz-logo">${LOGO('anim')}</span>
+            <h1 class="wz-type" data-type="Oi, tudo bem?"></h1>
+            <p class="wz-sub wz-late">Vou montar o app e a sua secretária do WhatsApp com você. Uma pergunta por tela; o que não souber, dá para pular.</p></div>`;
+        case 'tipo': return `<h2>Com o que você trabalha?</h2><p class="wz-sub">Trago serviços de exemplo e o tema do seu ramo.</p>
+            <div class="wz-kinds">${Object.keys(KINDS).map((k) => `<button type="button" class="wz-opt wz-kind" data-kind="${k}" aria-pressed="${W.kind === k}">
+              <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(KIND_SHORT[k] || KINDS[k].label)}</span>${CHECK}</button>`).join('')}</div>`;
+        case 'nome': return `<h2>Como se chama o seu negócio?</h2>
+            <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" aria-label="Nome do negócio" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', manicure: 'Studio Bela Unha', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Espaço Silva'}" value="${esc(W.name)}">
+            <p class="wz-sub">Veja lá em cima: a secretária já se apresenta com ele.</p>`;
+        case 'voce': return `<h2>E como posso te chamar?</h2>
+            <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" aria-label="Seu nome" placeholder="Seu nome" value="${esc(W.owner)}">
+            <p class="wz-sub">Vai na saudação do app, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>`;
+        case 'whats': return `<h2>Seu WhatsApp, para receber avisos</h2>
+            <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" aria-label="Seu WhatsApp" placeholder="(11) 91234-5678" value="${esc(W.wa)}">
+            <p class="wz-sub">A secretária te chama quando chegar pedido novo ou alguém precisar de você. Use um número diferente do WhatsApp do negócio.</p>`;
+        case 'jeito': return `<h2>Como a secretária deve falar?</h2>
+            <div class="wz-list">${Object.entries(TONES).map(([k, t]) => optBtn('tone', k, !W.toneSkip && W.tone === k, `<span><b>${esc(t.label)}</b><small>${esc((t.pre ? t.pre + ' ' : '') + t.ex)}</small></span>`)).join('')}</div>`;
+        case 'emoji': return `<h2>Ela pode usar emoji?</h2>
+            <div class="wz-list">${optBtn('emoji', 1, W.emoji, '<span><b>Um de vez em quando 🙂</b></span>')}${optBtn('emoji', 0, !W.emoji, '<span><b>Sem emoji</b></span>')}</div>`;
+        case 'trato': return `<h2>Como ela trata quem escreve?</h2>
+            <div class="wz-list">${optBtn('trato', 'voce', W.trato === 'voce', '<span><b>Por você</b><small>"Quer marcar um horário?"</small></span>')}${optBtn('trato', 'senhor', W.trato === 'senhor', '<span><b>Por senhor ou senhora</b><small>"Em que posso ajudar?"</small></span>')}</div>`;
+        case 'saudacao': return `<h2>Como ela começa a conversa?</h2>
+            <input class="wiz-input" id="wGreet" maxlength="40" aria-label="Saudação" placeholder="Ex.: ${['barbearia', 'tatuagem', 'academia'].includes(W.kind) ? 'E aí, tudo certo?' : W.trato === 'senhor' ? 'Olá, boa tarde!' : 'Oi, que bom que você chamou!'}" value="${esc(W.greet)}">
+            <p class="wz-sub">Se deixar em branco, ela usa "${esc(T.hi)}".</p>`;
+        case 'equipe': return `<h2>Quem atende aí?</h2>
+            <div class="wz-list">${optBtn('solo', 1, W.solo, '<span><b>Só eu</b></span>')}${optBtn('solo', 0, !W.solo, '<span><b>Eu e mais gente</b></span>')}</div>
+            ${W.solo ? '' : `<div class="team-list"><span class="team-chip me">${esc(firstName(W.owner) || 'Você')}</span>${W.team.map((n, i) => `<span class="team-chip">${esc(n)}<button type="button" data-team-rm="${i}" aria-label="Tirar ${esc(n)}">×</button></span>`).join('')}</div>
+              <div class="inline"><input id="wTeam" maxlength="60" placeholder="Nome de quem atende" aria-label="Nome de quem atende" autocomplete="off"><button type="button" class="btn" id="wTeamAdd">Adicionar</button></div>`}`;
+        case 'servicos':
+          if (W.reading) return `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
+          return `<div class="wz-row"><h2>Seus preços</h2><button type="button" class="btn small ghost" id="wMenu">${CAM} Foto da tabela</button></div>
+            ${W.menu.aviso ? `<p class="banner warn">${esc(W.menu.aviso)}</p>` : ''}
+            <div class="wz-menu">${W.menu.items.map((it, i) => `<div class="wz-mi ${it.on ? '' : 'off'}" data-mi="${i}">
+              <input type="checkbox" data-mf="on" ${it.on ? 'checked' : ''} aria-label="Incluir ${esc(it.name || 'serviço')}">
+              <input data-mf="name" value="${esc(it.name)}" maxlength="80" placeholder="Serviço" aria-label="Nome do serviço">
+              <label class="money-in"><span>R$</span><input data-mf="price" inputmode="decimal" placeholder="0,00" value="${it.price != null ? esc((it.price / 100).toFixed(2).replace('.', ',')) : ''}" aria-label="Preço"></label></div>`).join('')}</div>
+            <button type="button" class="btn ghost small" id="wMenuAdd">+ Outro serviço</button>`;
+        case 'horario': return `<h2>${isSolo(W) ? 'Quando você atende?' : 'Quando vocês atendem?'}</h2>
+            <div class="wz-list">${Object.entries(HOURS_PRESETS).map(([k, h]) => optBtn('hours', k, W.hours === k, `<span><b>${esc(h.label)}</b></span>`)).join('')}</div>
+            <p class="wz-sub">Dá para ajustar dia por dia depois, em Ajustes.</p>`;
+        case 'endereco': return `<h2>Onde fica o seu negócio?</h2>
+            <input class="wiz-input" id="wAddr" maxlength="200" autocomplete="street-address" aria-label="Endereço" placeholder="Rua, número, bairro, cidade" value="${esc(W.address)}">
+            <p class="wz-sub">Atende on-line ou vai até a pessoa? Escreva assim mesmo, tipo "Atendimento on-line, por vídeo".</p>`;
+        case 'confirma': return `<h2>Quando alguém marcar com ela…</h2>
+            <div class="wz-list">${optBtn('auto', 0, !W.auto, '<span><b>Eu confirmo antes</b><small>Fica como pedido até você tocar em Confirmar.</small></span>')}${optBtn('auto', 1, W.auto, '<span><b>Já fica marcado</b><small>O horário entra confirmado na hora.</small></span>')}</div>`;
+        case 'prazo': return `<h2>Prazo mínimo para marcar</h2><p class="wz-sub">Com 1 hora, ninguém marca para daqui a 20 minutos.</p>
+            <div class="wz-grid2">${NOTICE_OPTS.map(([v, t]) => optBtn('notice', v, W.notice === v, `<b>${t}</b>`)).join('')}</div>`;
+        case 'atraso': return `<h2>Tolerância de atraso</h2>
+            <div class="wz-grid2">${LATE_OPTS.map(([v, t]) => optBtn('late', v, W.late === v, `<b>${t}</b>`)).join('')}</div>`;
+        case 'cancela': return `<h2>Para cancelar, avisar com quanto tempo antes?</h2>
+            <div class="wz-grid2">${CANCEL_OPTS.map(([v, t]) => optBtn('cancel', v, W.cancel === v, `<b>${t}</b>`)).join('')}</div>`;
+        case 'pagamento': return `<h2>Como as pessoas pagam?</h2><p class="wz-sub">Toque em todas as formas que você aceita.</p>
+            <div class="wz-grid3">${PAYS.map(([k, t]) => optBtn('pay', k, !!W.pays[k], `<b>${t}</b>`)).join('')}</div>`;
+        case 'pix': return `<h2>Sua chave Pix</h2>
+            <input class="wiz-input" id="wPix" maxlength="77" autocomplete="off" aria-label="Chave Pix" placeholder="CPF, CNPJ, e-mail, celular ou aleatória" value="${esc(W.pixKey)}">
+            <input class="wiz-input" id="wPixCity" maxlength="15" aria-label="Cidade" placeholder="Cidade (até 15 letras)" value="${esc(W.pixCity)}">
+            <p class="wz-sub">Com ela, o app monta o Pix do sinal. O dinheiro vai direto para a sua conta; o Entre não cobra nada por isso.</p>`;
+        case 'sinal': return `<h2>Pede sinal para marcar?</h2>
+            <div class="wz-list">${optBtn('sinal', 0, !W.sinal, '<span><b>Não peço</b></span>')}${optBtn('sinal', 1, W.sinal, '<span><b>Peço sinal por Pix</b></span>')}</div>
+            ${W.sinal ? `<input class="wiz-input" id="wSinal" maxlength="20" aria-label="Valor do sinal" placeholder="Quanto? Ex.: R$ 20 ou 30%" value="${esc(W.sinalVal)}">` : ''}`;
+        case 'estilo': {
+          Object.keys(STYLES).forEach(loadFonts);
+          const mine = KIND_THEME[W.kind];
+          const all = Object.entries(STYLES).sort(([a, x], [b, y]) => (b === mine) - (a === mine) || (!!y.ramo) - (!!x.ramo));
+          return `<h2>Escolha a cara do app</h2><p class="wz-sub">Arraste para o lado. Toque para ver no app inteiro.</p>
+            <div class="wz-themes" role="group" aria-label="Temas">${all.map(([id, s]) => `<button type="button" class="wz-theme style-opt" data-style-opt="${id}" aria-pressed="${id === W.theme}" style="background-color:${s.bg};color:${s.ink}">
+              <span class="sw">${s.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
+              <b style="font-family:${esc(s.disp)}">${esc(s.nome)}</b>${id === mine ? '<em class="style-mine">seu ramo</em>' : ''}<small>${esc(s.desc)}</small>${CHECK}</button>`).join('')}</div>
+            ${modePickerHtml()}`;
+        }
+        case 'imagens': return `<h2>Logo e capa</h2>
+            <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
+              <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
+            <div class="wiz-files">
+              <label class="btn ghost">${url.logo ? 'Trocar a logo' : 'Escolher logo'}<input type="file" id="wLogo" accept="image/png,image/jpeg,image/webp" hidden></label>
+              <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label></div>
+            <p class="wz-sub">A logo aparece no topo; a capa, no início do app.</p>`;
+        case 'pronto': {
+          const sv = wizServices(W);
+          const people = new Set([W.owner, ...(W.solo ? [] : W.team)].map(normName).filter(Boolean)).size;
+          const hr = new Date().getHours();
+          const msg = wizMsgs(W, ['oi'])[1][1];
+          return `<h2 class="wz-type" data-type="Tudo pronto, ${esc(firstName(W.owner))}!"></h2>
+            <div class="wz-mock">
+              <div class="wzm-bar">${url.logo ? '<span class="wp-logo" id="wpLogo"></span>' : `<span class="wzm-logo">${LOGO()}</span>`}<b>${esc(W.name)}</b></div>
+              <div class="wzm-greet">${hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'}, ${esc(firstName(W.owner))}.</div>
+              <div class="wzm-stats"><i><b>0</b><small>para confirmar</small></i><i><b>${sv.on}</b><small>${sv.on === 1 ? 'serviço pronto' : 'serviços prontos'}</small></i><i><b>${people}</b><small>${people === 1 ? 'pessoa atende' : 'pessoas atendem'}</small></i></div>
+              <p class="wc-out wzm-msg">${esc(msg)}</p>
+            </div>
+            <div class="wz-chips"><span>${esc(KIND_SHORT[W.kind] || '')}</span><span>Tema ${esc(STYLES[W.theme].nome)}</span><span>${W.toneSkip ? 'Jeito padrão' : 'Jeito ' + esc(T.jeito)}</span><span>${W.auto ? 'Confirma sozinha' : 'Você confirma'}</span></div>
+            ${sv.on ? '' : '<p class="wz-sub">Os serviços de exemplo ficam desligados até você pôr os preços em Ajustes › Serviços.</p>'}`;
+        }
+      }
+      return '';
+    };
+
+    // ---------- desenhar uma tela (dir: 1 avança, -1 volta, 0 redesenha a mesma sem animação de troca)
+    let typingTimer = null;
+    const draw = (dir = 1) => {
+      const steps = wizSteps(W);
+      const i = steps.indexOf(W.step);
+      $('.wz-bar i', box).style.width = `${Math.round((i / (steps.length - 1)) * 100)}%`;
+      $('#wBack', box).style.visibility = i > 0 ? 'visible' : 'hidden';
+      $('#wOut', box).hidden = i !== 0;
+      $('#wNext', box).textContent = W.step === 'oi' ? 'Começar' : W.step === 'pronto' ? 'Entrar no meu app' : 'Continuar';
+      $('#wSkip', box).hidden = !(WIZ_SKIP.has(W.step) || (W.step === 'imagens' && !W.logo && !W.cover));
+      box.dataset.step = W.step;
+      err('');
+      const old = stage.querySelector('.wz-pane:not(.out-l):not(.out-r)');
+      const pane = document.createElement('div');
+      pane.className = 'wz-pane' + (dir && old ? (dir > 0 ? ' in-r' : ' in-l') : '') + (old ? '' : ' first');
+      pane.innerHTML = paneHtml(W.step);
+      if (old) {
+        if (dir) { old.classList.add(dir > 0 ? 'out-l' : 'out-r'); setTimeout(() => old.remove(), 460); } else old.remove();
+      }
+      stage.appendChild(pane);
+      bind(pane);
+      setPhone(dir !== 0);
+      // títulos que se escrevem sozinhos
+      clearInterval(typingTimer);
+      const ty = $('.wz-type', pane);
+      if (ty) {
+        const txt = ty.dataset.type;
+        if (calmMotion()) { ty.textContent = txt; ty.classList.add('done'); }
+        else {
+          let n = 0; ty.textContent = '';
+          const startAt = W.step === 'oi' ? 1300 : 250;
+          setTimeout(() => { typingTimer = setInterval(() => { ty.textContent = txt.slice(0, ++n); if (n >= txt.length) { clearInterval(typingTimer); setTimeout(() => ty.classList.add('done'), 900); } }, 55); }, startAt);
+        }
+      }
+      if (W.step === 'pronto' && dir > 0) { setTimeout(() => { wizConfetti(); buzz([20, 40, 20, 40, 60]); }, 450); }
+      const first = $('.wiz-input', pane);
+      if (first && dir !== 0 && !['saudacao', 'pix'].includes(W.step)) setTimeout(() => first.focus({ preventScroll: true }), 480);
+    };
+    const goStep = (dir) => {
+      const steps = wizSteps(W);
+      const n = steps[steps.indexOf(W.step) + dir];
+      if (!n) return;
+      W.step = n; draw(dir);
+    };
+
+    // reação ao toque: pulinho + onda
+    box.addEventListener('pointerdown', (e) => {
+      const b = e.target.closest('.wz-opt, .wz .btn');
+      if (!b || calmMotion()) return;
+      const r = b.getBoundingClientRect();
+      const s = document.createElement('span');
+      s.className = 'wz-ripple';
+      s.style.left = `${e.clientX - r.left}px`; s.style.top = `${e.clientY - r.top}px`;
+      b.appendChild(s); setTimeout(() => s.remove(), 600);
+    });
+
+    // ---------- ligações dos controles da tela
+    const bind = (pane) => {
+      const pc = $('#wpCover', pane), pl = $('#wpLogo', pane);
       if (pc && url.cover) pc.style.backgroundImage = `url("${url.cover}")`;
       if (pl && url.logo) pl.style.backgroundImage = `url("${url.logo}")`;
-      $('#wBack', box)?.addEventListener('click', () => { if (W.saving) return; W.i--; render(); });
-      $('#wOut', box)?.addEventListener('click', () => sb.auth.signOut());
-      $('#wSkip', box)?.addEventListener('click', () => {
-        if (W.saving) return;
-        if (step === 'whats') W.wa = '';
-        if (step === 'jeito') W.toneSkip = true;
-        if (step === 'equipe') { W.solo = true; W.team = []; }
-        if (step === 'servicos') W.menuSkip = true;
-        if (step === 'endereco') W.address = '';
-        if (step === 'confirma') { W.auto = false; W.notice = 60; }
-        if (step === 'regras') { W.late = 0; W.cancel = 0; W.rules = ''; }
-        if (step === 'pagamento') { W.pays = {}; W.sinal = false; W.sinalVal = ''; W.pixKey = ''; W.pixCity = ''; }
-        W.i++; render();
-      });
-      $$('[data-kind]', box).forEach((b) => { b.onclick = () => {
-        W.kind = b.dataset.kind;
-        // tema, jeito de falar e serviços de exemplo do ramo já vêm escolhidos (até a pessoa trocar)
+      // opções de uma escolha só: marca, faz o pulinho e atualiza a conversa
+      const pick = (attr, fn) => $$(`[data-${attr}]`, pane).forEach((b) => { b.onclick = () => {
+        buzz();
+        if (fn(b.dataset[attr]) === 'redraw') return draw(0);
+        $$(`[data-${attr}]`, pane).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+        setPhone(true);
+      }; });
+      pick('kind', (v) => {
+        W.kind = v;
         if (!W.themePicked) { W.theme = KIND_THEME[W.kind] || 'entre'; applyStyle(W.theme, { persist: false }); }
         if (!W.tonePicked) W.tone = KIND_TONE[W.kind] || 'leve';
         if (!W.menu || (!W.menu.fromPhoto && !W.menu.touched && W.menu.kind !== W.kind)) W.menu = tplMenu(W.kind);
-        W.i++; render();
-      }; });
-      $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
-      // escolhas que só mudam o estado e a conversa de exemplo
-      const pick = (attr, fn) => $$(`[data-${attr}]`, box).forEach((b) => { b.onclick = () => {
-        if (fn(b.dataset[attr]) === 'render') return render({ quiet: true });
-        $$(`[data-${attr}]`, box).forEach((x) => { x.setAttribute('aria-pressed', String(x === b)); if (!x.classList.contains('hours-opt')) x.classList.toggle('sel', x === b); });
-        refreshChat();
-      }; });
+        wizFloat(floatL, W.kind);
+      });
       pick('tone', (v) => { W.tone = v; W.tonePicked = true; W.toneSkip = false; if (!W.emojiPicked) W.emoji = v !== 'formal'; });
       pick('emoji', (v) => { W.emoji = v === '1'; W.emojiPicked = true; });
       pick('trato', (v) => { W.trato = v; });
+      pick('hours', (v) => { W.hours = v; });
       pick('auto', (v) => { W.auto = v === '1'; });
       pick('notice', (v) => { W.notice = Number(v); });
       pick('late', (v) => { W.late = Number(v); });
       pick('cancel', (v) => { W.cancel = Number(v); });
-      pick('sinal', (v) => { W.sinal = v === '1'; return 'render'; }); // mostra ou esconde o campo do valor
-      $$('[data-solo]', box).forEach((b) => { b.onclick = () => { W.solo = b.dataset.solo === '1'; render({ quiet: true }); }; });
-      $$('[data-pay]', box).forEach((b) => { b.onclick = () => {
+      pick('solo', (v) => { W.solo = v === '1'; return 'redraw'; });
+      pick('sinal', (v) => { W.sinal = v === '1'; return 'redraw'; });
+      $$('[data-pay]', pane).forEach((b) => { b.onclick = () => {
+        buzz();
         W.pays[b.dataset.pay] = !W.pays[b.dataset.pay];
-        if (b.dataset.pay === 'pix') { if (!W.pays.pix) W.sinal = false; return render({ quiet: true }); } // mostra ou esconde chave e sinal
-        b.setAttribute('aria-pressed', String(!!W.pays[b.dataset.pay])); refreshChat();
+        if (!W.pays.pix) W.sinal = false;
+        b.setAttribute('aria-pressed', String(!!W.pays[b.dataset.pay]));
+        b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+        setPhone(true);
       }; });
-      // campos de texto: a conversa de exemplo muda enquanto a pessoa digita
-      for (const [id, key] of [['#wName', 'name'], ['#wGreet', 'greet'], ['#wAddr', 'address'], ['#wRules', 'rules'], ['#wPix', 'pixKey'], ['#wPixCity', 'pixCity'], ['#wSinal', 'sinalVal']]) {
-        const el = $(id, box);
-        if (el) el.addEventListener('input', () => { W[key] = el.value; refreshChat(); });
+      // campos de texto: a conversa muda enquanto a pessoa digita
+      for (const [id, key] of [['#wName', 'name'], ['#wGreet', 'greet'], ['#wAddr', 'address'], ['#wPix', 'pixKey'], ['#wPixCity', 'pixCity'], ['#wSinal', 'sinalVal']]) {
+        const el = $(id, pane);
+        if (el) el.addEventListener('input', () => { W[key] = el.value; setPhone(false); });
       }
-      if (step === 'equipe' && !W.solo) {
+      if (W.step === 'equipe' && !W.solo) {
         const addTeam = () => {
-          const inp = $('#wTeam', box);
+          const inp = $('#wTeam', pane);
           const n = inp.value.trim().replace(/\s+/g, ' ').slice(0, 60);
           if (n.length < 2) return err('Escreva o nome de quem atende.');
           if (W.team.length >= 15) return err('Dá para pôr até 15 pessoas agora. O resto, em Ajustes › Quem atende.');
           if ([W.owner, ...W.team].some((x) => normName(x) === normName(n))) return err('Essa pessoa já está na lista.');
-          W.team.push(n); render({ quiet: true }); setTimeout(() => $('#wTeam', box)?.focus(), 30);
+          buzz(); W.team.push(n); draw(0); setTimeout(() => $('#wTeam', stage)?.focus(), 30);
         };
-        $('#wTeamAdd', box).onclick = addTeam;
-        $('#wTeam', box).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTeam(); } });
-        $$('[data-team-rm]', box).forEach((b) => { b.onclick = () => { W.team.splice(Number(b.dataset.teamRm), 1); render({ quiet: true }); }; });
+        $('#wTeamAdd', pane).onclick = addTeam;
+        $('#wTeam', pane).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTeam(); } });
+        $$('[data-team-rm]', pane).forEach((b) => { b.onclick = () => { W.team.splice(Number(b.dataset.teamRm), 1); draw(0); }; });
       }
-      if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; W.themePicked = true; applyStyle(id, { persist: false }); }); bindModePicker(form); }
-      if (step === 'servicos' && !W.reading) {
-        bindMenuReview(form, W.menu.items, () => { W.menu.touched = true; refreshChat(); });
-        $('#wMenu', box)?.addEventListener('click', async () => {
+      if (W.step === 'estilo') {
+        bindStylePicker(pane, (id) => { buzz(); W.theme = id; W.themePicked = true; applyStyle(id, { persist: false }); });
+        bindModePicker(pane);
+        const sel = $('.wz-theme[aria-pressed="true"]', pane);
+        if (sel) setTimeout(() => sel.scrollIntoView({ inline: 'center', block: 'nearest' }), 60);
+      }
+      if (W.step === 'servicos' && !W.reading) {
+        bindMenuReview(pane, W.menu.items, () => { W.menu.touched = true; setPhone(false); });
+        $('#wMenu', pane)?.addEventListener('click', async () => {
           const f = await pickPhoto();
           if (!f) return;
-          W.reading = true; render();
+          W.reading = true; draw(0); $('#wNext', box).disabled = true;
           try {
             const res = await readMenuPhoto(f, W.kind);
-            W.menu = res.items.length ? { fromPhoto: true, touched: true, kind: W.kind, items: res.items } : { ...W.menu, aviso: res.aviso || 'Não encontrei serviços nessa foto.' };
-          } catch (e) { W.reading = false; render(); return err(friendly(e)); }
-          W.reading = false; render();
+            W.menu = res.items.length ? { fromPhoto: true, touched: true, kind: W.kind, items: res.items } : { ...W.menu, aviso: res.aviso || 'Não encontrei serviços nessa foto. Tente outra, de frente e com boa luz.' };
+          } catch (e) { W.reading = false; $('#wNext', box).disabled = false; draw(0); return err(friendly(e)); }
+          W.reading = false; $('#wNext', box).disabled = false; draw(0);
         });
-        $('#wMenuAdd', box)?.addEventListener('click', () => {
+        $('#wMenuAdd', pane)?.addEventListener('click', () => {
           W.menu.items.push({ name: '', price: null, dur: 60, ret: null, obs: '', on: true });
           W.menu.touched = true;
-          render({ quiet: true });
-          const rows = $$('[data-mf="name"]', box); rows[rows.length - 1]?.focus();
+          draw(0);
+          const rows = $$('[data-mf="name"]', stage); rows[rows.length - 1]?.focus();
         });
       }
-      if (step === 'servicos' && W.reading) $('button[type=submit]', form).disabled = true;
       for (const [kind, id] of [['logo', '#wLogo'], ['cover', '#wCover']]) {
-        const input = $(id, box);
+        const input = $(id, pane);
         if (!input) continue;
         input.onchange = () => {
           const f = input.files?.[0];
@@ -1036,53 +1152,66 @@
           if (f.size > 15 * 1024 * 1024) return err('Essa imagem é grande demais (máx. 15 MB).');
           if (url[kind]) URL.revokeObjectURL(url[kind]);
           W[kind] = f; url[kind] = URL.createObjectURL(f);
-          render({ quiet: true });
+          draw(0);
         };
       }
-      const firstInput = $('.wiz-input', box);
-      if (firstInput && !quiet && ['nome', 'voce', 'whats', 'endereco'].includes(step)) setTimeout(() => firstInput.focus(), 50);
-
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-        if (W.saving) return;
-        err('');
-        if (step === 'tipo' && !W.kind) return err('Toque numa das opções.');
-        if (step === 'nome') { W.name = $('#wName', box).value.trim(); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
-        if (step === 'voce') {
-          W.owner = $('#wOwner', box).value.trim();
-          if (!W.owner) return err('Escreva seu nome.');
-          W.team = W.team.filter((n) => normName(n) !== normName(W.owner)); // não deixa a mesma pessoa duas vezes
-        }
-        if (step === 'whats') {
-          W.wa = $('#wWa', box).value.trim();
-          const d = W.wa.replace(/\D/g, '');
-          if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".');
-        }
-        if (step === 'jeito') W.toneSkip = false;
-        if (step === 'equipe' && !W.solo) {
-          const pend = $('#wTeam', box)?.value.trim();
-          if (pend) return err('Toque em "Adicionar" para pôr essa pessoa na lista (ou apague o nome).');
-          if (!W.team.length) W.solo = true;
-        }
-        if (step === 'servicos') W.menuSkip = false;
-        if (step === 'pagamento') {
-          if (!W.pays.pix) { W.pixKey = ''; W.pixCity = ''; W.sinal = false; }
-          else if (W.pixKey.trim()) {
-            const k = normPixKey(W.pixKey); // mesma regra de Ajustes (CPF/CNPJ só números, celular com +55…)
-            if (k === null) return err('Não reconheci a chave Pix. Use CPF ou CNPJ, e-mail, celular com DDD ou a chave aleatória.');
-            W.pixKey = k;
-            W.pixCity = W.pixCity.trim();
-            if (W.pixCity.length < 2) return err('Escreva a cidade. Ela aparece no Pix para quem paga.');
-          }
-        }
-        if (step !== 'pronto') { W.i++; return render(); }
-        W.saving = true;
-        const back = $('#wBack', box); if (back) back.disabled = true;
-        try { await busy($('button[type=submit]', form), () => finishOnboarding(W)); }
-        finally { W.saving = false; if (back) back.disabled = false; }
-      };
     };
-    render();
+
+    $('#wBack', box).onclick = () => { if (!W.saving) { buzz(); goStep(-1); } };
+    $('#wOut', box).onclick = () => sb.auth.signOut();
+    $('#wSkip', box).onclick = () => {
+      if (W.saving) return;
+      const s = W.step;
+      if (s === 'whats') W.wa = '';
+      if (s === 'jeito') W.toneSkip = true;
+      if (s === 'saudacao') W.greet = '';
+      if (s === 'equipe') { W.solo = true; W.team = []; }
+      if (s === 'servicos') W.menuSkip = true;
+      if (s === 'endereco') W.address = '';
+      if (s === 'confirma') W.auto = false;
+      if (s === 'prazo') W.notice = 60;
+      if (s === 'atraso') W.late = 0;
+      if (s === 'cancela') W.cancel = 0;
+      if (s === 'pagamento') { W.pays = {}; W.sinal = false; W.sinalVal = ''; W.pixKey = ''; W.pixCity = ''; }
+      if (s === 'pix') { W.pixKey = ''; W.pixCity = ''; }
+      if (s === 'sinal') { W.sinal = false; W.sinalVal = ''; }
+      buzz(); goStep(1);
+    };
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      if (W.saving) return;
+      const s = W.step, val = (id) => ($(id, stage)?.value || '').trim();
+      err('');
+      if (s === 'tipo' && !W.kind) return err('Toque numa das opções.');
+      if (s === 'nome') { W.name = val('#wName'); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
+      if (s === 'voce') {
+        W.owner = val('#wOwner');
+        if (!W.owner) return err('Escreva seu nome.');
+        W.team = W.team.filter((n) => normName(n) !== normName(W.owner)); // não deixa a mesma pessoa duas vezes
+      }
+      if (s === 'whats') { W.wa = val('#wWa'); const d = W.wa.replace(/\D/g, ''); if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".'); }
+      if (s === 'jeito') W.toneSkip = false;
+      if (s === 'equipe' && !W.solo) {
+        if (val('#wTeam')) return err('Toque em "Adicionar" para pôr essa pessoa na lista (ou apague o nome).');
+        if (!W.team.length) W.solo = true;
+      }
+      if (s === 'servicos') { if (W.reading) return; W.menuSkip = false; }
+      if (s === 'pagamento' && !W.pays.pix) { W.pixKey = ''; W.pixCity = ''; W.sinal = false; }
+      if (s === 'pix' && W.pixKey.trim()) {
+        const k = normPixKey(W.pixKey); // mesma regra de Ajustes (CPF/CNPJ só números, celular com +55…)
+        if (k === null) return err('Não reconheci a chave Pix. Use CPF ou CNPJ, e-mail, celular com DDD ou a chave aleatória.');
+        W.pixKey = k;
+        W.pixCity = W.pixCity.trim();
+        if (W.pixCity.length < 2) return err('Escreva a cidade. Ela aparece no Pix para quem paga.');
+      }
+      buzz();
+      if (s !== 'pronto') return goStep(1);
+      W.saving = true;
+      $('#wBack', box).disabled = true;
+      try { await busy($('#wNext', box), () => finishOnboarding(W)); }
+      finally { W.saving = false; $('#wBack', box).disabled = false; }
+    };
+    draw(1);
   }
 
   async function finishOnboarding(W) {
