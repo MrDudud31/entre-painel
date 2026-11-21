@@ -39,8 +39,16 @@
     barbearia: { label: 'Barbearia', services: [['Corte', 30, 21], ['Barba', 30, 14], ['Corte + barba', 60, 21]] },
     estetica: { label: 'Estética, sobrancelhas e cílios', services: [['Design de sobrancelhas', 30, 20], ['Extensão de cílios', 120, 21], ['Limpeza de pele', 60, 30]] },
     clinica: { label: 'Clínica / consultório (saúde)', health: true, services: [['Consulta', 50, null], ['Retorno', 30, null]] },
+    dentista: { label: 'Dentista', health: true, services: [['Avaliação', 30, null], ['Limpeza', 45, 180], ['Restauração', 60, null], ['Clareamento', 60, null]] },
+    pet: { label: 'Pet shop / veterinário', health: true, services: [['Banho', 60, 15], ['Banho e tosa', 90, 30], ['Consulta veterinária', 30, null], ['Vacina', 20, null]] },
+    academia: { label: 'Academia, pilates ou personal', services: [['Aula experimental', 60, null], ['Avaliação física', 45, 90], ['Aula de pilates', 50, 7], ['Treino com personal', 60, 7]] },
+    spa: { label: 'Spa e massagem', services: [['Massagem relaxante', 60, 30], ['Drenagem linfática', 60, 7], ['Day spa', 180, null]] },
+    tatuagem: { label: 'Estúdio de tatuagem', services: [['Orçamento', 30, null], ['Sessão de tatuagem', 180, null], ['Retoque', 60, null], ['Piercing', 30, null]] },
+    terapia: { label: 'Psicologia / terapia', health: true, services: [['Primeira sessão', 50, null], ['Sessão', 50, 7]] },
     outro: { label: 'Outro tipo de negócio', services: [['Atendimento', 60, null]] },
   };
+  // Tema desenhado de cada ramo (fundo com ícones do ramo). Vem escolhido no primeiro acesso; dá para trocar em Ajustes.
+  const KIND_THEME = { salao: 'salao', manicure: 'unhas', barbearia: 'navalha', estetica: 'olhar', clinica: 'consultorio', dentista: 'sorriso', pet: 'pet', academia: 'movimento', spa: 'pele', tatuagem: 'tattoo', terapia: 'terapia' };
 
   // ------------------------------------------------------------------ aparência (estilos que a dona escolhe)
   // As cores de cada estilo ficam no style.css (html[data-style]); aqui só nome, fontes e as cores da miniatura.
@@ -53,6 +61,18 @@
     botanico: { nome: 'Botânico', desc: 'Sálvia, creme e folhas.', fonts: 'Marcellus&family=Karla:wght@400;600;700', disp: '"Marcellus", serif', bg: '#E7ECE2', ink: '#243326', sw: ['#4E6B4A', '#A9C79C', '#DFE7D8'], theme: '#E7ECE2' },
     editorial: { nome: 'Editorial', desc: 'Preto e off-white, cara de revista.', fonts: 'Instrument+Serif&family=Inter+Tight:wght@400;500;600;700', disp: '"Instrument Serif", serif', bg: '#F2F0EB', ink: '#111111', sw: ['#111111', '#2433C7', '#E4E1DA'], theme: '#F2F0EB' },
     barbearia: { nome: 'Barbearia', desc: 'Verde-garrafa, couro e creme.', fonts: 'Oswald:wght@500;600&family=Work+Sans:wght@400;500;600', disp: '"Oswald", sans-serif', bg: '#EFE6D8', ink: '#1F3B2D', sw: ['#1F3B2D', '#8B5A3C', '#E7DAC6'], theme: '#EFE6D8' },
+    // Temas por ramo: cores e fundo desenhado ficam no style.css (bloco gerado por real/ferramentas/temas_ramo.py).
+    navalha: { ramo: true, nome: 'Navalha', desc: 'Barbearia: tesoura, navalha e bigode.', fonts: 'Bebas+Neue&family=Barlow:wght@400;500;600', disp: '"Bebas Neue", sans-serif', bg: '#F1ECE4', ink: '#1C2430', sw: ['#A3322A', '#1F4E79', '#1C2430'] },
+    pet: { ramo: true, nome: 'Pet', desc: 'Patinha, cão e gato.', fonts: 'Fredoka:wght@500;600&family=Nunito:wght@400;600;700', disp: '"Fredoka", sans-serif', bg: '#EDF4F1', ink: '#183B39', sw: ['#1F6F6A', '#C8641F', '#DCEBE7'] },
+    sorriso: { ramo: true, nome: 'Sorriso', desc: 'Dentista: dente, escova e brilho.', fonts: 'Lexend:wght@400;500;600', disp: '"Lexend", sans-serif', bg: '#EEF5F9', ink: '#123049', sw: ['#1D6FA3', '#1E8A82', '#DCEAF4'] },
+    salao: { ramo: true, nome: 'Salão', desc: 'Secador, mechas e tesoura.', fonts: 'Playfair+Display:wght@500;600&family=Lato:wght@400;700', disp: '"Playfair Display", serif', bg: '#F7EEF0', ink: '#3B1D2E', sw: ['#8E3460', '#A9652C', '#F2DDE6'] },
+    unhas: { ramo: true, nome: 'Unhas', desc: 'Esmalte, lixa e brilho.', fonts: 'DM+Serif+Display&family=Poppins:wght@400;500;600', disp: '"DM Serif Display", serif', bg: '#FBEFEB', ink: '#46202B', sw: ['#C23F57', '#9C7020', '#F7DEDF'] },
+    olhar: { ramo: true, nome: 'Olhar', desc: 'Sobrancelhas e cílios.', fonts: 'Prata&family=Mulish:wght@400;600;700', disp: '"Prata", serif', bg: '#F4EDE6', ink: '#36271F', sw: ['#6E4B36', '#8E6A33', '#EBDDD0'] },
+    pele: { ramo: true, nome: 'Pele', desc: 'Estética e spa: gota, folha e pedras.', fonts: 'Lora:wght@500;600&family=Quicksand:wght@400;500;600', disp: '"Lora", serif', bg: '#F1EFF5', ink: '#2C2843', sw: ['#5F4FA0', '#4C7A60', '#E5E0F2'] },
+    consultorio: { ramo: true, nome: 'Consultório', desc: 'Saúde: estetoscópio e batimento.', fonts: 'IBM+Plex+Sans:wght@400;500;600', disp: '"IBM Plex Sans", sans-serif', bg: '#EEF4F5', ink: '#15333D', sw: ['#1E6F78', '#B54542', '#DAEBED'] },
+    movimento: { ramo: true, nome: 'Movimento', desc: 'Academia e pilates: halter e cronômetro.', fonts: 'Archivo:wght@400;500;600;800', disp: '"Archivo", sans-serif', bg: '#F0F2EA', ink: '#1D2617', sw: ['#3E6B16', '#C2531A', '#E1EBD3'] },
+    tattoo: { ramo: true, nome: 'Tattoo', desc: 'Rosa, âncora e estrela.', fonts: 'Abril+Fatface&family=Space+Grotesk:wght@400;500;600', disp: '"Abril Fatface", serif', bg: '#EFECE7', ink: '#191716', sw: ['#1A1A1A', '#A8261D', '#E3DED6'] },
+    terapia: { ramo: true, nome: 'Terapia', desc: 'Conversa, sol e broto.', fonts: 'Young+Serif&family=Figtree:wght@400;500;600', disp: '"Young Serif", serif', bg: '#F4EEE8', ink: '#3A302B', sw: ['#A65F43', '#5B7757', '#EFDDD2'] },
   };
   const LOGO = (cls = '') => `<svg class="entre-logo ${cls}" viewBox="26 16 68 70" aria-hidden="true"><path class="b" d="M30 70 V34 A14 14 0 0 1 44 20 H76 A14 14 0 0 1 90 34 V56 A14 14 0 0 1 76 70 H48 L34 82 Z"/><circle class="d" cx="47" cy="45" r="5"/><circle class="d" cx="60" cy="45" r="5"/><circle class="d" cx="73" cy="45" r="5"/></svg>`;
   const loadedFonts = new Set(['entre']);
@@ -209,7 +229,9 @@
   // Link de agendamento: endereço público (agendar.html) e sugestão de endereço a partir do nome.
   const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
   const slugify = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
-  const bookingUrl = (slug) => new URL((location.pathname.includes('/testes/') ? '../painel/' : '') + 'agendar.html?n=' + encodeURIComponent(slug), location.href).href;
+  // A página de agendamento fica na mesma pasta deste app.js (funciona na raiz, em /novo/ e no teste).
+  const APP_BASE = (document.currentScript && document.currentScript.src) || location.href;
+  const bookingUrl = (slug) => new URL('agendar.html?n=' + encodeURIComponent(slug), APP_BASE).href;
   const linkOn = () => !!(S.biz?.booking_link_enabled && S.biz?.booking_slug);
   const svcName = (id) => S.services.find((s) => s.id === id)?.name || '';
   const staffName = (id) => S.staff.find((p) => p.id === id)?.name || '';
@@ -232,6 +254,45 @@
   const sentAdd = (k, id) => { const s = [...sentGet(k), id].slice(-300); store.set(k, JSON.stringify(s)); };
   // Mensagem que começa com o nome do negócio sem "do/da" (serve para qualquer negócio)
   const hi = (name) => `Oi${name ? ', ' + firstName(name) : ''}! Tudo bem? 😊 ${S.biz.name} aqui.`;
+
+  // ---- Pix "copia e cola" (padrão BR Code do Banco Central). O dinheiro vai direto para a chave do dono.
+  const pixField = (id, v) => id + String(v.length).padStart(2, '0') + v;
+  const pixAscii = (s, n) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ').trim().toUpperCase().slice(0, n);
+  function crc16(s) {
+    let c = 0xffff;
+    for (let i = 0; i < s.length; i++) {
+      c ^= s.charCodeAt(i) << 8;
+      for (let j = 0; j < 8; j++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xffff : (c << 1) & 0xffff;
+    }
+    return c.toString(16).toUpperCase().padStart(4, '0');
+  }
+  function pixCode({ key, name, city, cents }) {
+    const p = pixField('00', '01') + pixField('26', pixField('00', 'br.gov.bcb.pix') + pixField('01', key))
+      + pixField('52', '0000') + pixField('53', '986') + (cents ? pixField('54', (cents / 100).toFixed(2)) : '')
+      + pixField('58', 'BR') + pixField('59', pixAscii(name, 25) || 'RECEBEDOR') + pixField('60', pixAscii(city, 15) || 'BRASIL')
+      + pixField('62', pixField('05', '***')) + '6304';
+    return p + crc16(p);
+  }
+  const cpfOk = (d) => {
+    if (!/^\d{11}$/.test(d) || /^(\d)\1+$/.test(d)) return false;
+    const dv = (n) => { let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+    return dv(9) === Number(d[9]) && dv(10) === Number(d[10]);
+  };
+  /** Chave Pix digitada → formato que o banco espera (e-mail, +55 celular, CPF/CNPJ só números, aleatória). null = não reconheci. */
+  function normPixKey(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    if (s.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s.toLowerCase() : null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return s.toLowerCase();
+    const d = s.replace(/\D/g, '');
+    if (s.startsWith('+')) return d.length >= 12 && d.length <= 13 ? '+' + d : null;
+    if (d.length === 14) return d; // CNPJ
+    if (d.length === 11 && (cpfOk(d) && !/[()]/.test(s))) return d; // CPF
+    if (d.length === 10 || d.length === 11) return '+55' + d; // celular com DDD
+    if ((d.length === 12 || d.length === 13) && d.startsWith('55')) return '+' + d;
+    return null;
+  }
 
   function friendly(error) {
     const msg = error?.message || String(error);
@@ -355,7 +416,8 @@
     applyMode();
     sb.auth.onAuthStateChange((event, session) => {
       S.session = session;
-      if (!session) { S.started = false; show('login'); return; }
+      // Saiu da conta: o tema do negócio não fica no aparelho; volta para o estilo do Entre.
+      if (!session) { S.started = false; S.biz = null; S.previewStyle = null; applyStyle('entre'); show('login'); return; }
       if (!S.started) {
         S.started = true;
         // Se a primeira carga falhar (sem internet), mostra o erro com botão em vez de tela em branco.
@@ -393,7 +455,10 @@
     S.links = S.staff.length ? must(await sb.from('staff_services').select('staff_id, service_id').in('staff_id', S.staff.map((p) => p.id))) : [];
   }
   async function reloadBiz() {
-    S.biz = must(await sb.from('businesses').select('*').eq('id', S.biz.id).single());
+    const [biz] = must(await sb.from('businesses').select('*').eq('id', S.biz.id).limit(1));
+    // O negócio sumiu (apagado em outro aparelho ou pelo suporte): recomeça em vez de travar com erro.
+    if (!biz) { store.set('biz', ''); start().catch(fatal); throw new Error('Esse negócio não existe mais. Recarregando…'); }
+    S.biz = biz;
     renderTop();
   }
 
@@ -425,12 +490,19 @@
   };
 
   // Grade de estilos: cada opção é desenhada com as cores e a fonte do próprio estilo.
-  function stylePickerHtml(selected) {
+  // Primeiro os temas desenhados por ramo (o do ramo do negócio na frente), depois os estilos lisos.
+  function stylePickerHtml(selected, kind) {
     Object.keys(STYLES).forEach(loadFonts);
-    return `<div class="style-grid" role="group" aria-label="Estilos">${Object.entries(STYLES).map(([id, s]) => `
-      <button type="button" class="style-opt" data-style-opt="${id}" aria-pressed="${id === selected}" style="background:${s.bg};color:${s.ink}">
+    const mine = KIND_THEME[kind];
+    const opt = ([id, s]) => `
+      <button type="button" class="style-opt" data-style-opt="${id}" aria-pressed="${id === selected}" style="background-color:${s.bg};color:${s.ink}">
         <span class="sw">${s.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
-        <b style="font-family:${esc(s.disp)}">${esc(s.nome)}</b><small>${esc(s.desc)}</small></button>`).join('')}</div>`;
+        <b style="font-family:${esc(s.disp)}">${esc(s.nome)}${id === mine ? ' <em class="style-mine">seu ramo</em>' : ''}</b><small>${esc(s.desc)}</small></button>`;
+    const all = Object.entries(STYLES);
+    const ramo = all.filter(([, s]) => s.ramo).sort(([a], [b]) => (b === mine) - (a === mine));
+    const lisos = all.filter(([, s]) => !s.ramo);
+    return `<p class="label">Desenhados para cada ramo</p><div class="style-grid" role="group" aria-label="Temas por ramo">${ramo.map(opt).join('')}</div>
+      <p class="label">Estilos lisos</p><div class="style-grid" role="group" aria-label="Estilos">${lisos.map(opt).join('')}</div>`;
   }
   function bindStylePicker(root, onPick) {
     $$('[data-style-opt]', root).forEach((b) => {
@@ -513,7 +585,7 @@
   const parsePrice = (v) => {
     const s = String(v || '').replace(/[^\d.,]/g, '');
     const n = s.includes(',') ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : parseFloat(s);
-    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+    return Number.isFinite(n) && n > 0 && n <= 100000 ? Math.round(n * 100) : null; // teto de R$ 100 mil (o banco recusa valores absurdos)
   };
   function menuReviewHtml(items) {
     return `<div class="menu-list">${items.map((it, i) => `<div class="menu-row ${it.on ? '' : 'off'}" data-mi="${i}">
@@ -592,9 +664,15 @@
   const KIND_ICON = {
     salao: '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3L20 17M8.2 15.7L20 7"/>',
     manicure: '<rect x="8" y="11" width="8" height="9" rx="2"/><path d="M10 11V5h4v6M10 15h4"/>',
-    barbearia: '<path d="M4 6h16l-2 4H6zM6 10v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8M10 14h4"/>',
+    barbearia: '<path d="M12 10.5c-1.6-2.4-5.2-2.6-7.2-.2-.9 1.1-1.9 1.4-2.8.9.6 2.9 4.6 4.1 7.4 2.3 1.2-.8 2-1.6 2.6-2.6.6 1 1.4 1.8 2.6 2.6 2.8 1.8 6.8.6 7.4-2.3-.9.5-1.9.2-2.8-.9-2-2.4-5.6-2.2-7.2.2z"/>',
     estetica: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
     clinica: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/>',
+    dentista: '<path d="M12 5.6C10.6 4.2 9.1 3.6 7.6 3.6 5 3.6 3.5 5.6 3.5 8.2c0 2.3 1 3.8 1.5 5.8.6 2.6 1 6.4 2.5 6.4s1.9-3.1 2.5-5c.4-1.2 1.1-1.5 2-1.5s1.6.3 2 1.5c.6 1.9 1 5 2.5 5s1.9-3.8 2.5-6.4c.5-2 1.5-3.5 1.5-5.8 0-2.6-1.5-4.6-4.1-4.6-1.5 0-3 .6-4.4 2z"/>',
+    pet: '<ellipse cx="6.5" cy="10" rx="1.7" ry="2.1"/><ellipse cx="10.2" cy="6.6" rx="1.7" ry="2.2"/><ellipse cx="14.6" cy="6.6" rx="1.7" ry="2.2"/><ellipse cx="18.1" cy="10" rx="1.7" ry="2.1"/><path d="M12.4 11.5c-2.6 0-5.2 3.4-5.2 5.9 0 1.6 1.2 2.4 2.6 2.1 1-.2 1.7-.6 2.6-.6s1.6.4 2.6.6c1.4.3 2.6-.5 2.6-2.1 0-2.5-2.6-5.9-5.2-5.9z"/>',
+    academia: '<path d="M6.5 7v10M3.8 9.4v5.2M17.5 7v10M20.2 9.4v5.2M6.5 12h11"/>',
+    spa: '<path d="M12 5.5c2.5 2.6 2.5 8.4 0 12.5-2.5-4.1-2.5-9.9 0-12.5zM12 18c-3.2 0-7.2-2.2-8.2-7.2 3.2 0 6.8 2.2 8.2 7.2zM12 18c3.2 0 7.2-2.2 8.2-7.2-3.2 0-6.8 2.2-8.2 7.2z"/>',
+    tatuagem: '<path d="M7 6.5c0 4.3 2.2 7 5 7s5-2.7 5-7c-1.4.9-2.9 1-3.7.1L12 4.5l-1.3 2.1c-.8.9-2.3.8-3.7-.1zM9.8 8.8c.5 1.1 1.3 1.7 2.2 1.7s1.7-.6 2.2-1.7M12 13.5V21M12 17.5c-2-2-4.2-2.1-5.4-1.1 1.6 1.6 3.4 1.7 5.4 1.1zM12 18.8c1.6-2 3.8-2.5 5.3-1.6-1.5 1.5-3.2 1.9-5.3 1.6z"/>',
+    terapia: '<path d="M3 4.5h11v7.5H8l-3 3v-3H3zM10 15v2.5h6l3 3v-3h2V10h-4.5"/>',
     outro: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   };
   const HOURS_PRESETS = {
@@ -603,116 +681,473 @@
     longo: { label: 'Seg a sáb, 8h às 20h', rows: [1, 2, 3, 4, 5, 6].map((w) => [w, '08:00', '20:00']) },
     semana: { label: 'Seg a sex, 8h às 18h', rows: [1, 2, 3, 4, 5].map((w) => [w, '08:00', '18:00']) },
   };
-  const WIZ_STEPS = ['oi', 'tipo', 'nome', 'voce', 'whats', 'estilo', 'imagens', 'horario', 'tabela', 'pronto'];
+  // Desenhos que flutuam no fundo do primeiro acesso (os mesmos dos temas por ramo; gerado de real/ferramentas/temas_ramo.py).
+  const RAMO_ICONS = {"navalha": ["<circle cx=\"6\" cy=\"6.5\" r=\"2.8\"/><circle cx=\"6\" cy=\"17.5\" r=\"2.8\"/><path d=\"M8.4 8 20 17.5M8.4 16 20 6.5M12.5 12h.01\"/>", "<path d=\"M3 9h12.5v4.5H6.5A3.5 3.5 0 0 1 3 10z\"/><path d=\"M15.5 11.3 21.5 17\"/><circle cx=\"15.5\" cy=\"11.3\" r=\".8\"/>", "<path d=\"M12 10.5c-1.6-2.4-5.2-2.6-7.2-.2-.9 1.1-1.9 1.4-2.8.9.6 2.9 4.6 4.1 7.4 2.3 1.2-.8 2-1.6 2.6-2.6.6 1 1.4 1.8 2.6 2.6 2.8 1.8 6.8.6 7.4-2.3-.9.5-1.9.2-2.8-.9-2-2.4-5.6-2.2-7.2.2z\"/>", "<path d=\"M3 7.5h18v3.5H3zM5 11v6M7.5 11v6M10 11v6M12.5 11v6M15 11v6M17.5 11v6M20 11v4\"/>", "<rect x=\"9\" y=\"5\" width=\"6\" height=\"14\" rx=\"1\"/><path d=\"M8 5h8M8 19h8M12 3v2M12 19v2M9 9.5l6-3M9 13.5l6-3M9 17.5l6-3\"/>"], "pet": ["<ellipse cx=\"6.5\" cy=\"10\" rx=\"1.7\" ry=\"2.1\"/><ellipse cx=\"10.2\" cy=\"6.6\" rx=\"1.7\" ry=\"2.2\"/><ellipse cx=\"14.6\" cy=\"6.6\" rx=\"1.7\" ry=\"2.2\"/><ellipse cx=\"18.1\" cy=\"10\" rx=\"1.7\" ry=\"2.1\"/><path d=\"M12.4 11.5c-2.6 0-5.2 3.4-5.2 5.9 0 1.6 1.2 2.4 2.6 2.1 1-.2 1.7-.6 2.6-.6s1.6.4 2.6.6c1.4.3 2.6-.5 2.6-2.1 0-2.5-2.6-5.9-5.2-5.9z\"/>", "<path d=\"M7 7.5c1.2-1.3 3-2 5-2s3.8.7 5 2c.8 1 1 2.3 1 3.5v3c0 3.6-2.7 6.5-6 6.5s-6-2.9-6-6.5v-3c0-1.2.2-2.5 1-3.5z\"/><path d=\"M7 7.5C5 7 3 8.5 3 11.8c0 2 1 3.7 2.5 3.7.8 0 1.2-.8 1.4-1.8M17 7.5c2-.5 4 1 4 4.3 0 2-1 3.7-2.5 3.7-.8 0-1.2-.8-1.4-1.8\"/><path d=\"M10 11.5h.01M14 11.5h.01M10.6 15h2.8L12 16.5zM12 16.5v1.3\"/>", "<path d=\"M8.6 9.8 14.2 15.4\"/><path d=\"M8.6 9.8a2.2 2.2 0 1 0-3-1.9 2.2 2.2 0 1 0 1.9 3zM14.2 15.4a2.2 2.2 0 1 0 3 1.9 2.2 2.2 0 1 0-1.9-3z\"/>", "<path d=\"M5.2 9.5 5 4l4.2 3.1a9 9 0 0 1 5.6 0L19 4l-.2 5.5c.8 1.2 1.2 2.6 1.2 4 0 3.9-3.6 6.5-8 6.5s-8-2.6-8-6.5c0-1.4.4-2.8 1.2-4z\"/><path d=\"M9.3 13h.01M14.7 13h.01M11 15.6l1 .8 1-.8M2 13.5l3.2.5M2.5 16.5l3-1M22 13.5l-3.2.5M21.5 16.5l-3-1\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "sorriso": ["<path d=\"M12 5.6C10.6 4.2 9.1 3.6 7.6 3.6 5 3.6 3.5 5.6 3.5 8.2c0 2.3 1 3.8 1.5 5.8.6 2.6 1 6.4 2.5 6.4s1.9-3.1 2.5-5c.4-1.2 1.1-1.5 2-1.5s1.6.3 2 1.5c.6 1.9 1 5 2.5 5s1.9-3.8 2.5-6.4c.5-2 1.5-3.5 1.5-5.8 0-2.6-1.5-4.6-4.1-4.6-1.5 0-3 .6-4.4 2z\"/>", "<path d=\"M2.5 16.5h11.5\"/><path d=\"M14 14.5h7.5v4H14zM15.5 14.5v-4M17.5 14.5v-4M19.5 14.5v-4M21.5 14.5v-3.2\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>", "<circle cx=\"15.5\" cy=\"8.5\" r=\"4\"/><path d=\"M12.7 11.4 4 20\"/>", "<path d=\"M4 10.5c2.2 4.2 4.9 6.3 8 6.3s5.8-2.1 8-6.3M4 10.5c2.5.9 5.2 1.3 8 1.3s5.5-.4 8-1.3M8.5 11.6v2.6M12 11.8v3.5M15.5 11.6v2.6\"/>"], "salao": ["<circle cx=\"9\" cy=\"9.5\" r=\"5.5\"/><circle cx=\"9\" cy=\"9.5\" r=\"1.8\"/><path d=\"M14 6.5h6.5v6H14M12 14.4 11 21h3.2l.8-6.4M20.5 8.5H22M20.5 10.5H22\"/>", "<path d=\"M8 3c-3.2 4 3.2 6 0 10s3.2 6 0 8M12.5 3c-3.2 4 3.2 6 0 10s3.2 6 0 8M17 3c-3.2 4 3.2 6 0 10s3.2 6 0 8\"/>", "<circle cx=\"6\" cy=\"6.5\" r=\"2.8\"/><circle cx=\"6\" cy=\"17.5\" r=\"2.8\"/><path d=\"M8.4 8 20 17.5M8.4 16 20 6.5M12.5 12h.01\"/>", "<path d=\"M8.5 21h7v-8.5h-7zM8.5 12.5h7M9.8 12.5V7.8L14.2 5v7.5\"/>", "<circle cx=\"12\" cy=\"8.5\" r=\"5.5\"/><path d=\"M12 14v6.5M9 21h6M9.6 6.2a3 3 0 0 1 2.4-1.2\"/>"], "unhas": ["<path d=\"M10 2.5h4v5.5h-4zM8.6 8h6.8l1.6 3.2v7.8a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-7.8zM7 14h10\"/>", "<path d=\"M8.5 21.5V9a3.5 3.5 0 0 1 7 0v12.5\"/><path d=\"M10.2 9.4a1.8 1.8 0 0 1 3.6 0v2.6h-3.6z\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>", "<path d=\"M4.6 18.2 16.8 4.4a1.6 1.6 0 0 1 2.4 2.1L7 20.3a1.6 1.6 0 0 1-2.4-2.1zM14 8.5l1.5 1.3M11.5 11.4 13 12.7M9 14.3l1.5 1.3\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "olhar": ["<path d=\"M2.5 13c2.5-4 6-6 9.5-6s7 2 9.5 6c-2.5 4-6 6-9.5 6s-7-2-9.5-6z\"/><circle cx=\"12\" cy=\"13\" r=\"2.7\"/><path d=\"M5.8 9.2 4.3 7.2M8.8 7.8 8.1 5.4M12 7.2V4.7M15.2 7.8l.7-2.4M18.2 9.2l1.5-2\"/>", "<path d=\"M3 12.5c3.6-4.2 9.6-5.4 18-2.5M3.4 13.6c3.8-3.4 9.4-4.2 16.4-2\"/>", "<path d=\"M8.5 2.5 11 16.5 12 21l1-4.5 2.5-14M10.3 12.5h3.4\"/>", "<path d=\"M3 10c2.5 3 5.6 4.5 9 4.5s6.5-1.5 9-4.5M6.2 12.9 4.8 15M9.5 14.2 9 16.6M14.5 14.2l.5 2.4M17.8 12.9 19.2 15\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>"], "pele": ["<path d=\"M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11zM9 14.5a3 3 0 0 0 2.5 3\"/>", "<path d=\"M5 19.5C5 11 10.6 5 20 4.5 19.6 13.6 13.6 19.6 5 19.5zM5 19.5 14 10\"/>", "<ellipse cx=\"12\" cy=\"18.3\" rx=\"7.5\" ry=\"2.6\"/><ellipse cx=\"12\" cy=\"12.8\" rx=\"5.3\" ry=\"2.3\"/><ellipse cx=\"12\" cy=\"8\" rx=\"3.3\" ry=\"1.9\"/>", "<path d=\"M12 5.5c2.5 2.6 2.5 8.4 0 12.5-2.5-4.1-2.5-9.9 0-12.5zM12 18c-3.2 0-7.2-2.2-8.2-7.2 3.2 0 6.8 2.2 8.2 7.2zM12 18c3.2 0 7.2-2.2 8.2-7.2-3.2 0-6.8 2.2-8.2 7.2z\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>"], "consultorio": ["<path d=\"M5.5 3.5v5.5a4 4 0 0 0 8 0V3.5M4.5 3.5h2M12.5 3.5h2M9.5 13v2.5a5 5 0 0 0 10 0v-3.2\"/><circle cx=\"19.5\" cy=\"10.5\" r=\"2\"/>", "<path d=\"M2 12.5h5l2-5 3.2 10 2.3-5H22\"/>", "<path d=\"M9 3.5h6v5.5h5.5v6H15v5.5H9V15H3.5V9H9z\"/>", "<path d=\"M8.6 19.4a3.6 3.6 0 0 1-5.1-5.1l10.8-10.8a3.6 3.6 0 0 1 5.1 5.1zM8.9 8.9l6.2 6.2\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "movimento": ["<path d=\"M6.5 7v10M3.8 9.4v5.2M17.5 7v10M20.2 9.4v5.2M6.5 12h11\"/>", "<path d=\"M8.3 10.2V7.5a3.7 3.7 0 0 1 7.4 0v2.7\"/><path d=\"M8 19.8a6 6 0 1 1 8 0z\"/>", "<circle cx=\"12\" cy=\"13.5\" r=\"7\"/><path d=\"M12 13.5V10M10 3h4M12 3v3.5M18 7.2l1.6-1.6\"/>", "<path d=\"M2 12.5h5l2-5 3.2 10 2.3-5H22\"/>", "<path d=\"M3 16.5h16.8a1.7 1.7 0 0 0 .2-3.3l-5-1.4-2.5-4.3H9.8c-.3 1.6-1.6 2.6-3.3 2.6-1.3 0-2.3-.5-3-1.4zM3 19h18M10.5 11.5l1.2-1M12.5 12.8l1.2-1\"/>"], "tattoo": ["<path d=\"M7 6.5c0 4.3 2.2 7 5 7s5-2.7 5-7c-1.4.9-2.9 1-3.7.1L12 4.5l-1.3 2.1c-.8.9-2.3.8-3.7-.1zM9.8 8.8c.5 1.1 1.3 1.7 2.2 1.7s1.7-.6 2.2-1.7M12 13.5V21M12 17.5c-2-2-4.2-2.1-5.4-1.1 1.6 1.6 3.4 1.7 5.4 1.1zM12 18.8c1.6-2 3.8-2.5 5.3-1.6-1.5 1.5-3.2 1.9-5.3 1.6z\"/>", "<circle cx=\"12\" cy=\"4.6\" r=\"1.9\"/><path d=\"M12 6.5v14.5M8 10h8M4.2 13.2c0 4.4 3.5 7.8 7.8 7.8s7.8-3.4 7.8-7.8M4.2 13.2 2.6 14.8M4.2 13.2l1.6 1.6M19.8 13.2l-1.6 1.6M19.8 13.2l1.6 1.6\"/>", "<path d=\"M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6-4.4-4.1 6-.8z\"/>", "<path d=\"M12 19s-6.5-4-6.5-9a3.5 3.5 0 0 1 6.5-2.2A3.5 3.5 0 0 1 18.5 10c0 5-6.5 9-6.5 9zM3 20 21 4M18 4h3v3M3 20l1-3M3 20l3-1\"/>", "<path d=\"M14.5 3.5 20.5 9.5 17.5 12.5 11.5 6.5zM12.8 7.8 5.5 15.1l3.4 3.4 7.3-7.3M5.5 15.1 3 21l5.9-2.5M17.5 4.5l2-2\"/>"], "terapia": ["<path d=\"M3 4.5h11v7.5H8l-3 3v-3H3zM10 15v2.5h6l3 3v-3h2V10h-4.5\"/>", "<path d=\"M12 21v-9M12 12c0-3.6-2.6-6-6.5-6 0 3.6 2.6 6 6.5 6zM12 14.5c0-3 2.2-5 5.5-5 0 3-2.2 5-5.5 5zM8 21h8\"/>", "<circle cx=\"12\" cy=\"12\" r=\"3.8\"/><path d=\"M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8\"/>", "<path d=\"M7 18.5h10a4 4 0 0 0 .6-8A6 6 0 0 0 6.2 11 3.8 3.8 0 0 0 7 18.5z\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>"], "entre": ["<path d=\"M3 4.5h11v7.5H8l-3 3v-3H3zM10 15v2.5h6l3 3v-3h2V10h-4.5\"/>", "<path d=\"M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7zM19 16.5c.3 1.6.9 2.2 2.5 2.5-1.6.3-2.2.9-2.5 2.5-.3-1.6-.9-2.2-2.5-2.5 1.6-.3 2.2-.9 2.5-2.5z\"/>", "<path d=\"M12 20s-7.5-4.6-7.5-10.3A4 4 0 0 1 12 7.2a4 4 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z\"/>", "<path d=\"M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6-4.4-4.1 6-.8z\"/>", "<circle cx=\"12\" cy=\"12\" r=\"3.8\"/><path d=\"M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8\"/>"]};
+  // ------------------------------------------------------------------ primeiro acesso, com cara de aplicativo
+  // Uma pergunta por tela (cabe sem rolar), um mini celular no topo com a secretária respondendo do jeito escolhido,
+  // telas que deslizam, botões que reagem, os desenhos do ramo flutuando no fundo e comemoração no fim.
+  // As perguntas novas podem ser puladas; o que ficar faltando aparece em Início › "Termine de configurar".
+  const WIZ_ALL = ['oi', 'tipo', 'nome', 'voce', 'whats', 'jeito', 'emoji', 'trato', 'saudacao', 'equipe', 'servicos', 'horario',
+    'endereco', 'confirma', 'prazo', 'atraso', 'cancela', 'pagamento', 'pix', 'sinal', 'estilo', 'imagens', 'pronto'];
+  const wizSteps = (W) => WIZ_ALL.filter((s) => !((s === 'pix' || s === 'sinal') && !W.pays.pix));
+  const WIZ_SKIP = new Set(['whats', 'jeito', 'emoji', 'trato', 'saudacao', 'equipe', 'servicos', 'endereco', 'confirma', 'prazo', 'atraso', 'cancela', 'pagamento', 'pix', 'sinal']);
+
+  // Jeitos prontos da secretária. `tone` vai para businesses.tone, que entra no prompt da secretária ("com tom …").
+  // `pre` é a interjeição do exemplo; fica separada para não repetir quando a conversa já começou com a saudação.
+  const TONES = {
+    leve: { label: 'Descontraído', jeito: 'descontraído', tone: 'descontraído e próximo, como quem conversa com um conhecido', hi: 'Opa, tudo certo?', pre: 'Opa!', ex: 'Amanhã tem às 15h, serve?', ask: 'Quer marcar?' },
+    acolhe: { label: 'Acolhedor', jeito: 'acolhedor', tone: 'acolhedor e gentil, sem pressa', hi: 'Oi, tudo bem?', pre: 'Oi!', ex: 'Amanhã às 15h está livre. Fica bom?', ask: 'Quer que eu veja um horário?' },
+    direto: { label: 'Direto', jeito: 'direto', tone: 'direto e educado, sem enrolar', hi: 'Oi!', pre: '', ex: 'Amanhã tem 15h livre. Marco?', ask: 'Marco?' },
+    formal: { label: 'Formal', jeito: 'formal', tone: 'formal e cordial', hi: 'Olá.', pre: '', ex: 'Temos horário amanhã às 15h. Posso agendar?', ask: 'Posso agendar?' },
+  };
+  const DEFAULT_TONE = 'simpática, educada e objetiva'; // o mesmo padrão do banco
+  const KIND_TONE = { clinica: 'acolhe', dentista: 'acolhe', terapia: 'acolhe', spa: 'acolhe', pet: 'acolhe' };
+  const KIND_SHORT = { salao: 'Salão', manicure: 'Unhas', barbearia: 'Barbearia', estetica: 'Sobrancelha e cílios', clinica: 'Clínica', dentista: 'Dentista', pet: 'Pet', academia: 'Academia e pilates', spa: 'Spa e massagem', tatuagem: 'Tatuagem', terapia: 'Terapia', outro: 'Outro' };
+  const NOTICE_OPTS = [[30, '30 min'], [60, '1 hora'], [120, '2 horas'], [1440, '1 dia']];
+  const LATE_OPTS = [[0, 'Sem regra'], [10, '10 min'], [15, '15 min'], [20, '20 min']];
+  const CANCEL_OPTS = [[0, 'Sem regra'], [120, '2 horas'], [720, '12 horas'], [1440, '1 dia']];
+  const CANCEL_TXT = { 120: '2 horas', 720: '12 horas', 1440: '1 dia' };
+  const PAYS = [['pix', 'Pix'], ['cartao', 'Cartão'], ['dinheiro', 'Dinheiro']];
+
+  const joinE = (a) => (a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} e ${a[a.length - 1]}`);
+  const oneLine = (t, max) => String(t || '').replace(/["\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+  const payList = (W) => PAYS.filter(([k]) => W.pays[k]).map(([k, t]) => (k === 'pix' ? t : t.toLowerCase()));
+  const cleanGreet = (t) => { const g = oneLine(t, 40); return g && !/[.!?]$/.test(g) ? g + '!' : g; };
+  const sinalOn = (W) => !!(W.pays.pix && W.sinal);
+  const isSolo = (W) => W.solo || !W.team.length;
+  /** Monta o "jeito de falar" que a secretária recebe (frases inteiras: o prompt diz "com tom <isto>"). */
+  function composeTone(W) {
+    if (W.toneSkip) return DEFAULT_TONE;
+    const s = [(TONES[W.tone] || TONES.acolhe).tone + '.',
+      W.trato === 'senhor' ? 'Trate por "o senhor" ou "a senhora" só quando o nome deixar claro; na dúvida, escreva sem pronome (ex.: "Posso marcar?").' : 'Trate a pessoa por você.',
+      W.emoji ? 'Pode usar um emoji de vez em quando.' : 'Não use emoji nenhum.'];
+    const g = cleanGreet(W.greet);
+    if (g) s.push(`Ao cumprimentar pela primeira vez, comece com "${g}".`);
+    return s.join(' ').slice(0, 300);
+  }
+  /** Regras do negócio (businesses.policy), escritas como regra e não como ordem para a secretária. */
+  function composePolicy(W) {
+    const p = [];
+    if (W.late) p.push(`Atraso: tolerância de ${W.late} min; passou disso, pode ser preciso remarcar.`);
+    if (W.cancel) p.push(`Cancelar ou remarcar: avisar com pelo menos ${CANCEL_TXT[W.cancel]} de antecedência.`);
+    const r = W.rules.trim();
+    if (r) p.push(/[.!?]$/.test(r) ? r : r + '.');
+    return p.join(' ').slice(0, 1000);
+  }
+  /** Pagamento e sinal vão para "Outras informações" (businesses.extra_info). */
+  function composeExtra(W) {
+    const p = [];
+    const pays = payList(W);
+    if (pays.length) p.push(`Formas de pagamento: ${joinE(pays)}.`);
+    if (sinalOn(W)) { const v = oneLine(W.sinalVal, 20); p.push(v ? `Sinal: ${v}, por Pix, para segurar o horário.` : 'Sinal: pedido por Pix para segurar o horário; o valor a equipe informa.'); }
+    return p.join(' ').slice(0, 1500);
+  }
+  /** Serviços de exemplo do ramo, para a pessoa pôr o preço (ou trocar pela foto da tabela). */
+  const tplMenu = (kind) => ({ fromPhoto: false, touched: false, kind, items: (KINDS[kind]?.services || []).map(([name, dur, ret]) => ({ name, price: null, dur, ret, obs: '', on: true })) });
+  /** O que vai virar serviço, e quantos ficam ligados (com preço; os da foto entram ligados mesmo "sob consulta"). */
+  function wizServices(W) {
+    const list = W.menuSkip || !W.menu ? [] : chosenMenu(W.menu.items);
+    const on = list.filter((it) => W.menu.fromPhoto || it.price != null).length;
+    return { list, on, off: list.length - on };
+  }
+
+  /** Mensagens da conversa de exemplo, montadas com o que a pessoa já respondeu (não usa IA: é só a prévia). */
+  function wizMsgs(W, scenes) {
+    const T = TONES[W.tone] || TONES.acolhe;
+    const formal = W.tone === 'formal' && !W.toneSkip;
+    const biz = W.name.trim() || 'Seu negócio';
+    const sen = W.trato === 'senhor';
+    const emo = (e) => (W.emoji ? ' ' + e : '');
+    const hi = cleanGreet(W.greet) || T.hi;
+    const items = wizServices(W).list;
+    const svc = items.find((it) => it.price != null) || items[0];
+    const who = isSolo(W) ? (firstName(W.owner) || 'a equipe') : 'a equipe';
+    const m = [];
+    const C = (t) => m.push(['in', t]);
+    const A = (t) => m.push(['out', t]);
+    for (const sc of scenes) {
+      if (sc === 'oi') { C('Oi, boa tarde!'); A(`${hi} ${biz} aqui, sou a assistente virtual. ${sen ? 'Em que posso ajudar?' : 'Quer marcar um horário?'}${emo('🙂')}`); }
+      if (sc === 'jeito') { C('Tem horário amanhã à tarde?'); A((T.pre ? T.pre + ' ' : '') + T.ex + emo('🙂')); }
+      if (sc === 'preco') {
+        if (!svc) { C('Quanto custa?'); A(sen ? 'Qual serviço? Assim eu informo o valor.' : 'Qual serviço? Te passo o valor.'); continue; }
+        C(`Quanto é ${svc.name.toLowerCase()}?`);
+        A(svc.price != null ? `${svc.name}: ${brl(svc.price)}, ${formal ? 'duração de' : 'leva'} ${durLabel(svc.dur)}. ${T.ask}`
+          : `Esse valor a equipe confirma. ${sen ? 'Já peço para alguém responder.' : 'Já chamo alguém pra te responder.'}`);
+      }
+      if (sc === 'onde') {
+        const a = W.address.trim();
+        C('Onde fica?');
+        A(!a ? `O endereço a equipe ${sen ? 'passa em seguida' : 'te passa já, já'}.`
+          : /^(r\.|rua|av\.?|avenida|al\.?|alameda|travessa|tv\.|praça|estrada|rodovia)\s/i.test(a) ? `O endereço é ${a}.` : a.charAt(0).toUpperCase() + a.slice(1) + (/[.!?]$/.test(a) ? '' : '.'));
+      }
+      if (sc === 'marcar') {
+        C('Pode ser amanhã às 15h?');
+        A(W.auto ? `Pronto, ficou marcado: ${svc ? svc.name.toLowerCase() + ', ' : ''}amanhã às 15h. ${formal ? 'Até amanhã.' : 'Até lá!'}${emo('✅')}`
+          : `Anotei amanhã às 15h. Assim que ${who} confirmar, ${sen ? 'eu aviso' : 'te aviso'} por aqui.`);
+      }
+      if (sc === 'atraso') {
+        C('Se eu atrasar uns minutos tem problema?');
+        A(W.late ? `Tem tolerância de ${W.late} minutos. Passou disso, pode ser preciso remarcar.` : `${sen ? 'Basta avisar' : 'Só avisar'} por aqui que a equipe vê o que dá para fazer.`);
+      }
+      if (sc === 'cancela') {
+        C('E se eu precisar cancelar?');
+        A(W.cancel ? `Sem problema, é só avisar com ${CANCEL_TXT[W.cancel]} de antecedência.` : `${sen ? 'Basta avisar' : 'Só avisar'} por aqui, que o horário fica livre para outra pessoa.`);
+      }
+      if (sc === 'pagar') {
+        const pays = payList(W);
+        const v = oneLine(W.sinalVal, 20);
+        C('Aceita Pix?');
+        A((pays.length ? (W.pays.pix ? `${formal ? 'Aceitamos, sim.' : 'Aceita, sim!'} Dá para pagar com ${joinE(pays)}.` : `Pix não, mas dá para pagar com ${joinE(pays)}.`) : 'Isso a equipe confirma.')
+          + (sinalOn(W) ? ` Para segurar o horário, pedimos um sinal${v ? ' de ' + v : ''} por Pix.` : ''));
+      }
+    }
+    return m;
+  }
+  // Quais telas mostram o mini celular, e com qual conversa
+  const WIZ_CHAT = { nome: ['oi'], jeito: ['jeito'], emoji: ['oi'], trato: ['oi'], saudacao: ['oi'], servicos: ['preco'], endereco: ['onde'], confirma: ['marcar'], atraso: ['atraso'], cancela: ['cancela'], pagamento: ['pagar'], sinal: ['pagar'] };
+  const CHECK = '<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+  /** Botão de opção do primeiro acesso (o ✓ se desenha quando fica marcado). */
+  const optBtn = (attr, val, on, inner, cls = '') => `<button type="button" class="wz-opt ${cls}" data-${attr}="${val}" aria-pressed="${on}">${inner}${CHECK}</button>`;
+  // vibração leve (só Android; o iPhone não deixa site vibrar). Só depois de um toque de verdade, senão o navegador recusa.
+  const buzz = (p = 8) => { try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(p); } catch { /* sem vibração */ } };
+  const calmMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  /** Fundo vivo: desenhos do ramo flutuando devagar. Troca com um esmaecer quando o ramo muda. */
+  function wizFloat(layer, kind) {
+    const set = RAMO_ICONS[KIND_THEME[kind]] || RAMO_ICONS.entre;
+    if (layer.dataset.set === (KIND_THEME[kind] || 'entre')) return;
+    layer.dataset.set = KIND_THEME[kind] || 'entre';
+    const old = [...layer.children];
+    old.forEach((n) => { n.classList.add('bye'); setTimeout(() => n.remove(), 700); });
+    const spots = [[8, 12], [72, 6], [40, 20], [86, 30], [14, 44], [60, 48], [30, 66], [80, 70], [6, 84], [52, 88], [92, 92], [24, 96]];
+    spots.forEach(([x, y], i) => {
+      const s = document.createElement('i');
+      s.className = 'wzf';
+      s.style.cssText = `left:${x}%;top:${y}%;--s:${26 + ((i * 7) % 20)}px;--dur:${16 + ((i * 5) % 11)}s;--del:-${(i * 2.3).toFixed(1)}s;--r:${((i % 2) ? 1 : -1) * (8 + (i * 3) % 14)}deg`;
+      s.innerHTML = `<svg viewBox="0 0 24 24">${set[i % set.length]}</svg>`;
+      layer.appendChild(s);
+    });
+  }
+
+  /** Comemoração do fim: confete nas cores do tema (canvas, ~3 s). */
+  function wizConfetti() {
+    if (calmMotion()) return;
+    const cv = document.createElement('canvas');
+    cv.className = 'wz-confetti';
+    document.body.appendChild(cv);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = (cv.width = innerWidth * dpr), h = (cv.height = innerHeight * dpr);
+    const ctx = cv.getContext('2d');
+    const css = getComputedStyle(document.documentElement);
+    const cols = ['--brand', '--hi', '--brand-soft', '--ok'].map((v) => css.getPropertyValue(v).trim() || '#E0A36B');
+    const P = Array.from({ length: 140 }, (_, i) => ({
+      x: w / 2 + (Math.random() - 0.5) * w * 0.3, y: h * 0.42, vx: (Math.random() - 0.5) * 16 * dpr, vy: (-6 - Math.random() * 12) * dpr,
+      s: (5 + Math.random() * 6) * dpr, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, c: cols[i % cols.length], sh: i % 3,
+    }));
+    const t0 = performance.now();
+    const tick = (t) => {
+      const k = (t - t0) / 1000;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of P) {
+        p.vy += 0.35 * dpr; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - Math.max(0, k - 2) / 1.2); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+        if (p.sh === 0) ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); else { ctx.beginPath(); ctx.arc(0, 0, p.s / 2.6, 0, 7); ctx.fill(); }
+        ctx.restore();
+      }
+      if (k < 3.3) requestAnimationFrame(tick); else cv.remove();
+    };
+    requestAnimationFrame(tick);
+  }
 
   function showOnboarding() {
     show('onboard');
-    const W = { i: 0, kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial' };
+    const W = {
+      step: 'oi', kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial',
+      tone: 'leve', toneSkip: false, emoji: true, trato: 'voce', greet: '', solo: true, team: [], menu: null, menuSkip: false,
+      address: '', auto: false, notice: 60, late: 15, cancel: 120, rules: '', pays: { pix: true, cartao: true, dinheiro: true },
+      pixKey: '', pixCity: '', sinal: false, sinalVal: '', saving: false, bizId: null,
+    };
     const url = { logo: null, cover: null }; // prévia das imagens escolhidas (ainda não enviadas)
     const box = $('#onboard');
-
-    const render = () => {
-      const step = WIZ_STEPS[W.i];
-      const total = WIZ_STEPS.length - 1;
-      let body = '';
-      let next = 'Continuar';
-      let canSkip = false;
-      if (step === 'oi') {
-        body = `<div class="wiz-hero"><span class="logo-badge big">${LOGO('anim')}</span></div>
-          <h2>Boas-vindas ao Entre</h2>
-          <p class="wiz-sub">Vamos deixar o app com a cara do seu negócio. São poucas perguntas e você pode mudar tudo depois.</p>`;
-        next = 'Começar';
-      } else if (step === 'tipo') {
-        body = `<h2>Com o que você trabalha?</h2><p class="wiz-sub">Assim já trazemos serviços de exemplo do seu ramo.</p>
-          <div class="kind-grid">${Object.entries(KINDS).map(([k, v]) => `<button type="button" class="kind-opt" data-kind="${k}" aria-pressed="${W.kind === k}">
-            <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(v.label)}</span></button>`).join('')}</div>`;
-      } else if (step === 'nome') {
-        body = `<h2>Como se chama o seu negócio?</h2><p class="wiz-sub">É o nome que aparece no topo do app e que a secretária usa no WhatsApp.</p>
-          <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" placeholder="${W.kind === 'barbearia' ? 'Ex.: Barbearia do Zé' : 'Ex.: Studio Bela Unha'}" value="${esc(W.name)}">`;
-      } else if (step === 'voce') {
-        body = `<h2>E como podemos te chamar?</h2><p class="wiz-sub">Aparece na saudação, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>
-          <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" placeholder="Seu nome" value="${esc(W.owner)}">`;
-      } else if (step === 'whats') {
-        body = `<h2>Seu WhatsApp, para receber avisos</h2><p class="wiz-sub">A secretária avisa você quando chegar um pedido novo ou quando alguém precisar de você.</p>
-          <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" placeholder="(11) 91234-5678" value="${esc(W.wa)}">`;
-        canSkip = true;
-      } else if (step === 'estilo') {
-        body = `<h2>Escolha a cara do app</h2><p class="wiz-sub">Toque para ver na hora. Cada estilo tem versão clara e escura.</p>${stylePickerHtml(W.theme)}
-          <p class="label">Claro ou escuro</p>${modePickerHtml()}`;
-      } else if (step === 'imagens') {
-        body = `<h2>Logo e capa</h2><p class="wiz-sub">A logo aparece no topo; a capa, no início do app. Se não tiver agora, pode pular.</p>
-          <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
-            <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
-          <div class="wiz-files">
-            <label class="btn ghost">${url.logo ? 'Trocar a logo' : 'Escolher logo'}<input type="file" id="wLogo" accept="image/png,image/jpeg,image/webp" hidden></label>
-            <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label>
-          </div>`;
-        canSkip = !W.logo && !W.cover;
-      } else if (step === 'horario') {
-        body = `<h2>Quando vocês atendem?</h2><p class="wiz-sub">Escolha o mais perto. Dá para ajustar dia por dia depois, em Ajustes.</p>
-          <div class="hours-opts">${Object.entries(HOURS_PRESETS).map(([k, h]) => `<button type="button" class="hours-opt" data-hours="${k}" aria-pressed="${W.hours === k}">${esc(h.label)}</button>`).join('')}</div>`;
-      } else if (step === 'tabela') {
-        if (W.reading) {
-          body = `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
-        } else if (W.menu?.items.length) {
-          body = `<h2>Achei ${W.menu.items.length} serviço${W.menu.items.length === 1 ? '' : 's'}!</h2>
-            <p class="wiz-sub">Confira, arrume o que precisar e desmarque o que você não faz.</p>
-            ${menuReviewHtml(W.menu.items)}
-            <button type="button" class="btn ghost block" id="wMenuAgain">${CAM} Tirar outra foto</button>`;
-        } else {
-          body = `<h2>Tem uma tabela de preços?</h2>
-            <p class="wiz-sub">Tire uma foto da tabela (ou escolha um print do Instagram) e eu cadastro seus serviços com os preços. Você confere antes.</p>
-            ${W.menu ? `<p class="banner warn">${esc(W.menu.aviso || 'Não encontrei serviços nessa foto.')} Tente outra, de frente e com boa luz.</p>` : ''}
-            <button type="button" class="photo-cta" id="wMenu">${CAM}<b>Tirar foto da tabela</b><small>ou escolher da galeria</small></button>`;
-          canSkip = true;
-        }
-        next = W.menu?.items.length ? 'Continuar' : 'Continuar sem foto';
-      } else if (step === 'pronto') {
-        const menuN = W.menu ? chosenMenu(W.menu.items).length : 0;
-        body = `<h2>Tudo pronto, ${esc(firstName(W.owner))}!</h2><p class="wiz-sub">Assim vai ficar o seu app:</p>
-          <div class="wiz-preview big">${url.cover ? '<div class="wp-cover" id="wpCover"></div>' : ''}
-            <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name)}</b></div>
-            <div class="wp-greet">${(() => { const hr = new Date().getHours(); return hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'; })()}, ${esc(firstName(W.owner))}.</div></div>
-          <ul class="wiz-sum"><li><b>Ramo:</b> ${esc(KINDS[W.kind]?.label || '')}</li><li><b>Estilo:</b> ${esc(STYLES[W.theme].nome)}</li><li><b>Horário:</b> ${esc(HOURS_PRESETS[W.hours].label)}</li>
-            <li><b>Serviços:</b> ${menuN ? `${menuN} da sua tabela, já com preço e prontos para a secretária oferecer.` : 'criamos alguns de exemplo, <b>desativados e sem preço</b>. Você coloca seus preços e ativa só o que faz.'}</li></ul>`;
-        next = 'Entrar no meu app';
-      }
-      box.innerHTML = `<form class="wiz card narrow" novalidate>
-        <div class="wiz-top">${W.i > 0 ? '<button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>' : '<span></span>'}
-          ${W.i > 0 ? `<div class="wiz-progress" aria-label="Passo ${W.i} de ${total}"><i style="width:${Math.round((W.i / total) * 100)}%"></i></div><small>${W.i}/${total}</small>` : ''}</div>
-        <div class="wiz-step">${body}</div>
-        <p class="error" id="wErr" role="alert"></p>
-        <div class="wiz-nav"><button type="submit" class="btn primary block">${next}</button>
-          ${canSkip ? '<button type="button" class="btn ghost block" id="wSkip">Pular</button>' : ''}
-          ${W.i === 0 ? '<button type="button" class="btn ghost block" id="wOut">Sair</button>' : ''}</div>
+    box.classList.add('wizapp');
+    box.innerHTML = `<div class="wz-float" aria-hidden="true"></div>
+      <form class="wz" novalidate>
+        <div class="wz-top"><button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>
+          <div class="wz-bar" aria-hidden="true"><i></i></div><button type="button" class="wz-out" id="wOut">Sair</button><button type="button" class="wz-out wz-skip" id="wSkip">Pular</button></div>
+        <div class="wz-phone" id="wzPhone" aria-label="Exemplo de conversa da secretária">
+          <div class="wzp"><div class="wzp-head"><span class="wc-av" id="wzpAv">?</span><span><b id="wzpName">Seu negócio</b><small>assistente virtual · online</small></span></div>
+          <div class="wzp-body" id="wzpBody" aria-live="polite"></div></div></div>
+        <div class="wz-stage" id="wzStage"></div>
+        <div class="wz-bottom"><p class="error" id="wErr" role="alert"></p>
+          <button type="submit" class="btn primary block" id="wNext">Continuar</button></div>
       </form>`;
-      const form = $('form', box);
-      const err = (m) => { $('#wErr', box).textContent = m; };
-      // imagens escolhidas aparecem na prévia
-      const pc = $('#wpCover', box), pl = $('#wpLogo', box);
+    const form = $('form', box), stage = $('#wzStage', box), phone = $('#wzPhone', box), floatL = $('.wz-float', box);
+    const err = (m) => { $('#wErr', box).textContent = m; if (m) buzz([12, 40, 12]); };
+    wizFloat(floatL, '');
+
+    // ---------- mini celular
+    let chatSeq = 0, chatKey = '';
+    const bubbles = (msgs) => msgs.map(([w, t]) => `<p class="wc-${w}">${esc(t)}</p>`).join('');
+    /** typing=true: a secretária aparece "digitando…" antes de responder (escolha nova); false: troca na hora (digitando no campo). */
+    const setPhone = (typing, pop = false) => {
+      const sc = WIZ_CHAT[W.step];
+      phone.classList.toggle('on', !!sc);
+      phone.classList.toggle('mini', W.step === 'servicos');
+      if (!sc) return;
+      $('#wzpName', box).textContent = W.name.trim() || 'Seu negócio';
+      $('#wzpAv', box).textContent = initials(W.name.trim() || 'Seu negócio');
+      const msgs = wizMsgs(W, sc).slice(-4);
+      const key = JSON.stringify(msgs);
+      if (key === chatKey) return;
+      chatKey = key;
+      const body = $('#wzpBody', box);
+      const seq = ++chatSeq;
+      if (!typing || calmMotion()) { body.innerHTML = bubbles(msgs); if (pop && !calmMotion()) body.lastElementChild?.classList.add('pop'); return; }
+      // escolha nova: "digitando…" rapidinho e a resposta aparece
+      const ins = msgs.filter(([w]) => w === 'in');
+      body.innerHTML = bubbles(ins.slice(-1)) + '<p class="wc-out wc-typing"><i></i><i></i><i></i></p>';
+      setTimeout(() => { if (seq === chatSeq) { body.innerHTML = bubbles(msgs); body.lastElementChild?.classList.add('pop'); } }, 300);
+    };
+
+    // ---------- conteúdo de cada tela
+    const paneHtml = (step) => {
+      const T = TONES[W.tone] || TONES.acolhe;
+      switch (step) {
+        case 'oi': return `<div class="wz-hello"><span class="wz-logo">${LOGO('anim')}</span>
+            <h1 class="wz-type" data-type="Oi, tudo bem?"></h1>
+            <p class="wz-sub wz-late">Vou montar o app e a sua secretária do WhatsApp com você. Uma pergunta por tela; o que não souber, dá para pular.</p></div>`;
+        case 'tipo': return `<h2>Com o que você trabalha?</h2><p class="wz-sub">Trago serviços de exemplo e o tema do seu ramo.</p>
+            <div class="wz-kinds">${Object.keys(KINDS).map((k) => `<button type="button" class="wz-opt wz-kind" data-kind="${k}" aria-pressed="${W.kind === k}">
+              <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(KIND_SHORT[k] || KINDS[k].label)}</span>${CHECK}</button>`).join('')}</div>`;
+        case 'nome': return `<h2>Como se chama o seu negócio?</h2>
+            <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" aria-label="Nome do negócio" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', manicure: 'Studio Bela Unha', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Espaço Silva'}" value="${esc(W.name)}">
+            <p class="wz-sub">Veja lá em cima: a secretária já se apresenta com ele.</p>`;
+        case 'voce': return `<h2>E como posso te chamar?</h2>
+            <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" aria-label="Seu nome" placeholder="Seu nome" value="${esc(W.owner)}">
+            <p class="wz-sub">Vai na saudação do app, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>`;
+        case 'whats': return `<h2>Seu WhatsApp, para receber avisos</h2>
+            <input class="wiz-input" id="wWa" inputmode="tel" autocomplete="tel" aria-label="Seu WhatsApp" placeholder="(11) 91234-5678" value="${esc(W.wa)}">
+            <p class="wz-sub">A secretária te chama quando chegar pedido novo ou alguém precisar de você. Use um número diferente do WhatsApp do negócio.</p>`;
+        case 'jeito': return `<h2>Como a secretária deve falar?</h2>
+            <div class="wz-list">${Object.entries(TONES).map(([k, t]) => optBtn('tone', k, !W.toneSkip && W.tone === k, `<span><b>${esc(t.label)}</b><small>${esc((t.pre ? t.pre + ' ' : '') + t.ex)}</small></span>`)).join('')}</div>`;
+        case 'emoji': return `<h2>Ela pode usar emoji?</h2>
+            <div class="wz-list">${optBtn('emoji', 1, W.emoji, '<span><b>Um de vez em quando 🙂</b></span>')}${optBtn('emoji', 0, !W.emoji, '<span><b>Sem emoji</b></span>')}</div>`;
+        case 'trato': return `<h2>Como ela trata quem escreve?</h2>
+            <div class="wz-list">${optBtn('trato', 'voce', W.trato === 'voce', '<span><b>Por você</b><small>"Quer marcar um horário?"</small></span>')}${optBtn('trato', 'senhor', W.trato === 'senhor', '<span><b>Por senhor ou senhora</b><small>"Em que posso ajudar?"</small></span>')}</div>`;
+        case 'saudacao': return `<h2>Como ela começa a conversa?</h2>
+            <input class="wiz-input" id="wGreet" maxlength="40" aria-label="Saudação" placeholder="Ex.: ${['barbearia', 'tatuagem', 'academia'].includes(W.kind) ? 'E aí, tudo certo?' : W.trato === 'senhor' ? 'Olá, boa tarde!' : 'Oi, que bom que você chamou!'}" value="${esc(W.greet)}">
+            <p class="wz-sub">Se deixar em branco, ela usa "${esc(T.hi)}".</p>`;
+        case 'equipe': return `<h2>Quem atende aí?</h2>
+            <div class="wz-list">${optBtn('solo', 1, W.solo, '<span><b>Só eu</b></span>')}${optBtn('solo', 0, !W.solo, '<span><b>Eu e mais gente</b></span>')}</div>
+            ${W.solo ? '' : `<div class="team-list"><span class="team-chip me">${esc(firstName(W.owner) || 'Você')}</span>${W.team.map((n, i) => `<span class="team-chip">${esc(n)}<button type="button" data-team-rm="${i}" aria-label="Tirar ${esc(n)}">×</button></span>`).join('')}</div>
+              <div class="inline"><input id="wTeam" maxlength="60" placeholder="Nome de quem atende" aria-label="Nome de quem atende" autocomplete="off"><button type="button" class="btn" id="wTeamAdd">Adicionar</button></div>`}`;
+        case 'servicos':
+          if (W.reading) return `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
+          return `<div class="wz-row"><h2>Seus preços</h2><button type="button" class="btn small ghost" id="wMenu">${CAM} Foto da tabela</button></div>
+            ${W.menu.aviso ? `<p class="banner warn">${esc(W.menu.aviso)}</p>` : ''}
+            <div class="wz-menu">${W.menu.items.map((it, i) => `<div class="wz-mi ${it.on ? '' : 'off'}" data-mi="${i}">
+              <input type="checkbox" data-mf="on" ${it.on ? 'checked' : ''} aria-label="Incluir ${esc(it.name || 'serviço')}">
+              <input data-mf="name" value="${esc(it.name)}" maxlength="80" placeholder="Serviço" aria-label="Nome do serviço">
+              <label class="money-in"><span>R$</span><input data-mf="price" inputmode="decimal" placeholder="0,00" value="${it.price != null ? esc((it.price / 100).toFixed(2).replace('.', ',')) : ''}" aria-label="Preço"></label></div>`).join('')}</div>
+            <button type="button" class="btn ghost small" id="wMenuAdd">+ Outro serviço</button>`;
+        case 'horario': return `<h2>${isSolo(W) ? 'Quando você atende?' : 'Quando vocês atendem?'}</h2>
+            <div class="wz-list">${Object.entries(HOURS_PRESETS).map(([k, h]) => optBtn('hours', k, W.hours === k, `<span><b>${esc(h.label)}</b></span>`)).join('')}</div>
+            <p class="wz-sub">Dá para ajustar dia por dia depois, em Ajustes.</p>`;
+        case 'endereco': return `<h2>Onde fica o seu negócio?</h2>
+            <input class="wiz-input" id="wAddr" maxlength="200" autocomplete="street-address" aria-label="Endereço" placeholder="Rua, número, bairro, cidade" value="${esc(W.address)}">
+            <p class="wz-sub">Atende on-line ou vai até a pessoa? Escreva assim mesmo, tipo "Atendimento on-line, por vídeo".</p>`;
+        case 'confirma': return `<h2>Quando alguém marcar com ela…</h2>
+            <div class="wz-list">${optBtn('auto', 0, !W.auto, '<span><b>Eu confirmo antes</b><small>Fica como pedido até você tocar em Confirmar.</small></span>')}${optBtn('auto', 1, W.auto, '<span><b>Já fica marcado</b><small>O horário entra confirmado na hora.</small></span>')}</div>`;
+        case 'prazo': return `<h2>Prazo mínimo para marcar</h2><p class="wz-sub">Com 1 hora, ninguém marca para daqui a 20 minutos.</p>
+            <div class="wz-grid2">${NOTICE_OPTS.map(([v, t]) => optBtn('notice', v, W.notice === v, `<b>${t}</b>`)).join('')}</div>`;
+        case 'atraso': return `<h2>Tolerância de atraso</h2>
+            <div class="wz-grid2">${LATE_OPTS.map(([v, t]) => optBtn('late', v, W.late === v, `<b>${t}</b>`)).join('')}</div>`;
+        case 'cancela': return `<h2>Para cancelar, avisar com quanto tempo antes?</h2>
+            <div class="wz-grid2">${CANCEL_OPTS.map(([v, t]) => optBtn('cancel', v, W.cancel === v, `<b>${t}</b>`)).join('')}</div>`;
+        case 'pagamento': return `<h2>Como as pessoas pagam?</h2><p class="wz-sub">Toque em todas as formas que você aceita.</p>
+            <div class="wz-grid3">${PAYS.map(([k, t]) => optBtn('pay', k, !!W.pays[k], `<b>${t}</b>`)).join('')}</div>`;
+        case 'pix': return `<h2>Sua chave Pix</h2>
+            <input class="wiz-input" id="wPix" maxlength="77" autocomplete="off" aria-label="Chave Pix" placeholder="CPF, CNPJ, e-mail, celular ou aleatória" value="${esc(W.pixKey)}">
+            <input class="wiz-input" id="wPixCity" maxlength="15" aria-label="Cidade" placeholder="Cidade (até 15 letras)" value="${esc(W.pixCity)}">
+            <p class="wz-sub">Com ela, o app monta o Pix do sinal. O dinheiro vai direto para a sua conta; o Entre não cobra nada por isso.</p>`;
+        case 'sinal': return `<h2>Pede sinal para marcar?</h2>
+            <div class="wz-list">${optBtn('sinal', 0, !W.sinal, '<span><b>Não peço</b></span>')}${optBtn('sinal', 1, W.sinal, '<span><b>Peço sinal por Pix</b></span>')}</div>
+            ${W.sinal ? `<input class="wiz-input" id="wSinal" maxlength="20" aria-label="Valor do sinal" placeholder="Quanto? Ex.: R$ 20 ou 30%" value="${esc(W.sinalVal)}">` : ''}`;
+        case 'estilo': {
+          Object.keys(STYLES).forEach(loadFonts);
+          const mine = KIND_THEME[W.kind];
+          const all = Object.entries(STYLES).sort(([a, x], [b, y]) => (b === mine) - (a === mine) || (!!y.ramo) - (!!x.ramo));
+          return `<h2>Escolha a cara do app</h2><p class="wz-sub">Arraste para o lado. Toque para ver no app inteiro.</p>
+            <div class="wz-themes" role="group" aria-label="Temas">${all.map(([id, s]) => `<button type="button" class="wz-theme style-opt" data-style-opt="${id}" aria-pressed="${id === W.theme}" style="background-color:${s.bg};color:${s.ink}">
+              <span class="sw">${s.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
+              <b style="font-family:${esc(s.disp)}">${esc(s.nome)}</b>${id === mine ? '<em class="style-mine">seu ramo</em>' : ''}<small>${esc(s.desc)}</small>${CHECK}</button>`).join('')}</div>
+            ${modePickerHtml()}`;
+        }
+        case 'imagens': return `<h2>Logo e capa</h2>
+            <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
+              <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
+            <div class="wiz-files">
+              <label class="btn ghost">${url.logo ? 'Trocar a logo' : 'Escolher logo'}<input type="file" id="wLogo" accept="image/png,image/jpeg,image/webp" hidden></label>
+              <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label></div>
+            <p class="wz-sub">A logo aparece no topo; a capa, no início do app.</p>`;
+        case 'pronto': {
+          const sv = wizServices(W);
+          const people = new Set([W.owner, ...(W.solo ? [] : W.team)].map(normName).filter(Boolean)).size;
+          const hr = new Date().getHours();
+          const msg = wizMsgs(W, ['oi'])[1][1];
+          return `<h2 class="wz-type" data-type="Tudo pronto, ${esc(firstName(W.owner))}!"></h2>
+            <div class="wz-mock">
+              <div class="wzm-bar">${url.logo ? '<span class="wp-logo" id="wpLogo"></span>' : `<span class="wzm-logo">${LOGO()}</span>`}<b>${esc(W.name)}</b></div>
+              <div class="wzm-greet">${hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite'}, ${esc(firstName(W.owner))}.</div>
+              <div class="wzm-stats"><i><b>0</b><small>para confirmar</small></i><i><b>${sv.on}</b><small>${sv.on === 1 ? 'serviço pronto' : 'serviços prontos'}</small></i><i><b>${people}</b><small>${people === 1 ? 'pessoa atende' : 'pessoas atendem'}</small></i></div>
+              <p class="wc-out wzm-msg">${esc(msg)}</p>
+            </div>
+            <div class="wz-chips"><span>${esc(KIND_SHORT[W.kind] || '')}</span><span>Tema ${esc(STYLES[W.theme].nome)}</span><span>${W.toneSkip ? 'Jeito padrão' : 'Jeito ' + esc(T.jeito)}</span><span>${W.auto ? 'Confirma sozinha' : 'Você confirma'}</span></div>
+            ${sv.on ? '' : '<p class="wz-sub">Os serviços de exemplo ficam desligados até você pôr os preços em Ajustes › Serviços.</p>'}`;
+        }
+      }
+      return '';
+    };
+
+    // ---------- desenhar uma tela (dir: 1 avança, -1 volta, 0 redesenha a mesma sem animação de troca)
+    let typingTimer = null;
+    const draw = (dir = 1) => {
+      const steps = wizSteps(W);
+      const i = steps.indexOf(W.step);
+      $('.wz-bar i', box).style.width = `${Math.round((i / (steps.length - 1)) * 100)}%`;
+      $('#wBack', box).style.visibility = i > 0 ? 'visible' : 'hidden';
+      $('#wOut', box).hidden = i !== 0;
+      $('#wNext', box).textContent = W.step === 'oi' ? 'Começar' : W.step === 'pronto' ? 'Entrar no meu app' : 'Continuar';
+      $('#wSkip', box).hidden = !(WIZ_SKIP.has(W.step) || (W.step === 'imagens' && !W.logo && !W.cover));
+      box.dataset.step = W.step;
+      err('');
+      const old = stage.querySelector('.wz-pane:not(.out-l):not(.out-r)');
+      const pane = document.createElement('div');
+      pane.className = 'wz-pane' + (dir && old ? (dir > 0 ? ' in-r' : ' in-l') : '') + (old ? '' : ' first');
+      pane.innerHTML = paneHtml(W.step);
+      if (old) {
+        if (dir) { old.classList.add(dir > 0 ? 'out-l' : 'out-r'); setTimeout(() => old.remove(), 460); } else old.remove();
+      }
+      stage.appendChild(pane);
+      bind(pane);
+      setPhone(false, dir !== 0); // ao chegar na tela, a conversa já aparece (sem esperar o "digitando…")
+      // títulos que se escrevem sozinhos
+      clearInterval(typingTimer);
+      const ty = $('.wz-type', pane);
+      if (ty) {
+        const txt = ty.dataset.type;
+        if (calmMotion()) { ty.textContent = txt; ty.classList.add('done'); }
+        else {
+          let n = 0; ty.textContent = '';
+          const startAt = W.step === 'oi' ? 1100 : 200;
+          setTimeout(() => { typingTimer = setInterval(() => { ty.textContent = txt.slice(0, ++n); if (n >= txt.length) { clearInterval(typingTimer); setTimeout(() => ty.classList.add('done'), 700); } }, 38); }, startAt);
+        }
+      }
+      if (W.step === 'pronto' && dir > 0) { setTimeout(() => { wizConfetti(); buzz([20, 40, 20, 40, 60]); }, 450); }
+      const first = $('.wiz-input', pane);
+      if (first && dir !== 0 && !['saudacao', 'pix'].includes(W.step)) setTimeout(() => first.focus({ preventScroll: true }), 480);
+    };
+    const goStep = (dir) => {
+      const steps = wizSteps(W);
+      const n = steps[steps.indexOf(W.step) + dir];
+      if (!n) return;
+      W.step = n; draw(dir);
+    };
+
+    // reação ao toque: pulinho + onda
+    box.addEventListener('pointerdown', (e) => {
+      const b = e.target.closest('.wz-opt, .wz .btn');
+      if (!b || calmMotion()) return;
+      const r = b.getBoundingClientRect();
+      const s = document.createElement('span');
+      s.className = 'wz-ripple';
+      s.style.left = `${e.clientX - r.left}px`; s.style.top = `${e.clientY - r.top}px`;
+      b.appendChild(s); setTimeout(() => s.remove(), 600);
+    });
+
+    // ---------- ligações dos controles da tela
+    const bind = (pane) => {
+      const pc = $('#wpCover', pane), pl = $('#wpLogo', pane);
       if (pc && url.cover) pc.style.backgroundImage = `url("${url.cover}")`;
       if (pl && url.logo) pl.style.backgroundImage = `url("${url.logo}")`;
-      $('#wBack', box)?.addEventListener('click', () => { W.i--; render(); });
-      $('#wOut', box)?.addEventListener('click', () => sb.auth.signOut());
-      $('#wSkip', box)?.addEventListener('click', () => { if (step === 'whats') W.wa = ''; if (step === 'tabela') W.menu = null; W.i++; render(); });
-      $$('[data-kind]', box).forEach((b) => { b.onclick = () => { W.kind = b.dataset.kind; W.i++; render(); }; });
-      $$('[data-hours]', box).forEach((b) => { b.onclick = () => { W.hours = b.dataset.hours; $$('[data-hours]', box).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; });
-      if (step === 'estilo') { bindStylePicker(form, (id) => { W.theme = id; applyStyle(id, { persist: false }); }); bindModePicker(form); }
-      if (step === 'tabela') {
-        if (W.menu?.items.length) bindMenuReview(form, W.menu.items);
-        const readPhoto = async () => {
+      // opções de uma escolha só: marca, faz o pulinho e atualiza a conversa
+      const pick = (attr, fn) => $$(`[data-${attr}]`, pane).forEach((b) => { b.onclick = () => {
+        buzz();
+        if (fn(b.dataset[attr]) === 'redraw') return draw(0);
+        $$(`[data-${attr}]`, pane).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+        setPhone(true);
+      }; });
+      pick('kind', (v) => {
+        W.kind = v;
+        if (!W.themePicked) { W.theme = KIND_THEME[W.kind] || 'entre'; applyStyle(W.theme, { persist: false }); }
+        if (!W.tonePicked) W.tone = KIND_TONE[W.kind] || 'leve';
+        if (!W.menu || (!W.menu.fromPhoto && !W.menu.touched && W.menu.kind !== W.kind)) W.menu = tplMenu(W.kind);
+        wizFloat(floatL, W.kind);
+      });
+      pick('tone', (v) => { W.tone = v; W.tonePicked = true; W.toneSkip = false; if (!W.emojiPicked) W.emoji = v !== 'formal'; });
+      pick('emoji', (v) => { W.emoji = v === '1'; W.emojiPicked = true; });
+      pick('trato', (v) => { W.trato = v; });
+      pick('hours', (v) => { W.hours = v; });
+      pick('auto', (v) => { W.auto = v === '1'; });
+      pick('notice', (v) => { W.notice = Number(v); });
+      pick('late', (v) => { W.late = Number(v); });
+      pick('cancel', (v) => { W.cancel = Number(v); });
+      pick('solo', (v) => { W.solo = v === '1'; return 'redraw'; });
+      pick('sinal', (v) => { W.sinal = v === '1'; return 'redraw'; });
+      $$('[data-pay]', pane).forEach((b) => { b.onclick = () => {
+        buzz();
+        W.pays[b.dataset.pay] = !W.pays[b.dataset.pay];
+        if (!W.pays.pix) W.sinal = false;
+        b.setAttribute('aria-pressed', String(!!W.pays[b.dataset.pay]));
+        b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+        setPhone(true);
+      }; });
+      // campos de texto: a conversa muda enquanto a pessoa digita
+      for (const [id, key] of [['#wName', 'name'], ['#wGreet', 'greet'], ['#wAddr', 'address'], ['#wPix', 'pixKey'], ['#wPixCity', 'pixCity'], ['#wSinal', 'sinalVal']]) {
+        const el = $(id, pane);
+        if (el) el.addEventListener('input', () => { W[key] = el.value; setPhone(false); });
+      }
+      if (W.step === 'equipe' && !W.solo) {
+        const addTeam = () => {
+          const inp = $('#wTeam', pane);
+          const n = inp.value.trim().replace(/\s+/g, ' ').slice(0, 60);
+          if (n.length < 2) return err('Escreva o nome de quem atende.');
+          if (W.team.length >= 15) return err('Dá para pôr até 15 pessoas agora. O resto, em Ajustes › Quem atende.');
+          if ([W.owner, ...W.team].some((x) => normName(x) === normName(n))) return err('Essa pessoa já está na lista.');
+          buzz(); W.team.push(n); draw(0); setTimeout(() => $('#wTeam', stage)?.focus(), 30);
+        };
+        $('#wTeamAdd', pane).onclick = addTeam;
+        $('#wTeam', pane).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTeam(); } });
+        $$('[data-team-rm]', pane).forEach((b) => { b.onclick = () => { W.team.splice(Number(b.dataset.teamRm), 1); draw(0); }; });
+      }
+      if (W.step === 'estilo') {
+        bindStylePicker(pane, (id) => { buzz(); W.theme = id; W.themePicked = true; applyStyle(id, { persist: false }); });
+        bindModePicker(pane);
+        const sel = $('.wz-theme[aria-pressed="true"]', pane);
+        if (sel) setTimeout(() => sel.scrollIntoView({ inline: 'center', block: 'nearest' }), 60);
+      }
+      if (W.step === 'servicos' && !W.reading) {
+        bindMenuReview(pane, W.menu.items, () => { W.menu.touched = true; setPhone(false); });
+        $('#wMenu', pane)?.addEventListener('click', async () => {
           const f = await pickPhoto();
           if (!f) return;
-          W.reading = true; render();
-          try { W.menu = await readMenuPhoto(f, W.kind); } catch (e) { W.menu = null; W.reading = false; render(); return $('#wErr', box) && ($('#wErr', box).textContent = friendly(e)); }
-          W.reading = false; render();
-        };
-        $('#wMenu', box)?.addEventListener('click', readPhoto);
-        $('#wMenuAgain', box)?.addEventListener('click', readPhoto);
-        if (W.reading) $('button[type=submit]', form).disabled = true;
+          W.reading = true; draw(0); $('#wNext', box).disabled = true;
+          try {
+            const res = await readMenuPhoto(f, W.kind);
+            W.menu = res.items.length ? { fromPhoto: true, touched: true, kind: W.kind, items: res.items } : { ...W.menu, aviso: res.aviso || 'Não encontrei serviços nessa foto. Tente outra, de frente e com boa luz.' };
+          } catch (e) { W.reading = false; $('#wNext', box).disabled = false; draw(0); return err(friendly(e)); }
+          W.reading = false; $('#wNext', box).disabled = false; draw(0);
+        });
+        $('#wMenuAdd', pane)?.addEventListener('click', () => {
+          W.menu.items.push({ name: '', price: null, dur: 60, ret: null, obs: '', on: true });
+          W.menu.touched = true;
+          draw(0);
+          const rows = $$('[data-mf="name"]', stage); rows[rows.length - 1]?.focus();
+        });
       }
       for (const [kind, id] of [['logo', '#wLogo'], ['cover', '#wCover']]) {
-        const input = $(id, box);
+        const input = $(id, pane);
         if (!input) continue;
         input.onchange = () => {
           const f = input.files?.[0];
@@ -721,45 +1156,101 @@
           if (f.size > 15 * 1024 * 1024) return err('Essa imagem é grande demais (máx. 15 MB).');
           if (url[kind]) URL.revokeObjectURL(url[kind]);
           W[kind] = f; url[kind] = URL.createObjectURL(f);
-          render();
+          draw(0);
         };
       }
-      const firstInput = $('.wiz-input', box);
-      if (firstInput) setTimeout(() => firstInput.focus(), 50);
-
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-        err('');
-        if (step === 'tipo' && !W.kind) return err('Toque numa das opções.');
-        if (step === 'nome') { W.name = $('#wName', box).value.trim(); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
-        if (step === 'voce') { W.owner = $('#wOwner', box).value.trim(); if (!W.owner) return err('Escreva seu nome.'); }
-        if (step === 'whats') {
-          W.wa = $('#wWa', box).value.trim();
-          const d = W.wa.replace(/\D/g, '');
-          if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".');
-        }
-        if (step !== 'pronto') { W.i++; return render(); }
-        await busy($('button[type=submit]', form), () => finishOnboarding(W));
-      };
     };
-    render();
+
+    $('#wBack', box).onclick = () => { if (!W.saving) { buzz(); goStep(-1); } };
+    $('#wOut', box).onclick = () => sb.auth.signOut();
+    $('#wSkip', box).onclick = () => {
+      if (W.saving) return;
+      const s = W.step;
+      if (s === 'whats') W.wa = '';
+      if (s === 'jeito') W.toneSkip = true;
+      if (s === 'saudacao') W.greet = '';
+      if (s === 'equipe') { W.solo = true; W.team = []; }
+      if (s === 'servicos') W.menuSkip = true;
+      if (s === 'endereco') W.address = '';
+      if (s === 'confirma') W.auto = false;
+      if (s === 'prazo') W.notice = 60;
+      if (s === 'atraso') W.late = 0;
+      if (s === 'cancela') W.cancel = 0;
+      if (s === 'pagamento') { W.pays = {}; W.sinal = false; W.sinalVal = ''; W.pixKey = ''; W.pixCity = ''; }
+      if (s === 'pix') { W.pixKey = ''; W.pixCity = ''; }
+      if (s === 'sinal') { W.sinal = false; W.sinalVal = ''; }
+      buzz(); goStep(1);
+    };
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      if (W.saving) return;
+      const s = W.step, val = (id) => ($(id, stage)?.value || '').trim();
+      err('');
+      if (s === 'tipo' && !W.kind) return err('Toque numa das opções.');
+      if (s === 'nome') { W.name = val('#wName'); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
+      if (s === 'voce') {
+        W.owner = val('#wOwner');
+        if (!W.owner) return err('Escreva seu nome.');
+        W.team = W.team.filter((n) => normName(n) !== normName(W.owner)); // não deixa a mesma pessoa duas vezes
+      }
+      if (s === 'whats') { W.wa = val('#wWa'); const d = W.wa.replace(/\D/g, ''); if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".'); }
+      if (s === 'jeito') W.toneSkip = false;
+      if (s === 'equipe' && !W.solo) {
+        if (val('#wTeam')) return err('Toque em "Adicionar" para pôr essa pessoa na lista (ou apague o nome).');
+        if (!W.team.length) W.solo = true;
+      }
+      if (s === 'servicos') { if (W.reading) return; W.menuSkip = false; }
+      if (s === 'pagamento' && !W.pays.pix) { W.pixKey = ''; W.pixCity = ''; W.sinal = false; }
+      if (s === 'pix' && W.pixKey.trim()) {
+        const k = normPixKey(W.pixKey); // mesma regra de Ajustes (CPF/CNPJ só números, celular com +55…)
+        if (k === null) return err('Não reconheci a chave Pix. Use CPF ou CNPJ, e-mail, celular com DDD ou a chave aleatória.');
+        W.pixKey = k;
+        W.pixCity = W.pixCity.trim();
+        if (W.pixCity.length < 2) return err('Escreva a cidade. Ela aparece no Pix para quem paga.');
+      }
+      buzz();
+      if (s !== 'pronto') return goStep(1);
+      W.saving = true;
+      $('#wBack', box).disabled = true;
+      try { await busy($('#wNext', box), () => finishOnboarding(W)); }
+      finally { W.saving = false; $('#wBack', box).disabled = false; }
+    };
+    draw(1);
   }
 
   async function finishOnboarding(W) {
-    const id = crypto.randomUUID();
+    // O id do negócio é um só por tentativa: se algo falhar no meio, o negócio parcial é apagado e dá para tentar de novo.
+    const id = (W.bizId ||= crypto.randomUUID());
+    const pixKey = W.pays.pix && W.pixKey ? W.pixKey.slice(0, 77) : null;
+    const pixCity = pixKey && W.pixCity.trim().length >= 2 ? W.pixCity.trim().slice(0, 15) : null;
     must(await sb.from('businesses').insert({
       id, owner_id: S.session.user.id, name: W.name.slice(0, 80), kind: W.kind,
       health_business: !!KINDS[W.kind].health, owner_whatsapp: phoneDigits(W.wa),
       theme: STYLES[W.theme] ? W.theme : 'entre', owner_name: W.owner.slice(0, 60),
+      tone: composeTone(W), address: oneLine(W.address, 200), policy: composePolicy(W), extra_info: composeExtra(W),
+      auto_confirm: !!W.auto, min_notice_minutes: W.notice, pix_key: pixKey, pix_city: pixCity,
     }));
-    const person = must(await sb.from('staff').insert({ business_id: id, name: W.owner.slice(0, 60) }).select().single());
-    must(await sb.from('opening_hours').insert(HOURS_PRESETS[W.hours].rows.map(([w, o, c]) => ({ business_id: id, weekday: w, opens: o, closes: c }))));
-    // Serviços: os da foto da tabela (já ativos, com preço) ou os de exemplo do ramo (desativados, sem preço).
-    const fromPhoto = W.menu ? chosenMenu(W.menu.items) : [];
-    const svcs = must(await sb.from('services').insert(fromPhoto.length
-      ? fromPhoto.map((it) => ({ business_id: id, name: it.name.trim().slice(0, 80), duration_min: it.dur, return_days: it.ret, price_cents: it.price, notes: it.obs, active: true }))
-      : KINDS[W.kind].services.map(([name, dur, ret]) => ({ business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false }))).select('id'));
-    if (svcs.length) must(await sb.from('staff_services').insert(svcs.map((s) => ({ staff_id: person.id, service_id: s.id }))));
+    let rows;
+    try {
+      // Quem atende: a própria pessoa e, se disse, a equipe (sem nomes repetidos).
+      const seen = new Set();
+      const names = [W.owner, ...(W.solo ? [] : W.team)].map((n) => n.trim().slice(0, 60))
+        .filter((n) => n && !seen.has(normName(n)) && seen.add(normName(n)));
+      const people = must(await sb.from('staff').insert(names.map((name) => ({ business_id: id, name }))).select('id'));
+      must(await sb.from('opening_hours').insert(HOURS_PRESETS[W.hours].rows.map(([w, o, c]) => ({ business_id: id, weekday: w, opens: o, closes: c }))));
+      // Serviços: os que a pessoa conferiu (com preço = já ligados) ou, se pulou, os de exemplo do ramo (desligados, sem preço).
+      const sv = wizServices(W);
+      rows = sv.list.length
+        ? sv.list.map((it) => ({ business_id: id, name: it.name.trim().slice(0, 80), duration_min: it.dur, return_days: it.ret, price_cents: it.price, notes: it.obs, active: !!W.menu.fromPhoto || it.price != null }))
+        : KINDS[W.kind].services.map(([name, dur, ret]) => ({ business_id: id, name, duration_min: dur, return_days: ret, price_cents: null, active: false }));
+      const svcs = must(await sb.from('services').insert(rows).select('id'));
+      if (svcs.length && people.length) must(await sb.from('staff_services').insert(people.flatMap((p) => svcs.map((s) => ({ staff_id: p.id, service_id: s.id })))));
+    } catch (e) {
+      // desfaz o negócio pela metade (equipe, horários e serviços saem junto)
+      try { await sb.from('businesses').delete().eq('id', id); } catch { /* fica para a próxima tentativa */ }
+      W.bizId = null;
+      throw e;
+    }
     // Imagens só sobem agora (a pasta é do negócio, que acabou de nascer). Se falhar, o negócio já existe: dá para subir depois.
     let imgFail = false;
     for (const [kind, col] of [['logo', 'logo_url'], ['cover', 'cover_url']]) {
@@ -772,8 +1263,20 @@
     store.set('biz', id);
     S.tab = 'inicio';
     await start();
+    const active = rows.filter((r) => r.active).length;
     if (imgFail) toast('Tudo criado, mas uma imagem não subiu. Tente de novo em Ajustes › Aparência.', 'warn');
-    else toast(fromPhoto.length ? 'Pronto! Seus serviços já estão com preço.' : 'Pronto! Agora ative seus serviços e coloque os preços.', 'ok');
+    else toast(active ? 'Pronto! A secretária já sabe seus preços.' : 'Pronto! Agora coloque os preços em Ajustes › Serviços.', 'ok');
+  }
+
+  /** Início › "Termine de configurar": o que o primeiro acesso deixou para depois (não é obrigatório). */
+  function finishList() {
+    const b = S.biz;
+    return [
+      [!!b.address, 'Endereço do negócio', 'negocio'],
+      [!!b.policy, 'Regras de atraso e cancelamento', 'negocio'],
+      [!!(b.extra_info || b.pix_key), 'Formas de pagamento', 'negocio'],
+      [!!b.tone && b.tone !== DEFAULT_TONE, 'Jeito de falar da secretária', 'negocio'],
+    ];
   }
 
   // ------------------------------------------------------------------ navegação
@@ -841,7 +1344,9 @@
     const p = partsOf(b.starts_at), e = partsOf(b.ends_at);
     const [lab, cls] = STATUS[b.status] || ['', ''];
     const sub = [b.status === 'block' ? (b.staff_id ? staffName(b.staff_id) : 'Todos') : svcName(b.service_id), b.status === 'block' ? '' : staffName(b.staff_id)].filter(Boolean).join(' · ');
-    const paid = b.paid_at && b.status !== 'block' ? ` · <span class="paid">pago${PAY[b.paid_method] ? ' (' + PAY[b.paid_method] + ')' : ''}</span>` : '';
+    const risk = noShowRisk(b);
+    const paid = (b.paid_at && b.status !== 'block' ? ` · <span class="paid">pago${PAY[b.paid_method] ? ' (' + PAY[b.paid_method] + ')' : ''}</span>` : '')
+      + (risk ? ` · <span class="risk r-${risk.level === 'alto' ? 'alto' : 'medio'}">pode faltar</span>` : '');
     return `<button type="button" class="row booking st-${b.status}" data-booking="${b.id}">
       <span class="time"><b>${p.time}</b><small>${e.time}</small></span>
       <span class="grow"><b>${esc(bookingName(b))}</b><small>${esc(sub)}${showDay ? ' · ' + relDay(p.date) : ''}${paid}</small></span>
@@ -882,11 +1387,17 @@
       b.note && ['Observação', esc(b.note)],
       ['Criado por', ORIGIN[b.created_by] || 'Você'],
     ].filter(Boolean);
+    const risk = noShowRisk(b);
+    if (risk) rows.splice(rows.length - 1, 0, ['Risco de falta', `<span class="risk r-${risk.level === 'alto' ? 'alto' : 'medio'}">${risk.level}</span> <small class="muted">${esc(risk.why.join('; '))}</small>`]);
     const acts = [];
-    if (b.status === 'pending') acts.push(['confirmed', 'Confirmar e avisar', 'primary'], ['cancelled', 'Recusar e avisar', 'danger']);
+    const future = !past && ['pending', 'confirmed'].includes(b.status);
+    if (b.status === 'pending') acts.push(['confirmed', 'Confirmar e avisar', 'primary']);
+    if (future && phone && !b.paid_at) acts.push(['deposit', risk ? 'Pedir sinal por Pix (recomendado)' : 'Pedir sinal por Pix', risk && b.status === 'confirmed' ? 'primary' : '']);
+    if (future && phone && b.status === 'confirmed') acts.push(['remind', 'Lembrar agora pelo WhatsApp', '']);
+    if (b.status === 'pending') acts.push(['cancelled', 'Recusar e avisar', 'danger']);
     if (b.status === 'confirmed') {
       if (past) acts.push(['done', 'Atendimento feito', 'primary'], ['noshow', 'Faltou', '']);
-      if (!past || b.paid_at) acts.push(['pay', b.paid_at ? 'Ver pagamento' : 'Receber pagamento (sinal)', '']);
+      if (!past || b.paid_at) acts.push(['pay', b.paid_at ? 'Ver pagamento' : 'Registrar sinal recebido', '']);
       acts.push(['cancelled', b.client_id && !past ? 'Cancelar e avisar' : 'Cancelar', 'danger']);
     }
     if (b.status === 'done') acts.push(['pay', b.paid_at ? 'Ver pagamento' : 'Receber pagamento', b.paid_at ? '' : 'primary']);
@@ -899,6 +1410,8 @@
       btn.onclick = () => busy(btn, async () => {
         const a = btn.dataset.act;
         if (a === 'pay') return openPayment(b);
+        if (a === 'deposit') return openDeposit(b);
+        if (a === 'remind') { window.open(waLink(phone, remindMsg(b)), '_blank', 'noopener'); sentAdd('lembrados', b.id); return; }
         if (a === 'conversa') {
           const conv = must(await sb.from('conversations').select('id').eq('business_id', S.biz.id).eq('client_id', b.client_id).maybeSingle());
           closeSheet();
@@ -917,16 +1430,189 @@
           must(await sb.from('bookings').update({ status: st }).eq('id', b.id));
           // Atendimento feito e ainda não pago: já pergunta quanto recebeu (dá para pular)
           if (st === 'done' && !b.paid_at) {
+            S.ins = null;
             go(S.tab, { quiet: true, keepScroll: true });
             return openPayment({ ...b, status: 'done' }, { justDone: true });
           }
           toast('Pronto.', 'ok');
         }
+        S.ins = null; // o histórico mudou
         closeSheet();
         go(S.tab, { quiet: true, keepScroll: true });
         if (a === 'cancelled' && !past) offerWaitlist(b);
       });
     });
+  }
+
+  // ------------------------------------------------------------------ O que o app sabe de cada cliente
+  // Histórico do último ano, resumido por cliente: visitas, faltas, última e próxima vez, e o costume
+  // (dia da semana, hora, serviço, profissional). Serve para o risco de falta e para "Encher a agenda".
+  // Guardado por 3 minutos para não pesar nas atualizações automáticas.
+  async function loadInsights(force = false) {
+    if (!force && S.ins && S.ins.biz === S.biz.id && Date.now() - S.ins.t < 3 * MIN) return S.ins;
+    const [cl, bk] = await Promise.all([
+      sb.from('clients').select('id, name, phone, username, birthday').eq('business_id', S.biz.id).limit(5000),
+      sb.from('bookings').select('client_id, starts_at, ends_at, status, service_id, staff_id').eq('business_id', S.biz.id)
+        .not('client_id', 'is', null).in('status', ['pending', 'confirmed', 'done', 'noshow'])
+        .gte('starts_at', dayStartIso(addDays(today(), -365))).order('starts_at').limit(10000),
+    ]);
+    const clients = new Map(must(cl).map((c) => [c.id, c]));
+    const now = Date.now();
+    const stats = new Map();
+    for (const b of must(bk)) {
+      const x = stats.get(b.client_id) || { visits: 0, noshow: 0, last: null, next: null, past: [] };
+      if (b.status === 'noshow') x.noshow++;
+      else if (attended(b, now)) { x.visits++; x.last = b; x.past.push(b); } else if (new Date(b.starts_at).getTime() >= now && !x.next) x.next = b;
+      stats.set(b.client_id, x);
+    }
+    for (const x of stats.values()) {
+      x.habit = habitOf(x.past);
+      delete x.past;
+    }
+    S.ins = { t: Date.now(), biz: S.biz.id, clients, stats };
+    return S.ins;
+  }
+  const modeOf = (xs) => { const m = new Map(); xs.forEach((v) => v != null && m.set(v, (m.get(v) || 0) + 1)); let best = null, n = 0; m.forEach((c, v) => { if (c > n) { best = v; n = c; } }); return [best, n]; };
+  /** Costume: só com 2+ visitas no mesmo dia da semana (e pelo menos metade delas). */
+  function habitOf(past) {
+    if (past.length < 2) return null;
+    const parts = past.map((b) => partsOf(b.starts_at));
+    const [wd, n] = modeOf(parts.map((p) => p.weekday));
+    if (n < 2 || n < past.length / 2) return null;
+    const onDay = past.filter((_, i) => parts[i].weekday === wd);
+    const mins = onDay.map((b) => { const t = partsOf(b.starts_at).time; return Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)); }).sort((a, b) => a - b);
+    const mid = mins[Math.floor(mins.length / 2)];
+    return { wd, min: mid, svc: modeOf(onDay.map((b) => b.service_id))[0], staff: modeOf(onDay.map((b) => b.staff_id))[0] };
+  }
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  const hourWords = (m) => `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, '0') : ''}`;
+
+  /** Risco de falta de um horário marcado, pelo histórico da pessoa. null = sem risco ou sem dado. */
+  function noShowRisk(b) {
+    if (!S.ins || !b.client_id || b.paid_at || !['pending', 'confirmed'].includes(b.status) || new Date(b.starts_at).getTime() < Date.now()) return null;
+    const x = S.ins.stats.get(b.client_id) || { visits: 0, noshow: 0 };
+    let score = 0;
+    const why = [];
+    if (x.noshow) { score += x.noshow >= 2 ? 3 : 2; why.push(`faltou ${x.noshow} ${x.noshow === 1 ? 'vez' : 'vezes'}${x.visits ? ` e veio ${x.visits}` : ''}`); }
+    if (!x.visits && !x.noshow && b.created_by !== 'owner') { score += 1; why.push('primeira vez, marcou sozinho'); }
+    else if (!x.visits && x.noshow) score += 1; // nunca veio, só faltou
+    const ahead = daysBetween(today(), partsOf(b.starts_at).date);
+    if (ahead >= 14) { score += 1; why.push(`marcado com ${ahead} dias de antecedência`); }
+    const level = score >= 3 ? 'alto' : score >= 2 ? 'médio' : null;
+    return level ? { level, why } : null;
+  }
+
+  // ------------------------------------------------------------------ Encher a agenda
+  // Os buracos de hoje e de amanhã e quem chamar para cada um: quem está na lista de espera para o dia,
+  // quem costuma vir nesse dia e horário, e quem já passou do tempo de voltar. Mensagem pronta para cada pessoa.
+  function freeWindows(date, busy) {
+    const staffIds = S.staff.filter((p) => p.active).map((p) => p.id);
+    const act = S.services.filter((s) => s.active);
+    if (!staffIds.length || !act.length) return [];
+    const step = S.biz.slot_minutes;
+    const minDur = Math.min(...act.map((s) => s.duration_min));
+    const slots = freeSlots({
+      date, tz: tz(), durationMin: step, slotMinutes: step, hours: S.hours.filter((h) => h.weekday === weekdayOf(date)),
+      busy, staffIds, now: new Date(), minNoticeMin: Math.max(60, S.biz.min_notice_minutes || 0),
+    });
+    const wins = [];
+    for (const s of slots) {
+      const t = new Date(s.startsAt).getTime();
+      const w = wins[wins.length - 1];
+      if (w && w.endMs === t) { w.endMs = t + step * MIN; w.end = localParts(new Date(w.endMs), tz()).time; s.staffIds.forEach((id) => w.staff.add(id)); }
+      else wins.push({ date, start: s.time, startMs: t, endMs: t + step * MIN, end: localParts(new Date(t + step * MIN), tz()).time, staff: new Set(s.staffIds) });
+    }
+    return wins.filter((w) => (w.endMs - w.startMs) / MIN >= minDur);
+  }
+  const minOf = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  /** Plano para encher a agenda de hoje (o que resta) e de amanhã. */
+  async function fillPlan(waitRows) {
+    const ins = await loadInsights();
+    const t = today(), days = [t, addDays(t, 1)];
+    const busyBy = await Promise.all(days.map((d) => busyOn(d)));
+    const windows = days.flatMap((d, i) => freeWindows(d, busyBy[i]));
+    if (!windows.length) return { windows, invites: [] };
+    const used = new Set();
+    const invites = [];
+    const add = (w, c, time, svcId, reason, kind) => {
+      if (!c?.phone || used.has(c.id || c.phone)) return;
+      used.add(c.id || c.phone);
+      invites.push({ w, c, time, svcId, reason, kind });
+    };
+    // 1) Lista de espera para o dia (ou qualquer dia)
+    const PER = { any: [0, 1440], manha: [0, 720], tarde: [720, 1080], noite: [1080, 1440] };
+    for (const wl of waitRows.filter((x) => !x.day)) { // quem pediu um dia certo aparece em "Vagou horário"
+      const [p0, p1] = PER[wl.period] || PER.any;
+      const w = windows.find((x) => (!wl.day || wl.day === x.date) && (!wl.staff_id || x.staff.has(wl.staff_id))
+        && Math.max(minOf(x.start), p0) < Math.min(minOf(x.end), p1));
+      if (w) add(w, { id: wl.client_id || 'w' + wl.id, name: wl.name, phone: wl.phone }, hhmm(Math.max(minOf(w.start), p0)), wl.service_id, 'está na lista de espera', 'espera');
+    }
+    // 2) Quem costuma vir nesse dia da semana e nesse horário (e não tem nada marcado)
+    const now = Date.now();
+    for (const [cid, x] of ins.stats) {
+      const h = x.habit;
+      if (!h || x.next) continue;
+      const last = x.last ? new Date(x.last.starts_at).getTime() : 0;
+      if (now - last < 10 * 24 * 3600e3) continue; // acabou de vir
+      const w = windows.find((win) => weekdayOf(win.date) === h.wd && minOf(win.start) <= h.min + 60 && minOf(win.end) >= h.min);
+      if (!w) continue;
+      const time = hhmm(Math.max(minOf(w.start), Math.min(h.min, minOf(w.end) - (S.services.find((s) => s.id === h.svc)?.duration_min || S.biz.slot_minutes))));
+      const snapped = hhmm(minOf(w.start) + Math.round((minOf(time) - minOf(w.start)) / S.biz.slot_minutes) * S.biz.slot_minutes);
+      add(w, ins.clients.get(cid), snapped, h.svc, `costuma vir ${WD[h.wd].toLowerCase()} por volta das ${hourWords(h.min)}`, 'costume');
+    }
+    // 3) Quem passou do tempo de voltar (retorno do último serviço)
+    for (const [cid, x] of ins.stats) {
+      if (x.next || !x.last) continue;
+      const svc = S.services.find((s) => s.id === x.last.service_id);
+      if (!svc?.return_days) continue;
+      const days2 = daysBetween(partsOf(x.last.starts_at).date, t);
+      if (days2 < svc.return_days) continue;
+      add(windows[0], ins.clients.get(cid), windows[0].start, svc.id, `${svc.name} há ${days2} dias (retorno: ${svc.return_days})`, 'retorno');
+    }
+    return { windows, invites };
+  }
+  function inviteMsg(inv) {
+    const svc = svcName(inv.svcId);
+    const link = linkOn() ? `\nSe preferir outro horário, escolha por aqui: ${bookingUrl(S.biz.booking_slug)}` : '';
+    return `${hi(inv.c.name)} Vagou um horário ${dayWords(inv.w.date)} às ${inv.time}${svc ? ' para ' + svc : ''}. Quer que eu reserve para você?${link}`;
+  }
+  const winLabel = (w) => `${dayWords(w.date)} · ${w.start} às ${w.end}${S.staff.filter((p) => p.active).length > 1 ? ' (' + [...w.staff].map(staffName).filter(Boolean).join(', ') + ')' : ''}`;
+  function fillCard(plan) {
+    if (!plan.windows.length) return '';
+    const sent = sentGet('convites');
+    const key = (inv) => `${inv.c.id || inv.c.phone}-${inv.w.date}`;
+    const open = plan.invites.filter((inv) => !sent.has(key(inv)));
+    if (!open.length && !linkOn()) return '';
+    return `<section class="card fill-card"><h3>Encher a agenda ${open.length ? `<span class="count">${open.length}</span>` : ''}</h3>
+      <p class="hint fill-lead">Horários livres de hoje e amanhã:</p>
+      <p class="fill-wins">${plan.windows.slice(0, 4).map((w) => `<span>${esc(winLabel(w))}</span>`).join('')}</p>
+      ${open.length ? `<p class="hint">Quem chamar para esses horários (um toque abre o <b>seu</b> WhatsApp com a mensagem pronta):</p>
+        ${open.slice(0, 5).map((inv) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(inv.c))}</b>
+          <small>${esc(inv.reason)}</small><small class="free">Sugestão: ${esc(dayWords(inv.w.date))} às ${esc(inv.time)}${svcName(inv.svcId) ? ' · ' + esc(svcName(inv.svcId)) : ''}</small></div>
+          <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" data-invite="${esc(key(inv))}" href="${waLink(inv.c.phone, inviteMsg(inv))}">Convidar</a></div></div>`).join('')}
+        ${open.length > 5 ? `<button type="button" class="btn ghost block" id="fillAll">Ver todos (${open.length})</button>` : ''}`
+        : '<p class="hint">Ninguém da sua lista combina com esses horários agora.</p>'}
+      ${linkOn() ? '<button type="button" class="btn ghost block" id="fillShare">Divulgar os horários livres</button>' : ''}
+    </section>`;
+  }
+  function openFillAll(plan) {
+    const sent = sentGet('convites');
+    const key = (inv) => `${inv.c.id || inv.c.phone}-${inv.w.date}`;
+    const body = plan.windows.map((w) => {
+      const invs = plan.invites.filter((inv) => inv.w === w);
+      return `<h4>${esc(winLabel(w))}</h4>${invs.length ? invs.map((inv) => { const done = sent.has(key(inv)); return `<div class="pend${done ? ' sent' : ''}"><div class="pend-info"><b>${esc(clientLabel(inv.c))}</b>
+        <small>${esc(inv.reason)} · sugestão ${esc(inv.time)}</small></div>
+        <div class="actions">${done ? '<span class="chip ok">✓ Convidado</span>' : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-invite="${esc(key(inv))}" href="${waLink(inv.c.phone, inviteMsg(inv))}">${done ? 'De novo' : 'Convidar'}</a></div></div>`; }).join('')
+        : '<p class="muted small">Ninguém combina com este horário.</p>'}`;
+    }).join('');
+    const form = sheet('Encher a agenda', `<p class="hint">Horários livres de hoje e amanhã e quem costuma vir nesses horários.</p>${body}`);
+    $$('[data-invite]', form).forEach((a) => { a.addEventListener('click', () => sentAdd('convites', a.dataset.invite)); });
+  }
+  function fillShareText(plan) {
+    const byDay = {};
+    plan.windows.forEach((w) => { (byDay[w.date] ||= []).push(`${w.start} às ${w.end}`); });
+    const lines = Object.entries(byDay).map(([d, ws]) => `${dayWords(d).replace(/^./, (c) => c.toUpperCase())}: ${ws.join(', ')}`);
+    return `Tenho horário livre 👇\n${lines.join('\n')}\nMarque pelo link: ${bookingUrl(S.biz.booking_slug)}`;
   }
 
   // ------------------------------------------------------------------ Caixa (pagamentos)
@@ -961,6 +1647,48 @@
       if (back) back(); else closeSheet();
     }));
     $('#payLater', form)?.addEventListener('click', () => { toast('Ok, fica em "A receber" no caixa do dia.'); closeSheet(); });
+  }
+
+  /** Pedir sinal por Pix: gera o "copia e cola" com o valor e abre o WhatsApp com a mensagem pronta. */
+  function openDeposit(b) {
+    const phone = b.clients?.phone;
+    if (!S.biz.pix_key) {
+      const form = sheet('Pedir sinal por Pix', `<p>Para pedir sinal, cadastre a sua chave Pix uma vez só.</p>
+        <p class="hint">O código Pix é gerado aqui no app e o dinheiro cai direto na sua conta. O Entre não recebe esse dinheiro e não cobra taxa sobre ele.</p>
+        <button type="button" class="btn primary block" id="toPix">Cadastrar chave Pix</button>`);
+      $('#toPix', form).onclick = () => { closeSheet(); go('ajustes', { open: 'negocio' }); };
+      return;
+    }
+    const price = b.price_cents || 0;
+    const def = price ? Math.max(1000, Math.round((price * 0.3) / 500) * 500) : 2000; // ~30%, arredondado de R$ 5 em R$ 5
+    const p = partsOf(b.starts_at);
+    const msgFor = (cents) => {
+      const code = pixCode({ key: S.biz.pix_key, name: S.biz.name, city: S.biz.pix_city || 'BRASIL', cents });
+      return {
+        code,
+        text: `${hi(b.client_name || b.clients?.name)} Para segurar o seu horário ${dayWords(p.date)} às ${p.time}${svcName(b.service_id) ? ' (' + svcName(b.service_id) + ')' : ''}, pedimos um sinal de ${money(cents)} pelo Pix. `
+          + `É só copiar o código abaixo e colar no app do seu banco, em "Pix copia e cola". O valor entra como parte do pagamento.\n\n${code}`,
+      };
+    };
+    const form = sheet('Pedir sinal por Pix', `
+      <p class="pay-who"><b>${esc(bookingName(b))}</b><small>${esc(svcName(b.service_id))} · ${esc(whenLabel(b.starts_at))}${price ? ' · ' + esc(brl(price)) : ''}</small></p>
+      <label>Valor do sinal<span class="money-big"><span>R$</span><input name="value" inputmode="decimal" autocomplete="off" maxlength="10" value="${esc(centsIn(def))}"></span></label>
+      <p class="hint">O Pix vai para a sua chave (${esc(S.biz.pix_key)}). Quando cair na conta, abra o agendamento e toque em "Registrar sinal recebido".</p>
+      <a class="btn primary block" id="depWa" target="_blank" rel="noopener">Mandar pelo WhatsApp</a>
+      <button type="button" class="btn ghost block" id="depCopy">Copiar só o código Pix</button>`);
+    const upd = () => {
+      const cents = parseMoney(form.elements.value.value) || 0;
+      const m = msgFor(cents);
+      $('#depWa', form).href = waLink(phone, m.text);
+      $('#depWa', form).classList.toggle('disabled', !cents);
+      form._code = m.code;
+    };
+    form.elements.value.oninput = upd;
+    upd();
+    $('#depWa', form).addEventListener('click', (e) => { if (!(parseMoney(form.elements.value.value) > 0)) { e.preventDefault(); toast('Escreva o valor do sinal.', 'bad'); } });
+    $('#depCopy', form).onclick = async () => {
+      try { await navigator.clipboard.writeText(form._code); toast('Código Pix copiado ✅', 'ok'); } catch { prompt('Copie o código Pix:', form._code); }
+    };
   }
 
   /** Caixa de um dia: o que entrou (por forma de pagamento) e o que ainda falta receber. */
@@ -1030,9 +1758,14 @@
     const total = rows.reduce((s, b) => s + (b.price_cents || 0), 0);
     const night = rows.filter((b) => !wasOpen(b.created_at));
     const nightTotal = night.reduce((s, b) => s + (b.price_cents || 0), 0);
-    return `<section class="card win-card"><h3>Feito pela secretária · últimos 7 dias</h3>
-      <div class="win"><b>${esc(money(total))}</b><span>em ${rows.length} horário${rows.length === 1 ? '' : 's'} marcado${rows.length === 1 ? '' : 's'} sem você precisar responder</span></div>
-      ${night.length ? `<p class="win-night"><span aria-hidden="true">🌙</span> ${night.length === rows.length ? 'Todos' : night.length} ${night.length === 1 ? 'foi marcado' : 'foram marcados'} com o negócio fechado${nightTotal ? ` (${esc(money(nightTotal))})` : ''}.</p>` : ''}
+    // nota de dinheiro (duas notas, a da frente na cor do tema) e lua desenhada: nada de emoji
+    const NOTE = `<svg class="win-note" viewBox="0 0 64 42" aria-hidden="true"><rect class="n2" x="9" y="2" width="53" height="30" rx="4"/><rect class="n1" x="2" y="10" width="53" height="30" rx="4"/>
+      <circle class="nl" cx="28.5" cy="25" r="7.5"/><path class="nl" d="M28.5 20.6v8.8M31.2 22.3h-3.6a1.6 1.6 0 0 0 0 3.2h1.8a1.6 1.6 0 0 1 0 3.2h-3.6"/><circle class="nd" cx="9.5" cy="17" r="1.7"/><circle class="nd" cx="47.5" cy="33" r="1.7"/></svg>`;
+    const MOON = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.8A7.8 7.8 0 1 1 9.2 4.5a6.2 6.2 0 0 0 10.3 10.3z"/><path class="st" d="M17 4.2l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg>';
+    return `<section class="card win-card"><div class="win-head"><h3>Feito pela secretária</h3>${NOTE}</div>
+      <b class="win-val">${esc(money(total))}</b>
+      <p class="win-sub">${rows.length} horário${rows.length === 1 ? '' : 's'} em 7 dias · sem você responder</p>
+      ${night.length ? `<p class="win-night">${MOON}<span>${night.length === rows.length ? 'Todos' : night.length} ${night.length === 1 ? 'foi marcado' : 'foram marcados'} com o negócio fechado${nightTotal ? ` (${esc(money(nightTotal))})` : ''}.</span></p>` : ''}
     </section>`;
   }
 
@@ -1101,34 +1834,48 @@
       sb.from('bookings').select(BOOK_SEL).eq('business_id', id).eq('status', 'confirmed')
         .gte('starts_at', dayStartIso(addDays(t, 1))).lt('starts_at', dayStartIso(addDays(t, 2))).order('starts_at').limit(100),
       sb.from('clients').select('id, name, phone, username, birthday').eq('business_id', id).not('birthday', 'is', null).limit(5000),
-      sb.from('waitlist').select('*').eq('business_id', id).eq('status', 'waiting').gte('day', t).order('day').limit(50),
+      sb.from('waitlist').select('*').eq('business_id', id).eq('status', 'waiting').order('created_at').limit(100),
+      loadInsights().catch((e) => { console.warn('histórico indisponível', e); return null; }),
     ]);
     const P = must(pend), H = must(hoje), C = must(convs), M = must(mes).filter((b) => attended(b)), W = must(sec);
     const PG = must(pago), AM = must(amanha), BD = must(aniv), WL = must(espera);
-    const WS = WL.length ? await waitSlots(WL) : new Map();
+    const [WS, FP] = await Promise.all([
+      WL.length ? waitSlots(WL) : new Map(),
+      S.ins ? fillPlan(WL).catch((e) => { console.warn('encher a agenda indisponível', e); return { windows: [], invites: [] }; }) : { windows: [], invites: [] },
+    ]);
     const mesTotal = M.reduce((s, b) => s + charged(b), 0);
     const list = checklist();
     const done = list.filter((x) => x[0]).length;
     const hojeAtend = H.filter((b) => b.status !== 'block');
     const total = hojeAtend.filter((b) => b.status !== 'noshow').reduce((s, b) => s + (b.price_cents || 0), 0);
     const hr = Number(localParts(new Date(), tz()).time.slice(0, 2));
-    const hello = hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite';
+    const hello = hr < 5 ? 'Boa noite' : hr < 12 ? 'Bom dia' : hr < 18 ? 'Boa tarde' : 'Boa noite';
 
     const who = firstName(S.biz.owner_name);
     const dateLong = (() => { const p = localParts(new Date(), tz()); return `${WD[p.weekday]}, ${Number(p.date.slice(8, 10))} de ${MONTHS[Number(p.date.slice(5, 7)) - 1]}`; })();
     let html = S.biz.cover_url ? `<div class="cover"><img alt="" src="${esc(S.biz.cover_url)}"></div>` : '';
     html += `<div class="greet"><h2>${hello}${who ? ', ' + esc(who) : ''}.</h2>
       <p>${esc(dateLong)} · ${hojeAtend.length ? `${hojeAtend.length} atendimento${hojeAtend.length > 1 ? 's' : ''} hoje` : 'nenhum atendimento hoje até agora'}</p></div>`;
+    const stIc = (d) => `<svg class="st-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
     html += `<div class="stats">
-      <div><b>${P.length}</b><small>para confirmar</small></div>
-      <div><b>${C.length}</b><small>conversas esperando você</small></div>
-      <div><b>${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : esc(brl(total))}</b><small>previsto hoje</small></div>
+      <div>${stIc('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>')}<b>${P.length}</b><small>para confirmar</small></div>
+      <div>${stIc('<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A1.5 1.5 0 0 1 4 14.5z"/>')}<b>${C.length}</b><small>${C.length === 1 ? 'conversa esperando você' : 'conversas esperando você'}</small></div>
+      <div>${stIc('<rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/>')}<b>${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : esc(brl(total))}</b><small>previsto hoje</small></div>
     </div>`;
     html += winCard(W);
     if (done < list.length) {
       html += `<section class="card checklist"><h3>Para a secretária funcionar <span class="muted">${done}/${list.length}</span></h3>
         <div class="progress"><i style="width:${Math.round((done / list.length) * 100)}%"></i></div>
         ${list.map(([ok, txt, sec]) => `<button type="button" class="check ${ok ? 'ok' : ''}" data-goto="${sec}"><i>${ok ? '✓' : ''}</i><span>${esc(txt)}</span>${ok ? '' : '<b>›</b>'}</button>`).join('')}
+      </section>`;
+    }
+    const fin = finishList();
+    const finDone = fin.filter((x) => x[0]).length;
+    if (finDone < fin.length && !store.get('fimcfg.' + S.biz.id)) {
+      html += `<section class="card checklist fim-cfg"><h3>Termine de configurar <span class="muted">${finDone}/${fin.length}</span></h3>
+        <p class="muted small">Com isso a secretária responde mais coisas sem precisar te chamar.</p>
+        ${fin.filter(([ok]) => !ok).map(([, txt, sec]) => `<button type="button" class="check" data-goto="${sec}"><i></i><span>${esc(txt)}</span><b>›</b></button>`).join('')}
+        <button type="button" class="btn small ghost" id="fimLater">Esconder</button>
       </section>`;
     }
     if (!S.biz.assistant_enabled) html += `<div class="banner warn">A secretária está <b>desligada</b>: ninguém está respondendo automaticamente. Toque no botão lá em cima para ligar.</div>`;
@@ -1147,6 +1894,7 @@
       </section>`;
     }
     html += waitCard(WL, WS);
+    html += fillCard(FP);
     html += `<section class="card"><h3>Hoje, ${esc(dayLabel(t))}</h3>
       ${H.length ? `<div class="list">${H.map((b) => bookingRow(b)).join('')}</div>` : '<p class="muted">Agenda livre hoje.</p>'}
       <button type="button" class="btn ghost block" id="toAgenda">Ver agenda completa</button></section>`;
@@ -1162,6 +1910,7 @@
     v.innerHTML = html;
     bindBookingRows(v);
     $$('[data-goto]', v).forEach((b) => { b.onclick = () => go('ajustes', { open: b.dataset.goto }); });
+    $('#fimLater', v)?.addEventListener('click', () => { store.set('fimcfg.' + S.biz.id, '1'); $('.fim-cfg', v)?.remove(); });
     $$('[data-conv]', v).forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
     $('#toAgenda').onclick = () => go('agenda');
     $('#toCash')?.addEventListener('click', (e) => {
@@ -1176,6 +1925,14 @@
     $$('[data-client-open]', v).forEach((el) => { el.onclick = () => openClientById(el.dataset.clientOpen).catch(fatal); });
     $$('[data-wbook]', v).forEach((el) => { el.onclick = () => { const w = WL.find((x) => x.id === el.dataset.wbook); bookFromWait(w, WS.get(w.id)); }; });
     $('[data-open-wait]', v)?.addEventListener('click', () => openWaitlist().catch(fatal));
+    // Encher a agenda: convite enviado some do cartão; "Ver todos" e "Divulgar"
+    $$('[data-invite]', v).forEach((a) => { a.addEventListener('click', () => { sentAdd('convites', a.dataset.invite); setTimeout(() => S.tab === 'inicio' && go('inicio', { quiet: true, keepScroll: true }), 800); }); });
+    $('#fillAll', v)?.addEventListener('click', () => openFillAll(FP));
+    $('#fillShare', v)?.addEventListener('click', async () => {
+      const text = fillShareText(FP);
+      try { if (navigator.share) { await navigator.share({ text }); return; } } catch { return; }
+      try { await navigator.clipboard.writeText(text); toast('Texto copiado. Cole no status do WhatsApp ou no Instagram.', 'ok'); } catch { prompt('Copie o texto:', text); }
+    });
     $('#toReport').onclick = (e) => {
       const b = e.currentTarget;
       if (b.disabled) return;
@@ -1199,7 +1956,7 @@
     const cur = ymOf(today());
     const from = dayStartIso(ymAdd(ym, -1) + '-01'), mid = dayStartIso(ym + '-01'), to = dayStartIso(ymAdd(ym, 1) + '-01');
     const [bk, nc, pg] = await Promise.all([
-      sb.from('bookings').select('starts_at, ends_at, status, price_cents, paid_cents, paid_at, service_id, staff_id, client_id, created_by')
+      sb.from('bookings').select('starts_at, ends_at, status, price_cents, paid_cents, paid_method, paid_at, service_id, staff_id, client_id, client_name, created_by')
         .eq('business_id', S.biz.id).neq('status', 'block').gte('starts_at', from).lt('starts_at', to).limit(10000),
       sb.from('clients').select('id', { count: 'exact', head: true }).eq('business_id', S.biz.id).gte('created_at', mid).lt('created_at', to),
       // Recebido no mês (pela data do pagamento, inclui sinal de horário de outro mês)
@@ -1273,8 +2030,25 @@
       ${recRows.length ? `<h4>Recebido no mês · ${esc(money(recTotal))}</h4>${bars(recRows, (r) => money(r.n))}` : ''}
       ${originRows.length ? `<h4>De onde vieram os agendamentos</h4>${bars(originRows)}` : ''}
       <p class="hint">Conta como atendimento o que foi marcado como "Atendimento feito" ou confirmado com horário que já passou. Faltas e cancelados ficam fora do faturamento. Quando você registra o pagamento, vale o valor recebido.${comRows.length ? ' A comissão é calculada sobre esse valor.' : ''}</p>`;
-    const form = sheet('Relatório do mês', body);
+    const form = sheet('Relatório do mês', body + (inMonth.length ? '<button type="button" class="btn ghost block" id="repCsv">Baixar planilha do mês</button>' : ''));
     $$('[data-ym]', form).forEach((b) => { b.onclick = () => { b.disabled = true; openReport(b.dataset.ym).catch(fatal); }; });
+    // Planilha (abre no Excel e no Google Planilhas): um atendimento por linha
+    $('#repCsv', form)?.addEventListener('click', () => {
+      const cell = (v) => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      const num = (c) => (c == null ? '' : (c / 100).toFixed(2).replace('.', ','));
+      const lines = [['Data', 'Hora', 'Cliente', 'Serviço', 'Profissional', 'Situação', 'Preço', 'Recebido', 'Forma', 'Origem'].join(';')];
+      [...inMonth].sort((a, b) => a.starts_at.localeCompare(b.starts_at)).forEach((b) => {
+        const p = partsOf(b.starts_at);
+        lines.push([`${p.date.slice(8, 10)}/${p.date.slice(5, 7)}/${p.date.slice(0, 4)}`, p.time, b.client_name, svcName(b.service_id), staffName(b.staff_id),
+          STATUS[b.status]?.[0] || b.status, num(b.price_cents), b.paid_at ? num(b.paid_cents) : '', PAY[b.paid_method] || '', ORIGIN[b.created_by] || ''].map(cell).join(';'));
+      });
+      const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `entre-${ym}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    });
   }
 
   // ------------------------------------------------------------------ Agenda
@@ -1289,6 +2063,7 @@
     ]);
     const rows = must(bkRes);
     const waitN = waitRes.error ? 0 : waitRes.count || 0;
+    await loadInsights().catch(() => null); // para mostrar "pode faltar" nos horários
     const byDay = {};
     rows.forEach((b) => { (byDay[partsOf(b.starts_at).date] ||= []).push(b); });
     const t = today();
@@ -1296,6 +2071,8 @@
     const list = byDay[d] || [];
     const open = S.hours.filter((h) => h.weekday === weekdayOf(d)).sort((a, b) => a.opens.localeCompare(b.opens));
     const m = Number(d.slice(5, 7)) - 1;
+    const multi = S.staff.filter((p) => p.active).length > 1;
+    const aview = store.get('agendaView') === 'grade' ? 'grade' : 'lista';
 
     if (stale(opts)) return;
     $('#view').innerHTML = `<div class="agenda-head">
@@ -1312,7 +2089,9 @@
       }).join('')}</div>
       <section class="card">
         <h3>${esc(WD[weekdayOf(d)])}, ${d.slice(8, 10)}/${d.slice(5, 7)} <span class="muted small">${open.length ? open.map((h) => `${h.opens.slice(0, 5)}–${h.closes.slice(0, 5)}`).join(' e ') : 'fechado'}</span></h3>
-        ${list.length ? `<div class="list">${list.map((b) => bookingRow(b)).join('')}</div>` : `<p class="muted">${open.length ? 'Nenhum horário marcado neste dia.' : 'Fechado neste dia.'}</p>`}
+        ${multi && open.length ? `<div class="seg ag-view-seg" role="group" aria-label="Como ver o dia"><button type="button" data-aview="lista" class="${aview === 'lista' ? 'sel' : ''}">Lista</button><button type="button" data-aview="grade" class="${aview === 'grade' ? 'sel' : ''}">Por pessoa</button></div>` : ''}
+        ${multi && open.length && aview === 'grade' ? dayGrid(d, list, open)
+          : list.length ? `<div class="list">${list.map((b) => bookingRow(b)).join('')}</div>` : `<p class="muted">${open.length ? 'Nenhum horário marcado neste dia.' : 'Fechado neste dia.'}</p>`}
       </section>
       <button type="button" class="card wait-link" id="waitBtn"><span class="grow"><b>Lista de espera</b><small>${waitN ? `${waitN} pessoa${waitN > 1 ? 's' : ''} esperando vaga` : 'Ninguém esperando · toque para colocar alguém'}</small></span>${waitN ? `<span class="count">${waitN}</span>` : ''}<b class="go">›</b></button>
       <div class="fab-row"><button type="button" class="btn primary" id="newBk">+ Marcar horário</button><button type="button" class="btn ghost" id="newBlock">Bloquear horário</button></div>`;
@@ -1324,8 +2103,54 @@
     $('#todayBtn')?.addEventListener('click', () => { S.day = t; go('agenda', { quiet: true }); });
     $('#newBk').onclick = () => newBooking(d);
     $('#newBlock').onclick = () => newBlock(d);
+    $$('[data-aview]', v).forEach((b) => { b.onclick = () => { store.set('agendaView', b.dataset.aview); go('agenda', { quiet: true, keepScroll: true }); }; });
+    // Grade: toque num espaço vazio abre "Marcar horário" já com a pessoa e a hora
+    $$('[data-gstaff]', v).forEach((col) => {
+      col.addEventListener('click', (e) => {
+        if (e.target !== col && !e.target.classList.contains('gnow')) return; // bloco marcado ou horário fechado: não abre
+        const rect = col.getBoundingClientRect();
+        const t0 = minOf(col.closest('.grid-wrap').querySelector('.gtimes span').textContent.replace('h', '').padStart(2, '0') + ':00');
+        const step = S.biz.slot_minutes;
+        const mins = t0 + Math.floor(((e.clientY - rect.top) / GRID_PX) / step) * step;
+        newBooking(d, { staff_id: col.dataset.gstaff, time: hhmm(mins) });
+      });
+    });
     $('#waitBtn').onclick = (e) => { const b = e.currentTarget; if (b.disabled) return; b.disabled = true; openWaitlist().catch(fatal).finally(() => { b.disabled = false; }); };
   };
+
+  /** Dia em colunas, uma por pessoa (como nas agendas grandes). Toque num espaço vazio = marcar ali. */
+  const GRID_PX = 1.15; // pixels por minuto
+  function dayGrid(d, list, open) {
+    const staff = S.staff.filter((p) => p.active);
+    let t0 = Math.min(...open.map((h) => minOf(h.opens.slice(0, 5)))), t1 = Math.max(...open.map((h) => minOf(h.closes.slice(0, 5))));
+    const span = (b) => { const s = minOf(partsOf(b.starts_at).time); const e = partsOf(b.ends_at).date > d ? 1440 : minOf(partsOf(b.ends_at).time); return [s, Math.max(e, s + 10)]; };
+    list.forEach((b) => { const [s, e] = span(b); t0 = Math.min(t0, s); t1 = Math.max(t1, e); });
+    t0 = Math.floor(t0 / 60) * 60; t1 = Math.ceil(t1 / 60) * 60;
+    const H = (t1 - t0) * GRID_PX;
+    const y = (m) => ((m - t0) * GRID_PX).toFixed(1);
+    const shifts = [...open].sort((a, b) => a.opens.localeCompare(b.opens)).map((h) => [minOf(h.opens.slice(0, 5)), minOf(h.closes.slice(0, 5))]);
+    const closedBands = [];
+    let cur = t0;
+    for (const [a, b] of shifts) { if (a > cur) closedBands.push([cur, a]); cur = Math.max(cur, b); }
+    if (cur < t1) closedBands.push([cur, t1]);
+    const now = localParts(new Date(), tz());
+    const nowLine = now.date === d ? minOf(now.time) : null;
+    const hoursCol = Array.from({ length: (t1 - t0) / 60 }, (_, i) => `<span style="top:${y(t0 + i * 60)}px">${(t0 / 60) + i}h</span>`).join('');
+    const col = (p) => {
+      const mine = list.filter((b) => b.staff_id === p.id || (b.status === 'block' && !b.staff_id));
+      return `<div class="gcol"><div class="ghead">${esc(firstName(p.name))}</div>
+        <div class="gbody" data-gstaff="${p.id}" style="height:${H}px">
+          ${closedBands.map(([a, b]) => `<i class="gclosed" style="top:${y(a)}px;height:${((b - a) * GRID_PX).toFixed(1)}px"></i>`).join('')}
+          ${nowLine != null && nowLine >= t0 && nowLine <= t1 ? `<i class="gnow" style="top:${y(nowLine)}px"></i>` : ''}
+          ${mine.map((b) => { S.bk.set(b.id, b); const [s, e] = span(b); const risk = noShowRisk(b);
+            return `<button type="button" class="gb st-${b.status}${risk ? ' risky' : ''}" data-booking="${b.id}" style="top:${y(s)}px;height:${Math.max(20, (e - s) * GRID_PX - 2).toFixed(1)}px">
+              <b>${partsOf(b.starts_at).time} ${esc(bookingName(b))}</b>${b.status !== 'block' ? `<small>${esc(svcName(b.service_id))}${b.paid_at ? ' · pago' : ''}</small>` : ''}</button>`; }).join('')}
+        </div></div>`;
+    };
+    return `<div class="grid-wrap"><div class="gtimes" style="height:${H}px;margin-top:28px">${hoursCol}</div>
+      <div class="gcols" style="--cols:${staff.length}">${staff.map(col).join('')}</div></div>
+      <p class="hint">Toque num espaço vazio para marcar ali.</p>`;
+  }
 
   async function busyOn(date) {
     return must(await sb.from('bookings').select('staff_id, starts_at, ends_at').eq('business_id', S.biz.id)
@@ -1336,6 +2161,8 @@
   function newBooking(date, pre = {}) {
     const act = S.services.filter((s) => s.active);
     if (!act.length) { toast('Ative pelo menos um serviço em Ajustes primeiro.', 'warn'); return go('ajustes', { open: 'servicos' }); }
+    // Veio da agenda em colunas: começa por um serviço que essa pessoa faz
+    if (!pre.service_id && pre.staff_id) pre = { ...pre, service_id: act.find((s) => staffFor(s.id).includes(pre.staff_id))?.id };
     const form = sheet('Marcar horário', `
       <label>Serviço<select name="service">${act.map((s) => `<option value="${s.id}" ${s.id === pre.service_id ? 'selected' : ''}>${esc(s.name)} · ${s.duration_min} min · ${esc(brl(s.price_cents))}</option>`).join('')}</select></label>
       <label>Com quem<select name="staff"></select></label>
@@ -1344,6 +2171,8 @@
       <label class="other-time" hidden>Outro horário (encaixe)<input type="time" name="time" step="300"></label>
       <p class="hint" id="slotHint"></p>
       <button type="button" class="btn ghost block" id="toWait" hidden>Colocar na lista de espera</button>
+      <div class="two"><label>Repetir<select name="repeat"><option value="0">Não repetir</option><option value="7">Toda semana</option><option value="14">A cada 2 semanas</option><option value="28">A cada 4 semanas</option></select></label>
+        <label class="rep-times" hidden>Quantas vezes<select name="times">${[2, 3, 4, 5, 6, 8, 10, 12].map((n) => `<option value="${n}" ${n === 4 ? 'selected' : ''}>${n} vezes</option>`).join('')}</select></label></div>
       <label>Nome<input name="name" required maxlength="80" value="${esc(pre.name || '')}"></label>
       <label>WhatsApp (opcional)<input name="phone" inputmode="tel" placeholder="(11) 91234-5678" value="${esc(pre.phone ? phoneText(pre.phone) : '')}"></label>
       <label>Observação (opcional)<input name="note" maxlength="200"></label>`, { submitText: 'Marcar', onSubmit: async (f) => {
@@ -1373,6 +2202,30 @@
         client_name: name, price_cents: svc.price_cents, note: String(f.get('note') || '').trim(), created_by: 'owner',
       }));
       if (pre.waitId) await sb.from('waitlist').update({ status: 'done' }).eq('id', pre.waitId); // saiu da lista de espera
+      S.ins = null;
+      // Horário fixo: repete no mesmo dia da semana e hora, pulando as datas que já estão ocupadas.
+      const every = Number(f.get('repeat')) || 0;
+      if (every) {
+        const times = Math.min(12, Math.max(2, Number(f.get('times')) || 4));
+        const made = [day], skipped = [];
+        for (let k = 1; k < times; k++) {
+          const d = addDays(day, every * k);
+          const s = localToUtc(d, time, tz()), e = new Date(s.getTime() + svc.duration_min * MIN);
+          const clash = (await busyOn(d)).some((x) => (x.staff_id === staffId || x.staff_id == null) && new Date(x.starts_at) < e && new Date(x.ends_at) > s);
+          const open = S.hours.some((h) => h.weekday === weekdayOf(d) && h.opens.slice(0, 5) <= time && localParts(e, tz()).time <= h.closes.slice(0, 5));
+          if (clash || !open) { skipped.push(d); continue; }
+          const r = await sb.from('bookings').insert({
+            business_id: S.biz.id, client_id: clientId, service_id: svc.id, staff_id: staffId,
+            starts_at: s.toISOString(), ends_at: e.toISOString(), status: 'confirmed',
+            client_name: name, price_cents: svc.price_cents, note: String(f.get('note') || '').trim(), created_by: 'owner',
+          });
+          if (r.error) skipped.push(d); else made.push(d);
+        }
+        toast(`Marcado ${made.length} vezes ✅${skipped.length ? ` · ficaram de fora (ocupado ou fechado): ${skipped.map(dayLabel).join(', ')}` : ''}`, skipped.length ? 'warn' : 'ok');
+        S.day = day;
+        go('agenda', { quiet: true });
+        return;
+      }
       toast('Horário marcado ✅', 'ok');
       S.day = day;
       go('agenda', { quiet: true });
@@ -1412,6 +2265,7 @@
     form._preTime = pre.time || null;
     form.service.onchange = fill; form.staff.onchange = fill; form.date.onchange = fill;
     form.slot.onchange = () => { $('.other-time', form).hidden = form.slot.value !== 'outro'; };
+    form.repeat.onchange = () => { $('.rep-times', form).hidden = form.repeat.value === '0'; };
     $('#toWait', form).onclick = () => openWaitAdd({
       service_id: form.service.value, staff_id: form.staff.value || null, day: form.date.value,
       name: form.elements.name.value.trim(), phone: phoneDigits(form.elements.phone.value),
@@ -1850,7 +2704,7 @@
       <details class="card" data-sec="aparencia" ${open('aparencia')}><summary>Aparência do app</summary>
         <form id="lookForm">
           <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura.</p>
-          ${stylePickerHtml(S.previewStyle || b.theme || 'entre')}
+          ${stylePickerHtml(S.previewStyle || b.theme || 'entre', b.kind)}
           <p class="label">Claro ou escuro (vale para este aparelho)</p>
           ${modePickerHtml()}
           <label>Seu nome (aparece em "Bom dia, …")<input name="owner_name" maxlength="60" value="${esc(b.owner_name || '')}" placeholder="Ex.: Ana"></label>
@@ -1903,9 +2757,13 @@
           <label>Tipo<select name="kind">${kindOpts}</select></label>
           <label>Endereço<input name="address" value="${esc(b.address)}" maxlength="200" placeholder="Rua, número, bairro, cidade"></label>
           <label>Seu WhatsApp (recebe avisos de pedido novo)<input name="owner_whatsapp" inputmode="tel" value="${esc(phoneText(b.owner_whatsapp))}"></label>
+          <div class="pix-row"><label>Chave Pix <span class="muted small">(para pedir sinal)</span><input name="pix_key" maxlength="77" autocomplete="off" value="${esc(b.pix_key || '')}" placeholder="CPF, CNPJ, e-mail, celular ou aleatória"></label>
+            <label>Cidade<input name="pix_city" maxlength="15" value="${esc(b.pix_city || '')}" placeholder="Ex.: São Paulo"></label></div>
+          <p class="hint">Com a chave, o app gera o Pix "copia e cola" do sinal. O dinheiro cai direto na sua conta, sem taxa.</p>
           <label>Regras do negócio<textarea name="policy" rows="3" maxlength="1000" placeholder="Ex.: tolerância de 15 min de atraso; cancelamento até 2 h antes; sinal de 30% para alongamento">${esc(b.policy)}</textarea></label>
           <label>Outras informações para a secretária<textarea name="extra_info" rows="3" maxlength="1500" placeholder="Ex.: aceitamos Pix e cartão; tem estacionamento na rua; atendemos só mulheres">${esc(b.extra_info)}</textarea></label>
-          <label>Jeito de falar<input name="tone" value="${esc(b.tone)}" maxlength="120"></label>
+          <label>Jeito de falar<textarea name="tone" rows="4" maxlength="300" placeholder="Ex.: descontraído. Trate a pessoa por você. Pode usar um emoji de vez em quando.">${esc(b.tone)}</textarea></label>
+          <p class="hint">A secretária lê isto como instrução. Escreva como você explicaria para uma recepcionista nova.</p>
           <label class="switch"><input type="checkbox" name="auto_confirm" ${b.auto_confirm ? 'checked' : ''}><span>Confirmar automaticamente os horários marcados pela secretária</span></label>
           <p class="hint">Desligado: a secretária cria um <b>pedido</b> e você confirma aqui. Ligado: já fica confirmado.</p>
           <label class="switch"><input type="checkbox" name="health_business" ${b.health_business ? 'checked' : ''}><span>É serviço de saúde (a secretária nunca dá orientação de saúde)</span></label>
@@ -2098,11 +2956,16 @@
       if (!e.target.reportValidity()) return;
       const f = new FormData(e.target);
       const days = Math.max(1, Math.min(180, parseInt(f.get('days_ahead'), 10) || 30));
+      const pixKey = normPixKey(f.get('pix_key'));
+      if (pixKey === null) return toast('Não reconheci a chave Pix. Use CPF ou CNPJ (só números), e-mail, celular com DDD ou a chave aleatória.', 'bad');
+      const pixCity = String(f.get('pix_city') || '').trim().slice(0, 15);
+      if (pixKey && pixCity.length < 2) return toast('Escreva a cidade do Pix (o banco pede).', 'bad');
       await busy($('button[type=submit]', e.target), async () => {
         must(await sb.from('businesses').update({
+          pix_key: pixKey || null, pix_city: pixKey ? pixCity : null,
           name: String(f.get('name')).trim(), kind: String(f.get('kind')), address: String(f.get('address')).trim(),
           owner_whatsapp: phoneDigits(f.get('owner_whatsapp')), policy: String(f.get('policy')).trim(),
-          extra_info: String(f.get('extra_info')).trim(), tone: String(f.get('tone')).trim() || 'simpática, educada e objetiva',
+          extra_info: String(f.get('extra_info')).trim(), tone: String(f.get('tone')).replace(/\s*[\r\n]+\s*/g, ' ').trim() || 'simpática, educada e objetiva',
           auto_confirm: !!f.get('auto_confirm'), health_business: !!f.get('health_business'),
           slot_minutes: Number(f.get('slot_minutes')), min_notice_minutes: Number(f.get('min_notice_minutes')), days_ahead: days,
         }).eq('id', b.id));

@@ -5,6 +5,7 @@
   const CFG = window.ENTRE_CONFIG;
   const API = window.ENTRE_AGENDAR_API || (CFG ? CFG.url + '/functions/v1/agendar' : '');
   const SLUG = (new URLSearchParams(location.search).get('n') || location.hash.slice(1) || '').trim().toLowerCase();
+  const TOKEN = (new URLSearchParams(location.search).get('b') || '').trim(); // link secreto de um horário (ver/cancelar)
   const root = document.getElementById('ag');
 
   const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -33,6 +34,17 @@
     botanico: 'Marcellus&family=Karla:wght@400;600;700',
     editorial: 'Instrument+Serif&family=Inter+Tight:wght@400;500;600;700',
     barbearia: 'Oswald:wght@500;600&family=Work+Sans:wght@400;500;600',
+    navalha: 'Bebas+Neue&family=Barlow:wght@400;500;600',
+    pet: 'Fredoka:wght@500;600&family=Nunito:wght@400;600;700',
+    sorriso: 'Lexend:wght@400;500;600',
+    salao: 'Playfair+Display:wght@500;600&family=Lato:wght@400;700',
+    unhas: 'DM+Serif+Display&family=Poppins:wght@400;500;600',
+    olhar: 'Prata&family=Mulish:wght@400;600;700',
+    pele: 'Lora:wght@500;600&family=Quicksand:wght@400;500;600',
+    consultorio: 'IBM+Plex+Sans:wght@400;500;600',
+    movimento: 'Archivo:wght@400;500;600;800',
+    tattoo: 'Abril+Fatface&family=Space+Grotesk:wght@400;500;600',
+    terapia: 'Young+Serif&family=Figtree:wght@400;500;600',
   };
   function applyStyle(id) {
     if (FONTS[id]) {
@@ -74,7 +86,7 @@
   // ------------------------------------------------------------------ estado
   const S = {
     info: null, svc: null, prof: null, dias: null, data: null, horarios: null, hora: null,
-    nome: local.get('nome'), tel: local.get('tel'), obs: '', done: null, loading: '',
+    nome: local.get('nome'), tel: local.get('tel'), obs: '', done: null, loading: '', espera: false, esperaDone: false, mine: null,
   };
   const svc = () => S.info.servicos.find((s) => s.id === S.svc);
   const profName = (id) => S.info.profissionais.find((p) => p.id === id)?.nome || '';
@@ -93,6 +105,10 @@
     }
     applyStyle(S.info.negocio.estilo);
     document.title = `Agendar · ${S.info.negocio.nome}`;
+    if (TOKEN) {
+      try { S.mine = (await api({ n: SLUG, b: TOKEN })).agendamento; } catch (e) { toast(e.message, 'bad'); }
+      if (S.mine) return renderMine();
+    }
     render();
   }
 
@@ -137,7 +153,7 @@
         nome: S.nome, telefone: S.tel, obs: S.obs, empresa_url: String(f.get('empresa_url') || ''),
       });
       local.set('nome', S.nome); local.set('tel', S.tel);
-      S.done = { status: r.status, servico: svc().nome, com: r.resumo?.com || (S.prof ? profName(S.prof) : ''), data: S.data, hora: S.hora, nome: S.nome };
+      S.done = { status: r.status, servico: svc().nome, com: r.resumo?.com || (S.prof ? profName(S.prof) : ''), data: S.data, hora: S.hora, nome: S.nome, token: r.token || '', inicio: r.inicio || '', fim: r.fim || '' };
       render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       toast(e.message, 'bad');
@@ -158,7 +174,7 @@
         ${n.endereco ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.endereco + ' ' + n.nome)}">${PIN} Como chegar</a>` : ''}
         ${n.whatsapp ? `<a class="btn small ghost" target="_blank" rel="noopener" href="https://wa.me/${esc(n.whatsapp)}">${CHAT} WhatsApp</a>` : ''}
       </div>` : ''}
-      ${(n.galeria || []).length && !S.done ? `<section class="ag-gal" aria-label="Nossos trabalhos"><h3>Nossos trabalhos</h3>
+      ${(n.galeria || []).length && !S.done && !S.mine && !S.esperaDone ? `<section class="ag-gal" aria-label="Nossos trabalhos"><h3>Nossos trabalhos</h3>
         <div class="ag-gal-row">${n.galeria.map((u, i) => `<button type="button" class="ag-ph" data-ph="${i}" aria-label="Ver foto ${i + 1}"><img alt="" loading="lazy" src="${esc(u)}"></button>`).join('')}</div></section>` : ''}`;
   }
   const PIN = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
@@ -176,8 +192,77 @@
     });
   }
 
+  async function sendWait(form) {
+    const f = new FormData(form);
+    S.nome = String(f.get('nome') || '').trim(); S.tel = String(f.get('tel') || '').trim();
+    if (S.nome.length < 2) return toast('Escreva seu nome.', 'bad');
+    if (S.tel.replace(/\D/g, '').length < 10) return toast('Escreva seu WhatsApp com DDD.', 'bad');
+    const btn = $('button[type=submit]', form);
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      await api(null, {
+        acao: 'espera', n: SLUG, servico: S.svc, prof: S.prof, data: f.get('qualquer') ? null : S.data, periodo: String(f.get('periodo') || 'any'),
+        nome: S.nome, telefone: S.tel, empresa_url: String(f.get('empresa_url') || ''),
+      });
+      local.set('nome', S.nome); local.set('tel', S.tel);
+      S.esperaDone = true; S.espera = false;
+      render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      toast(e.message, 'bad');
+      btn.disabled = false; btn.textContent = 'Entrar na lista de espera';
+    }
+  }
+
+  // ---- "Adicionar à minha agenda" (arquivo .ics para iPhone/Android e link do Google Agenda)
+  const icsDate = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  function calendarLinks(title, inicio, fim, place) {
+    if (!inicio || !fim) return '';
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Entre//Agendamento//PT', 'BEGIN:VEVENT',
+      `UID:${icsDate(inicio)}-${Math.random().toString(36).slice(2)}@entre`, `DTSTAMP:${icsDate(new Date().toISOString())}`,
+      `DTSTART:${icsDate(inicio)}`, `DTEND:${icsDate(fim)}`, `SUMMARY:${title.replace(/[,;\\]/g, ' ')}`,
+      place ? `LOCATION:${place.replace(/[,;\\]/g, ' ')}` : '', 'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:Lembrete', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+    const href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    const g = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${icsDate(inicio)}/${icsDate(fim)}${place ? '&location=' + encodeURIComponent(place) : ''}`;
+    return `<div class="ag-cal"><a class="btn small ghost" href="${esc(href)}" download="horario.ics">Salvar na agenda do celular</a>
+      <a class="btn small ghost" target="_blank" rel="noopener" href="${esc(g)}">Google Agenda</a></div>`;
+  }
+  const mineUrl = (token) => `${location.origin}${location.pathname}?n=${encodeURIComponent(SLUG)}&b=${encodeURIComponent(token)}`;
+
+  // ---- "Meu horário": aberto pelo link secreto (ver e cancelar)
+  function renderMine() {
+    const m = S.mine, n = S.info.negocio;
+    const quando = `${dayLong(m.data)} às ${m.hora}`;
+    const label = { aguardando: 'Aguardando confirmação', confirmado: 'Confirmado', cancelado: 'Cancelado', encerrado: 'Já passou' }[m.situacao] || m.situacao;
+    root.innerHTML = `${header()}
+      <section class="card ag-done">
+        <h2 class="display">Seu horário</h2>
+        <p class="ag-sum"><b>${esc(m.servico)}</b>${m.com ? ' com ' + esc(m.com) : ''}<br>${esc(quando)}</p>
+        <p><span class="chip ${m.situacao === 'confirmado' ? 'ok' : m.situacao === 'cancelado' ? 'muted' : 'warn'}">${esc(label)}</span></p>
+        ${m.pode_cancelar ? calendarLinks(`${m.servico} · ${n.nome}`, m.inicio, m.fim, n.endereco) : ''}
+        ${m.pode_cancelar ? '<button type="button" class="btn ghost block ag-cancel" id="mineCancel">Cancelar este horário</button>' : ''}
+        <button type="button" class="btn primary block" id="mineNew">Marcar ${m.situacao === 'cancelado' ? 'outro' : 'mais um'} horário</button>
+        ${n.whatsapp ? `<a class="btn ghost block" target="_blank" rel="noopener" href="https://wa.me/${esc(n.whatsapp)}">Falar no WhatsApp</a>` : ''}
+      </section>`;
+    $('#mineNew').onclick = () => { S.mine = null; history.replaceState(null, '', `${location.pathname}?n=${encodeURIComponent(SLUG)}`); render(); window.scrollTo(0, 0); };
+    const c = $('#mineCancel');
+    if (c) c.onclick = async () => {
+      if (!confirm('Cancelar este horário? Ele fica livre para outra pessoa.')) return;
+      c.disabled = true; c.textContent = 'Cancelando…';
+      try { S.mine = (await api(null, { acao: 'cancelar', n: SLUG, b: TOKEN })).agendamento; toast('Horário cancelado.', 'ok'); renderMine(); } catch (e) { toast(e.message, 'bad'); c.disabled = false; c.textContent = 'Cancelar este horário'; }
+    };
+  }
+
   function render(scrollTo) {
     if (S.done) return renderDone();
+    if (S.esperaDone) {
+      root.innerHTML = `${header()}<section class="card ag-done"><span class="ag-ok" aria-hidden="true">✓</span>
+        <h2 class="display">Você está na lista de espera</h2>
+        <p>Quando vagar um horário, ${esc(S.info.negocio.nome)} chama você pelo WhatsApp.</p>
+        <button type="button" class="btn ghost block" id="again">Voltar</button></section>`;
+      $('#again').onclick = () => { Object.assign(S, { esperaDone: false, svc: null, prof: null, dias: null, data: null, horarios: null, hora: null }); render(); window.scrollTo(0, 0); };
+      return;
+    }
     const I = S.info, s = S.svc && svc();
     let html = header();
     if (!I.servicos.length) {
@@ -201,7 +286,7 @@
       const dias = S.dias;
       html += `<section class="card" data-step="dia"><h3><span class="ag-n">${n++}</span>Escolha o dia</h3>
         ${!dias ? '<p class="muted">Procurando dias com vaga…</p>'
-          : !dias.some((d) => d.livres) ? '<p class="muted">Não há horários livres nos próximos dias. Fale com o estabelecimento pelo WhatsApp.</p>'
+          : !dias.some((d) => d.livres) ? '<p class="muted">Não há horários livres nos próximos dias.</p><button type="button" class="btn primary block" data-wait="1">Entrar na lista de espera</button>'
           : `<div class="ag-days">${dias.map((d) => `<button type="button" class="ag-day ${S.data === d.data ? 'sel' : ''}" data-day="${d.data}" ${d.livres ? '' : 'disabled'}>
               <small>${WDS[weekdayOf(d.data)]}</small><b>${Number(d.data.slice(8, 10))}</b><small>${MS[Number(d.data.slice(5, 7)) - 1]}</small></button>`).join('')}</div>`}
       </section>`;
@@ -209,11 +294,25 @@
     if (s && S.data) {
       const hs = S.horarios;
       html += `<section class="card" data-step="hora"><h3><span class="ag-n">${n++}</span>Horário · ${esc(dayLong(S.data))}</h3>
-        ${!hs ? '<p class="muted">Carregando horários…</p>' : !hs.length ? '<p class="muted">Esse dia lotou. Escolha outro dia.</p>'
+        ${!hs ? '<p class="muted">Carregando horários…</p>' : !hs.length ? '<p class="muted">Esse dia lotou. Escolha outro dia ou entre na lista de espera.</p>'
           : `<div class="ag-times">${hs.map((h) => `<button type="button" class="ag-time ${S.hora === h.hora ? 'sel' : ''}" data-hora="${esc(h.hora)}">${esc(h.hora)}</button>`).join('')}</div>`}
+        ${hs && !S.espera ? '<button type="button" class="ag-waitlink" data-wait="1">Não achou um horário bom? Entre na lista de espera</button>' : ''}
       </section>`;
     }
-    if (s && S.hora) {
+    if (s && S.espera) {
+      html += `<section class="card" data-step="espera"><h3><span class="ag-n">${n++}</span>Lista de espera</h3>
+        <p class="hint">Se vagar um horário${S.data ? ` em ${esc(dayLong(S.data))}` : ''}, ${esc(I.negocio.nome)} chama você pelo WhatsApp.</p>
+        <form id="waitForm" novalidate>
+          <div class="ag-chips" role="radiogroup" aria-label="Período">${[['any', 'Qualquer hora'], ['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite']].map(([k, t], i) => `<label class="ag-chip-r"><input type="radio" name="periodo" value="${k}" ${i ? '' : 'checked'}><span>${t}</span></label>`).join('')}</div>
+          ${S.data ? `<label class="switch"><input type="checkbox" name="qualquer"><span>Pode ser outro dia também</span></label>` : ''}
+          <label>Seu nome<input name="nome" autocomplete="name" maxlength="80" required value="${esc(S.nome)}"></label>
+          <label>Seu WhatsApp (com DDD)<input name="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required placeholder="(11) 91234-5678" value="${esc(S.tel)}"></label>
+          <label class="ag-hp" aria-hidden="true">Não preencha<input name="empresa_url" tabindex="-1" autocomplete="off"></label>
+          <button type="submit" class="btn primary block">Entrar na lista de espera</button>
+          <button type="button" class="btn ghost block" id="waitCancel">Voltar</button>
+        </form></section>`;
+    }
+    if (s && S.hora && !S.espera) {
       const auto = I.negocio.confirma_sozinho;
       html += `<section class="card" data-step="dados"><h3><span class="ag-n">${n++}</span>Seus dados</h3>
         <form id="agForm" novalidate>
@@ -232,7 +331,13 @@
     $$('[data-svc]').forEach((b) => { b.onclick = () => pickService(b.dataset.svc); });
     $$('[data-prof]').forEach((b) => { b.onclick = () => pickProf(b.dataset.prof); });
     $$('[data-day]').forEach((b) => { b.onclick = () => pickDay(b.dataset.day); });
-    $$('[data-hora]').forEach((b) => { b.onclick = () => { S.hora = b.dataset.hora; render('dados'); }; });
+    $$('[data-hora]').forEach((b) => { b.onclick = () => { S.hora = b.dataset.hora; S.espera = false; render('dados'); }; });
+    $$('[data-wait]').forEach((b) => { b.onclick = () => { S.espera = true; S.hora = null; render('espera'); }; });
+    const wf = $('#waitForm');
+    if (wf) {
+      wf.onsubmit = (e) => { e.preventDefault(); sendWait(wf); };
+      $('#waitCancel').onclick = () => { S.espera = false; render('hora'); };
+    }
     const form = $('#agForm');
     if (form) {
       form.onsubmit = (e) => { e.preventDefault(); send(form); };
@@ -252,10 +357,11 @@
         <span class="ag-ok" aria-hidden="true">✓</span>
         <h2 class="display">${ok ? 'Horário marcado!' : 'Pedido enviado!'}</h2>
         <p class="ag-sum"><b>${esc(d.servico)}</b>${d.com ? ' com ' + esc(d.com) : ''}<br>${esc(quando)}</p>
-        <p>${ok ? 'Está tudo certo. Se precisar remarcar ou cancelar, fale com o estabelecimento pelo WhatsApp.'
-          : `Agora é só esperar: a confirmação de ${esc(n.nome)} chega pelo WhatsApp.`}</p>
-        ${n.whatsapp ? `<a class="btn primary block" target="_blank" rel="noopener" href="https://wa.me/${esc(n.whatsapp)}?text=${encodeURIComponent(msg)}">Mandar um oi no WhatsApp</a>
+        <p>${ok ? 'Está tudo certo.' : `Agora é só esperar: a confirmação de ${esc(n.nome)} chega pelo WhatsApp.`}</p>
+        ${calendarLinks(`${d.servico} · ${n.nome}`, d.inicio, d.fim, n.endereco)}
+        ${n.whatsapp ? `<a class="btn primary block" target="_blank" rel="noopener" href="https://wa.me/${esc(n.whatsapp)}?text=${encodeURIComponent(msg + (d.token ? '\nMeu horário: ' + mineUrl(d.token) : ''))}">Mandar um oi no WhatsApp</a>
           <p class="hint center">Mandando um oi, a confirmação chega certinho no seu WhatsApp.</p>` : ''}
+        ${d.token ? `<p class="hint center">Precisa cancelar? Use <a href="${esc(mineUrl(d.token))}">este link do seu horário</a> (guarde ou mande no WhatsApp).</p>` : ''}
         <button type="button" class="btn ghost block" id="again">Marcar outro horário</button>
       </section>`;
     $('#again').onclick = () => { Object.assign(S, { done: null, svc: null, prof: null, dias: null, data: null, horarios: null, hora: null, obs: '' }); render(); window.scrollTo(0, 0); };
