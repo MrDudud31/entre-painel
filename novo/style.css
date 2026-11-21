@@ -1178,3 +1178,8 @@ h1.wz-type { font-size: clamp(2.2rem, 10vw, 3rem); margin: 24px 0 6px; }
   .wz-bottom .btn { min-height: 46px; }
   .wz-sub { margin-top: 8px; font-size: .9rem; }
 }
+/* 20/11: botões longe da borda de baixo (gesto de sair do iPhone e os 3 botões do Android); "Pular" fica no topo */
+.wz-bottom { padding-bottom: calc(max(env(safe-area-inset-bottom), 14px) + 22px); }
+.wz-skip { margin-left: 2px; }
+.wz-skip[hidden], .wz-out[hidden] { display: none; }
+@media (max-height: 720px) { .wz-bottom { padding-bottom: calc(max(env(safe-area-inset-bottom), 10px) + 16px); } }

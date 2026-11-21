@@ -869,14 +869,13 @@
     box.innerHTML = `<div class="wz-float" aria-hidden="true"></div>
       <form class="wz" novalidate>
         <div class="wz-top"><button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>
-          <div class="wz-bar" aria-hidden="true"><i></i></div><button type="button" class="wz-out" id="wOut">Sair</button></div>
+          <div class="wz-bar" aria-hidden="true"><i></i></div><button type="button" class="wz-out" id="wOut">Sair</button><button type="button" class="wz-out wz-skip" id="wSkip">Pular</button></div>
         <div class="wz-phone" id="wzPhone" aria-label="Exemplo de conversa da secretária">
           <div class="wzp"><div class="wzp-head"><span class="wc-av" id="wzpAv">?</span><span><b id="wzpName">Seu negócio</b><small>assistente virtual · online</small></span></div>
           <div class="wzp-body" id="wzpBody" aria-live="polite"></div></div></div>
         <div class="wz-stage" id="wzStage"></div>
         <div class="wz-bottom"><p class="error" id="wErr" role="alert"></p>
-          <button type="submit" class="btn primary block" id="wNext">Continuar</button>
-          <button type="button" class="btn ghost block" id="wSkip">Pular</button></div>
+          <button type="submit" class="btn primary block" id="wNext">Continuar</button></div>
       </form>`;
     const form = $('form', box), stage = $('#wzStage', box), phone = $('#wzPhone', box), floatL = $('.wz-float', box);
     const err = (m) => { $('#wErr', box).textContent = m; if (m) buzz([12, 40, 12]); };
@@ -902,7 +901,7 @@
       if (!typing || calmMotion()) { body.innerHTML = bubbles(msgs); return; }
       const ins = msgs.filter(([w]) => w === 'in');
       body.innerHTML = bubbles(ins.slice(-1)) + '<p class="wc-out wc-typing"><i></i><i></i><i></i></p>';
-      setTimeout(() => { if (seq === chatSeq) { body.innerHTML = bubbles(msgs); body.lastElementChild?.classList.add('pop'); } }, 750);
+      setTimeout(() => { if (seq === chatSeq) { body.innerHTML = bubbles(msgs); body.lastElementChild?.classList.add('pop'); } }, 480);
     };
 
     // ---------- conteúdo de cada tela
