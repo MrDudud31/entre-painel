@@ -416,7 +416,8 @@
     applyMode();
     sb.auth.onAuthStateChange((event, session) => {
       S.session = session;
-      if (!session) { S.started = false; show('login'); return; }
+      // Saiu da conta: o tema do negócio não fica no aparelho; volta para o estilo do Entre.
+      if (!session) { S.started = false; S.biz = null; S.previewStyle = null; applyStyle('entre'); show('login'); return; }
       if (!S.started) {
         S.started = true;
         // Se a primeira carga falhar (sem internet), mostra o erro com botão em vez de tela em branco.
@@ -454,7 +455,10 @@
     S.links = S.staff.length ? must(await sb.from('staff_services').select('staff_id, service_id').in('staff_id', S.staff.map((p) => p.id))) : [];
   }
   async function reloadBiz() {
-    S.biz = must(await sb.from('businesses').select('*').eq('id', S.biz.id).single());
+    const [biz] = must(await sb.from('businesses').select('*').eq('id', S.biz.id).limit(1));
+    // O negócio sumiu (apagado em outro aparelho ou pelo suporte): recomeça em vez de travar com erro.
+    if (!biz) { store.set('biz', ''); start().catch(fatal); throw new Error('Esse negócio não existe mais. Recarregando…'); }
+    S.biz = biz;
     renderTop();
   }
 
@@ -805,7 +809,7 @@
   /** Botão de opção do primeiro acesso (o ✓ se desenha quando fica marcado). */
   const optBtn = (attr, val, on, inner, cls = '') => `<button type="button" class="wz-opt ${cls}" data-${attr}="${val}" aria-pressed="${on}">${inner}${CHECK}</button>`;
   // vibração leve (só Android; o iPhone não deixa site vibrar). Só depois de um toque de verdade, senão o navegador recusa.
-  const buzz = (p = 8) => { try { if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(p); } catch { /* sem vibração */ } };
+  const buzz = (p = 8) => { try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(p); } catch { /* sem vibração */ } };
   const calmMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   /** Fundo vivo: desenhos do ramo flutuando devagar. Troca com um esmaecer quando o ramo muda. */
@@ -885,7 +889,7 @@
     let chatSeq = 0, chatKey = '';
     const bubbles = (msgs) => msgs.map(([w, t]) => `<p class="wc-${w}">${esc(t)}</p>`).join('');
     /** typing=true: a secretária aparece "digitando…" antes de responder (escolha nova); false: troca na hora (digitando no campo). */
-    const setPhone = (typing) => {
+    const setPhone = (typing, pop = false) => {
       const sc = WIZ_CHAT[W.step];
       phone.classList.toggle('on', !!sc);
       phone.classList.toggle('mini', W.step === 'servicos');
@@ -898,10 +902,11 @@
       chatKey = key;
       const body = $('#wzpBody', box);
       const seq = ++chatSeq;
-      if (!typing || calmMotion()) { body.innerHTML = bubbles(msgs); return; }
+      if (!typing || calmMotion()) { body.innerHTML = bubbles(msgs); if (pop && !calmMotion()) body.lastElementChild?.classList.add('pop'); return; }
+      // escolha nova: "digitando…" rapidinho e a resposta aparece
       const ins = msgs.filter(([w]) => w === 'in');
       body.innerHTML = bubbles(ins.slice(-1)) + '<p class="wc-out wc-typing"><i></i><i></i><i></i></p>';
-      setTimeout(() => { if (seq === chatSeq) { body.innerHTML = bubbles(msgs); body.lastElementChild?.classList.add('pop'); } }, 480);
+      setTimeout(() => { if (seq === chatSeq) { body.innerHTML = bubbles(msgs); body.lastElementChild?.classList.add('pop'); } }, 300);
     };
 
     // ---------- conteúdo de cada tela
@@ -1025,7 +1030,7 @@
       }
       stage.appendChild(pane);
       bind(pane);
-      setPhone(dir !== 0);
+      setPhone(false, dir !== 0); // ao chegar na tela, a conversa já aparece (sem esperar o "digitando…")
       // títulos que se escrevem sozinhos
       clearInterval(typingTimer);
       const ty = $('.wz-type', pane);
@@ -1034,8 +1039,8 @@
         if (calmMotion()) { ty.textContent = txt; ty.classList.add('done'); }
         else {
           let n = 0; ty.textContent = '';
-          const startAt = W.step === 'oi' ? 1300 : 250;
-          setTimeout(() => { typingTimer = setInterval(() => { ty.textContent = txt.slice(0, ++n); if (n >= txt.length) { clearInterval(typingTimer); setTimeout(() => ty.classList.add('done'), 900); } }, 55); }, startAt);
+          const startAt = W.step === 'oi' ? 1100 : 200;
+          setTimeout(() => { typingTimer = setInterval(() => { ty.textContent = txt.slice(0, ++n); if (n >= txt.length) { clearInterval(typingTimer); setTimeout(() => ty.classList.add('done'), 700); } }, 38); }, startAt);
         }
       }
       if (W.step === 'pronto' && dir > 0) { setTimeout(() => { wizConfetti(); buzz([20, 40, 20, 40, 60]); }, 450); }

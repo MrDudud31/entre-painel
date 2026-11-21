@@ -1183,3 +1183,7 @@ h1.wz-type { font-size: clamp(2.2rem, 10vw, 3rem); margin: 24px 0 6px; }
 .wz-skip { margin-left: 2px; }
 .wz-skip[hidden], .wz-out[hidden] { display: none; }
 @media (max-height: 720px) { .wz-bottom { padding-bottom: calc(max(env(safe-area-inset-bottom), 10px) + 16px); } }
+/* 20/11 (2): no iPhone a tela do primeiro acesso ocupava mais que a tela e a página rolava por trás.
+   Agora ela tem a altura exata da parte visível e a página de trás fica travada (sem barra de rolagem). */
+#onboard.wizapp { top: 0; right: 0; bottom: auto; left: 0; height: 100vh; height: 100dvh; }
+html:has(#onboard.wizapp:not([hidden])), html:has(#onboard.wizapp:not([hidden])) body { overflow: hidden; height: 100%; overscroll-behavior: none; }
