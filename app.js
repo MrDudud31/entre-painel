@@ -235,7 +235,7 @@
   const linkOn = () => !!(S.biz?.booking_link_enabled && S.biz?.booking_slug);
   const svcName = (id) => S.services.find((s) => s.id === id)?.name || '';
   const staffName = (id) => S.staff.find((p) => p.id === id)?.name || '';
-  const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, paid_cents, paid_method, paid_at, note, created_by, service_id, staff_id, clients(name, phone, username)';
+  const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, paid_cents, paid_method, paid_at, note, created_by, service_id, staff_id, reminded_at, clients(name, phone, username)';
   // Caixa: forma de pagamento e valor de verdade do atendimento (o recebido, se já recebeu; senão o preço)
   const PAY = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro', outro: 'Outro' };
   const charged = (b) => (b.paid_at ? b.paid_cents || 0 : b.price_cents || 0);
@@ -480,7 +480,7 @@
     const on = S.biz.assistant_enabled;
     sheet(on ? 'Desligar a secretária?' : 'Ligar a secretária?', on
       ? '<p>Com ela desligada, as mensagens continuam chegando e ficam salvas em Conversas, mas <b>ninguém responde automaticamente</b>. Você responde pelo painel ou pelo celular.</p>'
-      : '<p>Ela volta a responder as clientes no WhatsApp na hora, usando seus serviços, preços e horários.</p>',
+      : '<p>Ela volta a responder quem escreve no WhatsApp na hora, usando seus serviços, preços e horários.</p>',
     { submitText: on ? 'Desligar' : 'Ligar', onSubmit: async () => {
       must(await sb.from('businesses').update({ assistant_enabled: !on }).eq('id', S.biz.id));
       await reloadBiz();
@@ -1783,15 +1783,18 @@
   }
   /** Lembrar quem vem amanhã (só confirmados com WhatsApp; some quando todos foram lembrados). */
   function remindCard(rows) {
-    const sent = sentGet('lembrados');
+    const marked = sentGet('lembrados');
+    // reminded_at = a secretária já mandou o lembrete automático (função lembretes, quando a Meta liberar).
+    const sent = { has: (id) => marked.has(id) || !!S.bk.get(id)?.reminded_at };
     const list = rows.filter((b) => b.status === 'confirmed' && b.clients?.phone);
+    list.forEach((b) => S.bk.set(b.id, b));
     if (!list.length || list.every((b) => sent.has(b.id))) return '';
     const left = list.filter((b) => !sent.has(b.id)).length;
     return `<section class="card"><h3>Lembrar quem vem amanhã <span class="count">${left}</span></h3>
       <p class="hint">Um toque abre o <b>seu</b> WhatsApp com o lembrete pronto. Diminui as faltas.</p>
       ${list.map((b) => { S.bk.set(b.id, b); const done = sent.has(b.id); return `<div class="pend${done ? ' sent' : ''}"><button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
         <small>${esc(partsOf(b.starts_at).time)}${svcName(b.service_id) ? ' · ' + esc(svcName(b.service_id)) : ''}</small></button>
-        <div class="actions">${done ? '<span class="chip ok">✓ Lembrado</span>' : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-remind="${b.id}" href="${waLink(b.clients.phone, remindMsg(b))}">${done ? 'De novo' : 'Lembrar'}</a></div></div>`; }).join('')}
+        <div class="actions">${done ? `<span class="chip ok">${b.reminded_at ? '✓ Lembrado pela secretária' : '✓ Lembrado'}</span>` : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-remind="${b.id}" href="${waLink(b.clients.phone, remindMsg(b))}">${done ? 'De novo' : 'Lembrar'}</a></div></div>`; }).join('')}
     </section>`;
   }
   /** Aniversários dos próximos 7 dias; o botão de parabéns aparece no dia. */
