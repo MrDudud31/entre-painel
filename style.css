@@ -1266,3 +1266,9 @@ html:has(body.ag-page) { font-size: 16px; }
 .ag-page .row { min-height: 0; padding: .7rem 4px; }
 .ag-page .row .grow small { font-size: .85rem; }
 .ag-page .hint { font-size: .88rem; }
+
+/* Agenda e Clientes mais simples (24/11/2026) */
+.day-head { margin: 1.3rem 0 .7rem; }
+.day-head .sec-title { margin: 0; }
+.day-head p { margin: .15rem 0 0; color: var(--muted); font-size: .95rem; }
+.fab-row:has(> .btn:only-child) .btn { font-size: 1.05rem; }

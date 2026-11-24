@@ -2108,6 +2108,11 @@
     const m = Number(d.slice(5, 7)) - 1;
     const multi = S.staff.filter((p) => p.active).length > 1;
     const aview = store.get('agendaView') === 'grade' ? 'grade' : 'lista';
+    const nAt = list.filter((b) => b.status !== 'block').length;
+    const dayTxt = open.length
+      ? `${open.map((h) => `${h.opens.slice(0, 5)}–${h.closes.slice(0, 5)}`).join(' e ')} · ${nAt ? `${nAt} atendimento${nAt > 1 ? 's' : ''}` : 'livre'}`
+      : `fechado${nAt ? ` · ${nAt} atendimento${nAt > 1 ? 's' : ''}` : ''}`;
+    const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
     if (stale(opts)) return;
     $('#view').innerHTML = `<div class="agenda-head">
@@ -2122,14 +2127,21 @@
         return `<button type="button" data-day="${x}" class="${x === d ? 'sel' : ''} ${x === t ? 'today' : ''} ${closed ? 'closed' : ''}">
           <small>${WDS[weekdayOf(x)]}</small><b>${x.slice(8, 10)}</b><i>${n ? n : ''}</i></button>`;
       }).join('')}</div>
+      <div class="day-head"><h3 class="sec-title">${esc(WD[weekdayOf(d)])}, ${d.slice(8, 10)}/${d.slice(5, 7)}</h3><p>${esc(dayTxt)}</p></div>
+      ${multi && open.length ? `<div class="seg ag-view-seg" role="group" aria-label="Como ver o dia"><button type="button" data-aview="lista" class="${aview === 'lista' ? 'sel' : ''}">Lista</button><button type="button" data-aview="grade" class="${aview === 'grade' ? 'sel' : ''}">Por pessoa</button></div>` : ''}
       <section class="card">
-        <h3>${esc(WD[weekdayOf(d)])}, ${d.slice(8, 10)}/${d.slice(5, 7)} <span class="muted small">${open.length ? open.map((h) => `${h.opens.slice(0, 5)}–${h.closes.slice(0, 5)}`).join(' e ') : 'fechado'}</span></h3>
-        ${multi && open.length ? `<div class="seg ag-view-seg" role="group" aria-label="Como ver o dia"><button type="button" data-aview="lista" class="${aview === 'lista' ? 'sel' : ''}">Lista</button><button type="button" data-aview="grade" class="${aview === 'grade' ? 'sel' : ''}">Por pessoa</button></div>` : ''}
         ${multi && open.length && aview === 'grade' ? dayGrid(d, list, open)
           : list.length ? `<div class="list">${list.map((b) => bookingRow(b)).join('')}</div>` : `<p class="muted">${open.length ? 'Nenhum horário marcado neste dia.' : 'Fechado neste dia.'}</p>`}
       </section>
-      <button type="button" class="card wait-link" id="waitBtn"><span class="grow"><b>Lista de espera</b><small>${waitN ? `${waitN} pessoa${waitN > 1 ? 's' : ''} esperando vaga` : 'Ninguém esperando · toque para colocar alguém'}</small></span>${waitN ? `<span class="count">${waitN}</span>` : ''}<b class="go">›</b></button>
-      <div class="fab-row"><button type="button" class="btn primary" id="newBk">+ Marcar horário</button><button type="button" class="btn ghost" id="newBlock">Bloquear horário</button></div>`;
+      <h3 class="sec-title">Ver mais</h3>
+      <section class="card more-list">
+        <button type="button" class="more-row" id="waitBtn"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M17 8v4l2.5 1.5"/></svg></span>
+          <span class="grow"><b>Lista de espera</b><small>${waitN ? `${waitN} pessoa${waitN > 1 ? 's' : ''} esperando vaga` : 'Ninguém esperando agora'}</small></span>
+          ${waitN ? `<span class="more-count">${waitN}</span>` : ''}${chev}</button>
+        <button type="button" class="more-row" id="newBlock"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+          <span class="grow"><b>Bloquear horário</b><small>Folga, almoço ou compromisso</small></span>${chev}</button>
+      </section>
+      <div class="fab-row"><button type="button" class="btn primary" id="newBk">+ Marcar horário</button></div>`;
     const v = $('#view');
     bindBookingRows(v);
     $$('[data-day]', v).forEach((b) => { b.onclick = () => { S.day = b.dataset.day; go('agenda', { quiet: true }); }; });
@@ -2631,33 +2643,51 @@
     const msgFor = ({ c, svc, days }) => `${hi(c.name)} Já faz ${days} dias desde o seu último atendimento (${svc.name}). Quer que eu reserve um horário para você?${linkLine}`;
     const goneMsg = ({ c }) => `${hi(c.name)} Faz tempo que você não aparece, sentimos sua falta! Quer que eu reserve um horário para você?${linkLine}`;
     const goneShown = S.goneAll ? gone : gone.slice(0, 8);
+    // "Principal + Ver mais": a lista é a tela principal; chamar de volta / quem sumiu ficam numa página própria.
+    if (!opts.quiet) S.cliSub = opts.sub || '';
+    const sub = S.cliSub === 'voltar' && (due.length || everCame) ? 'voltar' : '';
+    const voltarN = due.length + gone.length;
+    const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    const back = `<button type="button" class="back-btn" data-cli-back><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Clientes</button>`;
 
     if (stale(opts)) return;
-    $('#view').innerHTML = `
-      ${due.length ? `<section class="card"><h3>Hora de chamar de volta <span class="count">${due.length}</span></h3>
-        <p class="hint">Clientes que já passaram do tempo de retorno do serviço e não têm horário marcado. O botão abre o <b>seu</b> WhatsApp com a mensagem pronta.</p>
+    if (!sub) {
+      $('#view').innerHTML = `<h2 class="page-title">Clientes</h2>
+      <label class="search"><input type="search" id="cq" placeholder="Buscar por nome ou telefone" value="${esc(S.clientQuery)}"></label>
+      ${!q && (due.length || everCame) ? `<section class="card more-list">
+        <button type="button" class="more-row" data-cli-sub="voltar"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10.5h6"/></svg></span>
+          <span class="grow"><b>Chamar de volta</b><small>${voltarN ? `${voltarN} ${voltarN === 1 ? 'pessoa para chamar' : 'pessoas para chamar'}` : 'Ninguém para chamar agora'}</small></span>
+          ${voltarN ? `<span class="more-count">${voltarN}</span>` : ''}${chev}</button>
+      </section>` : ''}
+      <div class="sec-head"><h3 class="sec-title">${q ? 'Resultado' : 'Todas as pessoas'}</h3><span>${q ? shown.length : clients.length}</span></div>
+      ${shown.length ? `<div class="card list flush">${shown.slice(0, 300).map((c) => {
+        const x = info.get(c.id);
+        const sub2 = [c.birthday && c.birthday === mdOf(t) ? 'aniversário hoje 🎂' : '', x.next ? 'próxima ' + whenLabel(x.next.starts_at) : x.last ? 'última ' + relDay(partsOf(x.last.starts_at).date) : 'sem visitas ainda', x.noshow ? `${x.noshow} falta${x.noshow > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+        return `<button type="button" class="row" data-client="${c.id}"><span class="avatar">${esc(initials(clientLabel(c)))}</span>
+          <span class="grow"><b>${esc(clientLabel(c))}</b><small>${esc(sub2)}</small></span><b class="go">›</b></button>`;
+      }).join('')}</div>` : `<div class="empty">${clients.length ? 'Ninguém encontrado.' : 'As pessoas aparecem aqui sozinhas quando mandam mensagem ou são marcadas.'}</div>`}`;
+      const cq = $('#cq');
+      cq.oninput = () => { S.clientQuery = cq.value; clearTimeout(cq.t); cq.t = setTimeout(() => S.tab === 'clientes' && go('clientes', { quiet: true }).then(() => { const n = $('#cq'); if (!n || S.tab !== 'clientes') return; n.focus(); n.setSelectionRange(n.value.length, n.value.length); }), 250); };
+      $$('[data-client]').forEach((b) => { b.onclick = () => openClient(b.dataset.client); });
+      $$('[data-cli-sub]').forEach((b) => { b.onclick = () => go('clientes', { sub: b.dataset.cliSub }); });
+      return;
+    }
+    $('#view').innerHTML = `${back}<h2 class="page-title">Chamar de volta</h2>
+      <p class="hint page-lead">Cada botão abre o <b>seu</b> WhatsApp com a mensagem já escrita. Você só aperta enviar.</p>
+      ${due.length ? `<section class="card"><h3>Hora de voltar <span class="count">${due.length}</span></h3>
+        <p class="hint">Já passou o tempo de retorno do serviço e não têm horário marcado.</p>
         ${due.slice(0, 30).map((d) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(d.c))}</b><small>${esc(d.svc.name)} há ${d.days} dias · retorno sugerido: ${d.svc.return_days} dias</small></div>
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(d.c.phone, msgFor(d))}">Chamar no WhatsApp</a></div></div>`).join('')}
       </section>` : ''}
       ${everCame ? `<section class="card"><h3>Quem sumiu ${gone.length ? `<span class="count">${gone.length}</span>` : ''}</h3>
-        <p class="hint">Já vieram aqui, não voltam há mais de ${goneDays} dias e não têm horário marcado. O botão abre o <b>seu</b> WhatsApp com a mensagem pronta${linkOn() ? ' (com o seu link de agendamento)' : ''}.</p>
+        <p class="hint">Já vieram, não voltam há mais de ${goneDays} dias e não têm horário marcado.${linkOn() ? ' A mensagem vai com o seu link de agendamento.' : ''}</p>
         <div class="seg gone-seg" role="group" aria-label="Sumiu há quanto tempo">${[30, 60, 90].map((n) => `<button type="button" data-gone="${n}" class="${goneDays === n ? 'sel' : ''}">${n} dias</button>`).join('')}</div>
         ${gone.length ? goneShown.map((g) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(g.c))}</b><small>${g.x.visits} visita${g.x.visits === 1 ? '' : 's'} · última há ${g.days} dias (${esc(dayLabel(partsOf(g.x.last.starts_at).date))})</small></div>
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(g.c.phone, goneMsg(g))}">Chamar no WhatsApp</a></div></div>`).join('')
           + (gone.length > goneShown.length ? `<button type="button" class="btn ghost block" id="goneAll">Ver todas (${gone.length})</button>` : '')
         : `<p class="muted">Ninguém sumido há mais de ${goneDays} dias. 🎉</p>`}
-      </section>` : ''}
-      <label class="search"><input type="search" id="cq" placeholder="Buscar por nome ou telefone" value="${esc(S.clientQuery)}"></label>
-      <p class="muted small">${clients.length} cliente${clients.length === 1 ? '' : 's'}</p>
-      ${shown.length ? `<div class="card list flush">${shown.slice(0, 300).map((c) => {
-        const x = info.get(c.id);
-        const sub = [c.birthday && c.birthday === mdOf(t) ? 'aniversário hoje 🎂' : '', x.visits ? `${x.visits} visita${x.visits > 1 ? 's' : ''}` : 'sem visitas ainda', x.last ? 'última ' + relDay(partsOf(x.last.starts_at).date) : '', x.next ? 'próxima ' + whenLabel(x.next.starts_at) : '', x.noshow ? `${x.noshow} falta${x.noshow > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
-        return `<button type="button" class="row" data-client="${c.id}"><span class="avatar">${esc(initials(clientLabel(c)))}</span>
-          <span class="grow"><b>${esc(clientLabel(c))}</b><small>${esc(sub)}</small></span><b class="go">›</b></button>`;
-      }).join('')}</div>` : `<div class="empty">${clients.length ? 'Ninguém encontrado.' : 'As clientes aparecem aqui sozinhas quando mandam mensagem ou são marcadas.'}</div>`}`;
-    const cq = $('#cq');
-    cq.oninput = () => { S.clientQuery = cq.value; clearTimeout(cq.t); cq.t = setTimeout(() => S.tab === 'clientes' && go('clientes', { quiet: true }).then(() => { const n = $('#cq'); if (!n || S.tab !== 'clientes') return; n.focus(); n.setSelectionRange(n.value.length, n.value.length); }), 250); };
-    $$('[data-client]').forEach((b) => { b.onclick = () => openClient(b.dataset.client); });
+      </section>` : ''}`;
+    $('[data-cli-back]')?.addEventListener('click', () => go('clientes'));
     $$('[data-gone]').forEach((b) => { b.onclick = () => { S.goneDays = Number(b.dataset.gone); store.set('goneDays', b.dataset.gone); S.goneAll = false; go('clientes', { quiet: true, keepScroll: true }); }; });
     $('#goneAll')?.addEventListener('click', () => { S.goneAll = true; go('clientes', { quiet: true, keepScroll: true }); });
   };
@@ -3096,7 +3126,7 @@
         <label>Duração (min)<input name="duration" type="number" min="5" max="600" step="5" value="${s.duration_min}" required></label>
       </div>
       <label>Retorno sugerido (dias)<input name="return_days" type="number" min="1" max="365" value="${s.return_days ?? ''}" placeholder="Ex.: 21 para unha"></label>
-      <p class="hint">Usado em Clientes › "Hora de chamar de volta".</p>
+      <p class="hint">Usado em Clientes › "Chamar de volta".</p>
       <label>Observações para a secretária<textarea name="notes" rows="2" maxlength="500" placeholder="Ex.: inclui esmaltação; trazer cabelo lavado">${esc(s.notes)}</textarea></label>
       <fieldset><legend>Quem faz</legend>${S.staff.filter((p) => p.active || linked.includes(p.id)).map((p) => `<label class="switch"><input type="checkbox" name="staff" value="${p.id}" ${linked.includes(p.id) ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') || '<p class="muted">Cadastre quem atende em "Quem atende".</p>'}</fieldset>
       <label class="switch"><input type="checkbox" name="active" ${s.active ? 'checked' : ''}><span>Ativo (a secretária oferece)</span></label>`,
