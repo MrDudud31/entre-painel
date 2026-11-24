@@ -1275,7 +1275,7 @@
       [!!b.address, 'Endereço do negócio', 'negocio'],
       [!!b.policy, 'Regras de atraso e cancelamento', 'negocio'],
       [!!(b.extra_info || b.pix_key), 'Formas de pagamento', 'negocio'],
-      [!!b.tone && b.tone !== DEFAULT_TONE, 'Jeito de falar da secretária', 'negocio'],
+      [!!b.tone && b.tone !== DEFAULT_TONE, 'Jeito de falar da secretária', 'secretaria'],
     ];
   }
 
@@ -1586,7 +1586,7 @@
     return `<section class="card fill-card"><h3>Encher a agenda ${open.length ? `<span class="count">${open.length}</span>` : ''}</h3>
       <p class="hint fill-lead">Horários livres de hoje e amanhã:</p>
       <p class="fill-wins">${plan.windows.slice(0, 4).map((w) => `<span>${esc(winLabel(w))}</span>`).join('')}</p>
-      ${open.length ? `<p class="hint">Quem chamar para esses horários (um toque abre o <b>seu</b> WhatsApp com a mensagem pronta):</p>
+      ${open.length ? `<p class="hint">Quem chamar para esses horários:</p>
         ${open.slice(0, 5).map((inv) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(inv.c))}</b>
           <small>${esc(inv.reason)}</small><small class="free">Sugestão: ${esc(dayWords(inv.w.date))} às ${esc(inv.time)}${svcName(inv.svcId) ? ' · ' + esc(svcName(inv.svcId)) : ''}</small></div>
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" data-invite="${esc(key(inv))}" href="${waLink(inv.c.phone, inviteMsg(inv))}">Convidar</a></div></div>`).join('')}
@@ -1791,7 +1791,7 @@
     if (!list.length || list.every((b) => sent.has(b.id))) return '';
     const left = list.filter((b) => !sent.has(b.id)).length;
     return `<section class="card"><h3>Lembrar quem vem amanhã <span class="count">${left}</span></h3>
-      <p class="hint">Um toque abre o <b>seu</b> WhatsApp com o lembrete pronto. Diminui as faltas.</p>
+      <p class="hint">Lembrar diminui as faltas.</p>
       ${list.map((b) => { S.bk.set(b.id, b); const done = sent.has(b.id); return `<div class="pend${done ? ' sent' : ''}"><button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
         <small>${esc(partsOf(b.starts_at).time)}${svcName(b.service_id) ? ' · ' + esc(svcName(b.service_id)) : ''}</small></button>
         <div class="actions">${done ? `<span class="chip ok">${b.reminded_at ? '✓ Lembrado pela secretária' : '✓ Lembrado'}</span>` : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-remind="${b.id}" href="${waLink(b.clients.phone, remindMsg(b))}">${done ? 'De novo' : 'Lembrar'}</a></div></div>`; }).join('')}
@@ -1856,33 +1856,59 @@
 
     const who = firstName(S.biz.owner_name);
     const dateLong = (() => { const p = localParts(new Date(), tz()); return `${WD[p.weekday]}, ${Number(p.date.slice(8, 10))} de ${MONTHS[Number(p.date.slice(5, 7)) - 1]}`; })();
-    let html = S.biz.cover_url ? `<div class="cover"><img alt="" src="${esc(S.biz.cover_url)}"></div>` : '';
-    html += `<div class="greet"><h2>${hello}${who ? ', ' + esc(who) : ''}.</h2>
-      <p>${esc(dateLong)} · ${hojeAtend.length ? `${hojeAtend.length} atendimento${hojeAtend.length > 1 ? 's' : ''} hoje` : 'nenhum atendimento hoje até agora'}</p></div>`;
-    const stIc = (d) => `<svg class="st-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
-    html += `<div class="stats">
-      <div>${stIc('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>')}<b>${P.length}</b><small>para confirmar</small></div>
-      <div>${stIc('<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A1.5 1.5 0 0 1 4 14.5z"/>')}<b>${C.length}</b><small>${C.length === 1 ? 'conversa esperando você' : 'conversas esperando você'}</small></div>
-      <div>${stIc('<rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5h.01M18 14.5h.01"/>')}<b>${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : esc(brl(total))}</b><small>previsto hoje</small></div>
-    </div>`;
-    html += winCard(W);
-    if (done < list.length) {
-      html += `<section class="card checklist"><h3>Para a secretária funcionar <span class="muted">${done}/${list.length}</span></h3>
-        <div class="progress"><i style="width:${Math.round((done / list.length) * 100)}%"></i></div>
-        ${list.map(([ok, txt, sec]) => `<button type="button" class="check ${ok ? 'ok' : ''}" data-goto="${sec}"><i>${ok ? '✓' : ''}</i><span>${esc(txt)}</span>${ok ? '' : '<b>›</b>'}</button>`).join('')}
-      </section>`;
+    // 24/11 (pedido do Eduardo, desenho aprovado no Claude Design): o Início mostra só o que precisa da pessoa agora.
+    // Dinheiro (caixa, mês, secretária) e Avisar clientes (lembrar, aniversários, vaga, encher a agenda) viram telas
+    // próprias dentro do Início, abertas pelo "Ver mais". Nada saiu do app: só mudou de lugar.
+    if (!opts.quiet) S.homeSub = opts.sub || '';
+    const sub = S.homeSub;
+    const recebidoHoje = PG.reduce((s, b) => s + (b.paid_cents || 0), 0);
+    const avisarParts = [remindCard(AM), bdayCard(BD), waitCard(WL, WS), fillCard(FP)];
+    // Mensagens prontas = o número de cada cartão; nos aniversários, só os de hoje (os próximos ainda não têm botão).
+    const avisarCount = avisarParts.reduce((s, h, i) => s + (i === 1 ? (h.match(/data-bday="/g) || []).length : Number((/class="count">(\d+)</.exec(h) || [])[1] || 0)), 0);
+    const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    const back = `<button type="button" class="back-btn" data-home-back><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Início</button>`;
+    let html = '';
+
+    if (sub === 'dinheiro') {
+      html += `${back}<h2 class="page-title">Dinheiro</h2>`;
+      html += cashCard(H, PG);
+      html += `<button type="button" class="card rep-card" id="toReport">
+        <span class="grow"><small>${esc(MONTHS[Number(ym.slice(5, 7)) - 1])} até agora</small><b>${esc(money(mesTotal))}</b>
+        <small>${M.length} atendimento${M.length === 1 ? '' : 's'} · ver relatório do mês</small></span><b class="go">›</b></button>`;
+      html += winCard(W) || '<p class="muted">Quando a secretária ou o link marcarem horários sozinhos, o valor aparece aqui.</p>';
+    } else if (sub === 'avisar') {
+      html += `${back}<h2 class="page-title">Avisar clientes</h2>
+        <p class="hint page-lead">Cada botão abre o <b>seu</b> WhatsApp com a mensagem já escrita. Você só aperta enviar.</p>`;
+      const parts = avisarParts.filter(Boolean);
+      html += parts.length ? parts.join('') : '<p class="muted card">Nada para avisar agora. Quando alguém tiver horário amanhã, fizer aniversário ou uma vaga abrir, aparece aqui.</p>';
+    } else {
+      html += S.biz.cover_url ? `<div class="cover"><img alt="" src="${esc(S.biz.cover_url)}"></div>` : '';
+      html += `<div class="greet"><h2>${hello}${who ? ', ' + esc(who) : ''}.</h2><p>${esc(dateLong)}</p></div>`;
+      // Um aviso só no topo: o que falta para a secretária funcionar (ou, depois, o "termine de configurar").
+      const fin = finishList();
+      const finDone = fin.filter((x) => x[0]).length;
+      if (done < list.length) {
+        const next = list.find(([ok]) => !ok);
+        html += `<section class="card setup-banner"><b class="sb-title">Falta pouco para a secretária funcionar</b>
+          <span class="sb-sub">${done} de ${list.length} passos feitos. Próximo: ${esc(next[1].charAt(0).toLowerCase() + next[1].slice(1))}.</span>
+          <div class="progress"><i style="width:${Math.round((done / list.length) * 100)}%"></i></div>
+          <button type="button" class="btn primary block" data-goto="${next[2]}">Continuar</button>
+          <details class="sb-all"><summary>Ver todos os passos</summary>
+          ${list.map(([ok, txt, sec]) => `<button type="button" class="check ${ok ? 'ok' : ''}" data-goto="${sec}"><i>${ok ? '✓' : ''}</i><span>${esc(txt)}</span>${ok ? '' : '<b>›</b>'}</button>`).join('')}</details>
+        </section>`;
+      } else if (finDone < fin.length && !store.get('fimcfg.' + S.biz.id)) {
+        const next = fin.find(([ok]) => !ok);
+        html += `<section class="card setup-banner fim-cfg"><b class="sb-title">Termine de configurar</b>
+          <span class="sb-sub">${finDone} de ${fin.length} feitos. Com isso a secretária responde mais coisas sem te chamar. Próximo: ${esc(next[1].charAt(0).toLowerCase() + next[1].slice(1))}.</span>
+          <div class="progress"><i style="width:${Math.round((finDone / fin.length) * 100)}%"></i></div>
+          <div class="two-btn"><button type="button" class="btn primary" data-goto="${next[2]}">Continuar</button>
+          <button type="button" class="btn ghost" id="fimLater">Esconder</button></div>
+        </section>`;
+      }
+      if (!S.biz.assistant_enabled) html += `<div class="banner warn">A secretária está <b>desligada</b>: ninguém está respondendo automaticamente. Toque no botão lá em cima para ligar.</div>`;
+      html += '<h3 class="sec-title">Precisa de você</h3>';
     }
-    const fin = finishList();
-    const finDone = fin.filter((x) => x[0]).length;
-    if (finDone < fin.length && !store.get('fimcfg.' + S.biz.id)) {
-      html += `<section class="card checklist fim-cfg"><h3>Termine de configurar <span class="muted">${finDone}/${fin.length}</span></h3>
-        <p class="muted small">Com isso a secretária responde mais coisas sem precisar te chamar.</p>
-        ${fin.filter(([ok]) => !ok).map(([, txt, sec]) => `<button type="button" class="check" data-goto="${sec}"><i></i><span>${esc(txt)}</span><b>›</b></button>`).join('')}
-        <button type="button" class="btn small ghost" id="fimLater">Esconder</button>
-      </section>`;
-    }
-    if (!S.biz.assistant_enabled) html += `<div class="banner warn">A secretária está <b>desligada</b>: ninguém está respondendo automaticamente. Toque no botão lá em cima para ligar.</div>`;
-    html += `<section class="card"><h3>Pedidos para confirmar ${P.length ? `<span class="count">${P.length}</span>` : ''}</h3>
+    if (!sub) html += `<section class="card"><h3>Pedidos para confirmar ${P.length ? `<span class="count">${P.length}</span>` : ''}</h3>
       ${P.length ? P.map((b) => { S.bk.set(b.id, b); return `<div class="pend">
           <button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
           <small>${b.created_by === 'link' ? 'Pelo link · ' : ''}${esc(svcName(b.service_id))}${staffName(b.staff_id) ? ' com ' + esc(staffName(b.staff_id)) : ''} · ${esc(whenLabel(b.starts_at))}</small></button>
@@ -1890,23 +1916,27 @@
           <button type="button" class="btn small ghost" data-decide="cancelled" data-id="${b.id}">Recusar</button></div></div>`; }).join('')
         : '<p class="muted">Nenhum pedido esperando. Quando a secretária marcar algo pelo WhatsApp, aparece aqui.</p>'}
     </section>`;
-    if (C.length) {
-      html += `<section class="card"><h3>Conversas que precisam de você <span class="count">${C.length}</span></h3>
-        ${C.map((c) => `<button type="button" class="row" data-conv="${c.id}"><span class="avatar">${esc(initials(clientLabel(c.clients)))}</span>
-          <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${esc(ago(c.last_message_at))}</small></span><b class="go">›</b></button>`).join('')}
-      </section>`;
+    if (!sub) {
+      if (C.length) {
+        html += `<section class="card"><h3>${C.length === 1 ? '1 conversa esperando você' : `${C.length} conversas esperando você`}</h3>
+          ${C.map((c) => `<button type="button" class="row" data-conv="${c.id}"><span class="avatar">${esc(initials(clientLabel(c.clients)))}</span>
+            <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${esc(ago(c.last_message_at))}</small></span><b class="go">›</b></button>`).join('')}
+        </section>`;
+      }
+      const hojeTxt = hojeAtend.length ? `${hojeAtend.length} atendimento${hojeAtend.length > 1 ? 's' : ''} · ${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : brl(total)}` : 'nenhum atendimento';
+      html += `<div class="sec-head"><h3 class="sec-title">Hoje</h3><span>${esc(hojeTxt)}</span></div>
+        <section class="card">
+        ${H.length ? `<div class="list">${H.map((b) => bookingRow(b)).join('')}</div>` : '<p class="muted">Agenda livre hoje.</p>'}
+        <button type="button" class="btn ghost block" id="toAgenda">Ver agenda completa</button></section>`;
+      html += `<h3 class="sec-title">Ver mais</h3>
+        <section class="card more-list">
+          <button type="button" class="more-row" data-home-sub="dinheiro"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
+            <span class="grow"><b>Dinheiro</b><small>${esc(money(recebidoHoje))} hoje · ${esc(money(mesTotal))} no mês</small></span>${chev}</button>
+          <button type="button" class="more-row" data-home-sub="avisar"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span>
+            <span class="grow"><b>Avisar clientes</b><small>${avisarCount ? `${avisarCount} ${avisarCount === 1 ? 'mensagem pronta' : 'mensagens prontas'} para mandar` : 'Nada para avisar agora'}</small></span>
+            ${avisarCount ? `<span class="more-count">${avisarCount}</span>` : ''}${chev}</button>
+        </section>`;
     }
-    html += waitCard(WL, WS);
-    html += fillCard(FP);
-    html += `<section class="card"><h3>Hoje, ${esc(dayLabel(t))}</h3>
-      ${H.length ? `<div class="list">${H.map((b) => bookingRow(b)).join('')}</div>` : '<p class="muted">Agenda livre hoje.</p>'}
-      <button type="button" class="btn ghost block" id="toAgenda">Ver agenda completa</button></section>`;
-    html += cashCard(H, PG);
-    html += remindCard(AM);
-    html += bdayCard(BD);
-    html += `<button type="button" class="card rep-card" id="toReport">
-      <span class="grow"><small>${esc(MONTHS[Number(ym.slice(5, 7)) - 1])} até agora</small><b>${esc(money(mesTotal))}</b>
-      <small>${M.length} atendimento${M.length === 1 ? '' : 's'} · ver relatório do mês</small></span><b class="go">›</b></button>`;
 
     if (stale(opts)) return;
     const v = $('#view');
@@ -1915,7 +1945,9 @@
     $$('[data-goto]', v).forEach((b) => { b.onclick = () => go('ajustes', { open: b.dataset.goto }); });
     $('#fimLater', v)?.addEventListener('click', () => { store.set('fimcfg.' + S.biz.id, '1'); $('.fim-cfg', v)?.remove(); });
     $$('[data-conv]', v).forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
-    $('#toAgenda').onclick = () => go('agenda');
+    $('#toAgenda', v)?.addEventListener('click', () => go('agenda'));
+    $$('[data-home-sub]', v).forEach((b) => { b.onclick = () => go('inicio', { sub: b.dataset.homeSub }); });
+    $('[data-home-back]', v)?.addEventListener('click', () => go('inicio'));
     $('#toCash')?.addEventListener('click', (e) => {
       const b = e.currentTarget;
       if (b.disabled) return;
@@ -1936,12 +1968,12 @@
       try { if (navigator.share) { await navigator.share({ text }); return; } } catch { return; }
       try { await navigator.clipboard.writeText(text); toast('Texto copiado. Cole no status do WhatsApp ou no Instagram.', 'ok'); } catch { prompt('Copie o texto:', text); }
     });
-    $('#toReport').onclick = (e) => {
+    $('#toReport', v)?.addEventListener('click', (e) => {
       const b = e.currentTarget;
       if (b.disabled) return;
       b.disabled = true;
       openReport(ym).catch(fatal).finally(() => { b.disabled = false; });
-    };
+    });
     $$('[data-decide]', v).forEach((btn) => {
       btn.onclick = () => busy(btn, async () => {
         if (btn.dataset.decide === 'cancelled' && !confirm('Recusar este pedido? A pessoa recebe uma mensagem pedindo para escolher outro horário.')) return;
@@ -2679,6 +2711,22 @@
   }
 
   // ------------------------------------------------------------------ Ajustes
+  /** Resumo dos horários para a lista de Ajustes: "Seg a sáb · 9h às 18h". */
+  function hoursSummary() {
+    if (!S.hours.length) return 'Ainda não definido';
+    const ranges = (w) => S.hours.filter((h) => h.weekday === w).sort((a, c) => a.opens.localeCompare(c.opens));
+    const key = (w) => ranges(w).map((h) => h.opens.slice(0, 5) + '-' + h.closes.slice(0, 5)).join(',');
+    const days = WEEK_ORDER.filter((w) => ranges(w).length);
+    const idx = days.map((w) => WEEK_ORDER.indexOf(w));
+    const contiguous = idx.every((x, i) => i === 0 || x === idx[i - 1] + 1);
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const dayTxt = days.length === 7 ? 'Todos os dias' : contiguous && days.length > 2
+      ? `${cap(WDS[days[0]])} a ${WDS[days[days.length - 1]]}` : days.map((w, i) => (i ? WDS[w] : cap(WDS[w]))).join(', ');
+    if (!days.every((w) => key(w) === key(days[0]))) return `${dayTxt} · horários variados`;
+    const hh = (t) => { const [h, m] = t.split(':'); return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`; };
+    return `${dayTxt} · ${ranges(days[0]).map((h) => `${hh(h.opens.slice(0, 5))} às ${hh(h.closes.slice(0, 5))}`).join(' e ')}`;
+  }
+
   VIEWS.ajustes = async (opts = {}) => {
     await loadBizData();
     const b = S.biz;
@@ -2702,9 +2750,49 @@
         </div></div>`;
     };
 
+    // 24/11 (desenho aprovado no Claude Design): Ajustes vira uma lista de itens; cada um abre a sua própria tela.
+    // As seções continuam as mesmas (mesmos formulários e botões); só aparece uma por vez.
+    const page = opts.open || '';
+    const sec = (k) => `data-sec="${k}" ${page === k || (k === 'negocio' && page === 'secretaria') ? 'open' : 'hidden'}`;
+    const actStaff = S.staff.filter((p) => p.active);
+    const noWho = S.services.filter((s) => s.active && !S.links.some((l) => l.service_id === s.id && actStaff.some((p) => p.id === l.staff_id))).length;
+    const off = S.services.filter((s) => !s.active).length;
+    const names = actStaff.map((p) => firstName(p.name) || p.name);
+    const MENU = [
+      ['Seu negócio', [
+        ['servicos', 'Serviços e preços', S.services.length ? `${S.services.length} serviço${S.services.length === 1 ? '' : 's'}${noWho ? ` · ${noWho} sem quem faz` : off ? ` · ${off} desligado${off === 1 ? '' : 's'}` : ''}` : 'Nenhum serviço ainda', noWho || !S.services.length, '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>'],
+        ['horarios', 'Horário de funcionamento', hoursSummary(), !S.hours.length, '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
+        ['equipe', 'Quem atende', names.length ? (names.length === 1 ? names[0] : names.length === 2 ? names.join(' e ') : `${names.slice(0, 2).join(', ')} e mais ${names.length - 2}`) : 'Ninguém cadastrado', !names.length, '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/>'],
+        ['negocio', 'Dados do negócio', b.address ? 'Nome, endereço, regras e pagamento' : 'Falta o endereço', !b.address, '<path d="M4 10l1.5-5h13L20 10"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>'],
+      ]],
+      ['Secretária', [
+        ['secretaria', 'Jeito da secretária', `${b.assistant_enabled ? 'Ligada' : 'Desligada'} · ${b.auto_confirm ? 'confirma sozinha' : 'você confirma os pedidos'}`, !b.assistant_enabled, '<path d="M4 5h16v11H9l-5 4z"/><path d="M9 10.5h.01M12 10.5h.01M15 10.5h.01"/>'],
+        ['whatsapp', 'WhatsApp do negócio', b.wa_phone_number_id ? 'Conectado' : 'Falta conectar', !b.wa_phone_number_id, '<path d="M5 19l2-4a8 8 0 1 1 3 3z"/>'],
+      ]],
+      ['Para os clientes', [
+        ['link', 'Link de agendamento', b.booking_link_enabled ? 'Ligado' : 'Desligado', false, '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'],
+      ]],
+      ['App', [
+        ['aparencia', 'Aparência', `Estilo ${(STYLES[b.theme] || STYLES.entre).nome}, logo e capa`, false, '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.6 1.6-2.6H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>'],
+        ['conta', 'Minha conta', 'Trocar senha e sair', false, '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/>'],
+      ]],
+    ];
+    const TITLES = Object.fromEntries(MENU.flatMap(([, rows]) => rows.map(([k, t]) => [k, t])));
+    const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    const menuHtml = MENU.map(([g, rows]) => `<h3 class="sec-title small">${esc(g)}</h3><section class="card more-list">
+      ${rows.map(([k, t, s, warn, ic]) => `<button type="button" class="more-row" data-set-open="${k}"><span class="more-ic${warn ? ' warn' : ''}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span>
+        <span class="grow"><b>${esc(t)}</b><small class="${warn ? 'warn-txt' : ''}">${esc(s)}</small></span>${chev}</button>`).join('')}</section>`).join('');
+
     $('#view').innerHTML = `
-      ${S.bizList.length > 1 ? `<label class="card">Negócio<select id="bizSel">${S.bizList.map((x) => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
-      <details class="card" data-sec="aparencia" ${open('aparencia')}><summary>Aparência do app</summary>
+      <div id="setMenu" ${page ? 'hidden' : ''}>
+        <h2 class="page-title">Ajustes</h2>
+        ${S.bizList.length > 1 ? `<label class="card">Negócio<select id="bizSel">${S.bizList.map((x) => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
+        ${menuHtml}
+        <p class="muted small center">Entre · painel versão 2</p>
+      </div>
+      <div id="setHead" ${page ? '' : 'hidden'}><button type="button" class="back-btn" id="setBack"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Ajustes</button>
+        <h2 class="page-title" id="setTitle">${esc(TITLES[page] || '')}</h2></div>
+      <details class="card set-page" ${sec('aparencia')}><summary>Aparência do app</summary>
         <form id="lookForm">
           <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura.</p>
           ${stylePickerHtml(S.previewStyle || b.theme || 'entre', b.kind)}
@@ -2720,7 +2808,7 @@
           <button type="submit" class="btn primary block">Salvar aparência</button>
         </form>
       </details>
-      <details class="card" data-sec="link" ${open('link')}><summary>Link de agendamento</summary>
+      <details class="card set-page" ${sec('link')}><summary>Link de agendamento</summary>
         <form id="linkForm">
           <p class="hint">Uma página onde a pessoa escolhe o serviço, o dia e o horário, sem precisar conversar. Coloque na bio do Instagram, no Google e no status do WhatsApp.</p>
           <label class="switch"><input type="checkbox" name="on" ${b.booking_link_enabled ? 'checked' : ''}><span>Deixar clientes marcarem pelo link</span></label>
@@ -2738,24 +2826,25 @@
           <button type="submit" class="btn primary block">Salvar link</button>
         </form>
       </details>
-      <details class="card" data-sec="servicos" ${open('servicos') || (!opts.open ? 'open' : '')}><summary>Serviços e preços</summary>
+      <details class="card set-page" ${sec('servicos')}><summary>Serviços e preços</summary>
         <p class="hint">A secretária só oferece serviços <b>ativos</b> e só informa os preços que estão aqui.</p>
         <div class="list">${svcRows || '<p class="muted">Nenhum serviço.</p>'}</div>
         <div class="svc-actions"><button type="button" class="btn primary" id="readMenu">${CAM} Foto da tabela de preços</button>
           <button type="button" class="btn ghost" id="addSvc">+ Novo serviço</button></div>
       </details>
-      <details class="card" data-sec="horarios" ${open('horarios')}><summary>Horário de funcionamento</summary>
+      <details class="card set-page" ${sec('horarios')}><summary>Horário de funcionamento</summary>
         <form id="hoursForm">${WEEK_ORDER.map(hoursRow).join('')}
           <button type="submit" class="btn primary block">Salvar horários</button></form>
       </details>
-      <details class="card" data-sec="equipe" ${open('equipe')}><summary>Quem atende</summary>
+      <details class="card set-page" ${sec('equipe')}><summary>Quem atende</summary>
         <div class="list">${S.staff.map((p) => `<div class="row static ${p.active ? '' : 'inactive'}"><span class="avatar">${esc(initials(p.name))}</span>
           <span class="grow"><b>${esc(p.name)}</b><small>${S.links.filter((l) => l.staff_id === p.id).length} serviço(s)${p.commission_pct != null ? ` · comissão ${esc(String(Number(p.commission_pct)).replace('.', ','))}%` : ''}</small></span>
           <button type="button" class="btn small ghost" data-staff-edit="${p.id}">Editar</button></div>`).join('') || '<p class="muted">Ninguém cadastrado.</p>'}</div>
         <form id="addStaff" class="inline"><input name="name" placeholder="Nome de quem atende" maxlength="60" required><button class="btn" type="submit">Adicionar</button></form>
       </details>
-      <details class="card" data-sec="negocio" ${open('negocio')}><summary>Dados do negócio e da secretária</summary>
-        <form id="bizForm">
+      <details class="card set-page" ${sec('negocio')}><summary>Dados do negócio e da secretária</summary>
+        <form id="bizForm" data-part="${page === 'secretaria' ? 'secretaria' : 'negocio'}">
+          <div class="form-part" data-part="negocio">
           <label>Nome do negócio<input name="name" value="${esc(b.name)}" required maxlength="80"></label>
           <label>Tipo<select name="kind">${kindOpts}</select></label>
           <label>Endereço<input name="address" value="${esc(b.address)}" maxlength="200" placeholder="Rua, número, bairro, cidade"></label>
@@ -2765,6 +2854,8 @@
           <p class="hint">Com a chave, o app gera o Pix "copia e cola" do sinal. O dinheiro cai direto na sua conta, sem taxa.</p>
           <label>Regras do negócio<textarea name="policy" rows="3" maxlength="1000" placeholder="Ex.: tolerância de 15 min de atraso; cancelamento até 2 h antes; sinal de 30% para alongamento">${esc(b.policy)}</textarea></label>
           <label>Outras informações para a secretária<textarea name="extra_info" rows="3" maxlength="1500" placeholder="Ex.: aceitamos Pix e cartão; tem estacionamento na rua; atendemos só mulheres">${esc(b.extra_info)}</textarea></label>
+          </div>
+          <div class="form-part" data-part="secretaria">
           <label>Jeito de falar<textarea name="tone" rows="4" maxlength="300" placeholder="Ex.: descontraído. Trate a pessoa por você. Pode usar um emoji de vez em quando.">${esc(b.tone)}</textarea></label>
           <p class="hint">A secretária lê isto como instrução. Escreva como você explicaria para uma recepcionista nova.</p>
           <label class="switch"><input type="checkbox" name="auto_confirm" ${b.auto_confirm ? 'checked' : ''}><span>Confirmar automaticamente os horários marcados pela secretária</span></label>
@@ -2775,22 +2866,36 @@
             <label>Antecedência mínima<select name="min_notice_minutes">${[[0, 'nenhuma'], [30, '30 min'], [60, '1 h'], [120, '2 h'], [240, '4 h'], [720, '12 h'], [1440, '1 dia']].map(([m, t]) => `<option value="${m}" ${b.min_notice_minutes === m ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           </div>
           <label>Marcar com até quantos dias de antecedência<input type="number" name="days_ahead" min="1" max="180" value="${b.days_ahead}"></label>
+          </div>
           <button type="submit" class="btn primary block">Salvar</button>
         </form>
       </details>
-      <details class="card" data-sec="whatsapp" ${open('whatsapp')}><summary>Conexão com o WhatsApp</summary>
+      <details class="card set-page" ${sec('whatsapp')}><summary>Conexão com o WhatsApp</summary>
         ${b.wa_phone_number_id ? '<p><span class="chip ok">Conectado</span> O WhatsApp do negócio está ligado à secretária.</p>'
           : '<p><span class="chip warn">Ainda não conectado</span></p><p class="hint">A equipe Entre faz essa ligação com você (leva uns 15 minutos, pelo celular). Enquanto isso, você já pode deixar serviços, preços e horários prontos.</p>'}
       </details>
-      <details class="card"><summary>Minha conta</summary>
+      <details class="card set-page" ${sec('conta')}><summary>Minha conta</summary>
         <p class="muted">Entrou como ${esc(S.session.user.email)}</p>
         <button type="button" class="btn ghost block" id="changePass">Trocar minha senha</button>
         <button type="button" class="btn ghost block" id="logout">Sair</button>
       </details>
-      <p class="muted small center">Entre · painel versão 1</p>`;
+`;
 
     const v = $('#view');
-    if (opts.open) v.querySelector(`[data-sec="${opts.open}"]`)?.scrollIntoView({ block: 'start' });
+    // Uma tela por item: tocar na lista mostra só aquela seção; "‹ Ajustes" volta para a lista (redesenhada, com o resumo novo).
+    const showPage = (k) => {
+      const target = k === 'secretaria' ? 'negocio' : k;
+      $('#setMenu', v).hidden = true;
+      $('#setHead', v).hidden = false;
+      $('#setTitle', v).textContent = TITLES[k] || '';
+      $$('details.set-page', v).forEach((d) => { const on = d.dataset.sec === target; d.hidden = !on; if (on) d.open = true; });
+      if (target === 'negocio') $('#bizForm', v).dataset.part = k === 'secretaria' ? 'secretaria' : 'negocio';
+      window.scrollTo(0, 0);
+    };
+    $$('[data-set-open]', v).forEach((btn) => { btn.onclick = () => showPage(btn.dataset.setOpen); });
+    $('#setBack', v).onclick = () => go('ajustes');
+    // Nas telas próprias o título da seção já está em cima: o "abrir/fechar" da seção não faz sentido.
+    $$('details.set-page > summary', v).forEach((s) => { s.addEventListener('click', (e) => e.preventDefault()); });
     $('#bizSel')?.addEventListener('change', async (e) => {
       S.biz = S.bizList.find((x) => x.id === e.target.value);
       store.set('biz', S.biz.id);
@@ -2975,7 +3080,7 @@
         await reloadBiz();
         S.bizList = S.bizList.map((x) => (x.id === S.biz.id ? S.biz : x));
         toast('Salvo ✅', 'ok');
-        go('ajustes', { quiet: true, open: 'negocio' });
+        go('ajustes', { quiet: true, open: e.target.dataset.part === 'secretaria' ? 'secretaria' : 'negocio' });
       });
     };
   };

@@ -1187,3 +1187,82 @@ h1.wz-type { font-size: clamp(2.2rem, 10vw, 3rem); margin: 24px 0 6px; }
    Agora ela tem a altura exata da parte visível e a página de trás fica travada (sem barra de rolagem). */
 #onboard.wizapp { top: 0; right: 0; bottom: auto; left: 0; height: 100vh; height: 100dvh; }
 html:has(#onboard.wizapp:not([hidden])), html:has(#onboard.wizapp:not([hidden])) body { overflow: hidden; height: 100%; overscroll-behavior: none; }
+
+/* ==== Mais simples (24/11/2026, desenho aprovado no Claude Design) ====
+   Público de 50+ anos: letra maior (rem = 18 px), botões de 52–56 px, títulos sem maiúsculas,
+   Início com o principal na frente e "Ver mais"; Ajustes com uma tela por item. */
+html { font-size: 18px; }
+body { font-size: 1rem; }
+.btn { min-height: 54px; padding: .6rem 1.2rem; font-size: 1rem; }
+.btn.small { min-height: 48px; padding: .45rem 1rem; font-size: .95rem; }
+.card { padding: 18px; margin-bottom: 16px; }
+.card h3 { font-size: 1.08rem; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink); margin-bottom: .7rem; }
+.card h3 .count { font-size: .9rem; }
+.row { min-height: 56px; padding: .8rem 4px; }
+.row .grow small, .pend-info small { font-size: .9rem; }
+.pend { padding: .85rem 0; gap: .7rem; }
+.pend .actions { flex: 1 1 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: .5rem; }
+.pend .actions .btn, .pend .actions .chip { width: 100%; }
+.hint { font-size: .92rem; }
+.greet h2 { font-size: 1.9rem; line-height: 1.12; }
+.greet p { font-size: 1rem; color: var(--muted); }
+
+.sec-title { font-family: var(--font-display); font-weight: var(--dw); text-transform: var(--dcase); letter-spacing: var(--dtrack);
+  font-size: 1.45rem; color: var(--ink); margin: 1.5rem 0 .6rem; }
+.sec-title.small { font-family: var(--font-body); font-size: .9rem; font-weight: 700; color: var(--muted); text-transform: none; letter-spacing: 0; margin: 1.2rem 4px .5rem; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; margin: 1.5rem 0 .6rem; }
+.sec-head .sec-title { margin: 0; }
+.sec-head > span { color: var(--muted); font-size: .95rem; text-align: right; }
+.page-title { font-family: var(--font-display); font-weight: var(--dw); text-transform: var(--dcase); letter-spacing: var(--dtrack);
+  font-size: 1.9rem; line-height: 1.12; color: var(--ink); margin: .3rem 0 1rem; }
+.page-lead { margin: -.4rem 0 1rem; }
+.back-btn { display: inline-flex; align-items: center; gap: .3rem; min-height: 48px; padding: 0 .4rem 0 0; margin: -4px 0 .2rem;
+  background: none; border: 0; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.back-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.more-list { padding: 0; overflow: hidden; }
+.more-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 78px; padding: 14px 18px; box-sizing: border-box;
+  background: none; border: 0; border-top: 1px solid var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.more-row:first-child { border-top: 0; }
+.more-row:active { background: var(--brand-soft); }
+.more-row .grow { flex: 1; min-width: 0; }
+.more-row .grow b { display: block; font-size: 1.05rem; }
+.more-row .grow small { display: block; color: var(--muted); font-size: .9rem; }
+.more-row .grow small.warn-txt { color: var(--warn); font-weight: 600; }
+.more-ic { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--brand-soft); display: flex; align-items: center; justify-content: center; }
+.more-ic.warn { background: var(--warn-soft); }
+.more-ic svg { width: 24px; height: 24px; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.more-ic.warn svg { stroke: var(--warn); }
+.go-ic { flex: none; width: 22px; height: 22px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.more-count { flex: none; min-width: 30px; height: 30px; padding: 0 8px; box-sizing: border-box; border-radius: 15px; background: var(--hi); color: var(--solid);
+  font-weight: 700; font-size: .9rem; display: flex; align-items: center; justify-content: center; }
+
+.setup-banner { background: var(--brand-soft); display: flex; flex-direction: column; gap: .55rem; }
+.setup-banner .sb-title { font-size: 1.12rem; color: var(--ink); }
+.setup-banner .sb-sub { color: var(--ink); opacity: .85; }
+.setup-banner .progress { margin: .2rem 0 .3rem; height: 10px; background: var(--card); }
+.setup-banner .two-btn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.sb-all summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; color: var(--ink); cursor: pointer; }
+.sb-all .check { margin-top: .2rem; }
+
+details.set-page[hidden], #setMenu[hidden], #setHead[hidden] { display: none; }
+details.set-page > summary { display: none; }
+details.set-page { padding-top: 18px; }
+#bizForm[data-part="secretaria"] .form-part[data-part="negocio"],
+#bizForm[data-part="negocio"] .form-part[data-part="secretaria"] { display: none; }
+.form-part { display: contents; }
+
+.tabs button { font-size: .8rem; padding: 10px 2px 12px; }
+.tabs svg { width: 28px; height: 28px; stroke-width: 1.7; }
+.fab-row .btn { white-space: nowrap; padding-left: .7rem; padding-right: .7rem; font-size: .95rem; }
+/* O primeiro acesso foi desenhado (e aprovado em 20/11) para caber sem rolar com rem = 16 px: fica como estava. */
+html:has(#onboard.wizapp:not([hidden])) { font-size: 16px; }
+/* A página pública de agendamento (agendar.html) não entrou na mudança de 24/11: fica como estava. */
+html:has(body.ag-page) { font-size: 16px; }
+.ag-page .btn { min-height: 44px; padding: .55rem 1.1rem; font-size: inherit; }
+.ag-page .btn.small { min-height: 36px; padding: .35rem .8rem; font-size: .88rem; }
+.ag-page .card { padding: 16px; margin-bottom: 14px; }
+.ag-page .card h3 { font-size: .76rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: .8rem; }
+.ag-page .row { min-height: 0; padding: .7rem 4px; }
+.ag-page .row .grow small { font-size: .85rem; }
+.ag-page .hint { font-size: .88rem; }
