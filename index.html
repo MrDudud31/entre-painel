@@ -13,25 +13,29 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <!-- Aplica o estilo escolhido antes de desenhar a tela (sem "piscar" no estilo padrão) -->
-  <script>(function () { var d = document.documentElement, m = 'auto'; try { var s = localStorage.getItem('entre.painel.style'); if (s) d.dataset.style = s; m = localStorage.getItem('entre.painel.mode') || 'auto'; } catch (e) {} var dark = m === 'dark' || (m !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); d.dataset.mode = dark ? 'dark' : 'light'; })();</script>
+  <!-- 25/11: um visual só do Entre no painel (os estilos por ramo ficam só na prévia do primeiro acesso) -->
+  <script>(function () { var d = document.documentElement, m = 'auto'; try { m = localStorage.getItem('entre.painel.mode') || 'auto'; } catch (e) {} var dark = m === 'dark' || (m !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); d.dataset.mode = dark ? 'dark' : 'light'; })();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261124b">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=DM+Sans:opsz,wght@9..40,400..700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20261125b">
 </head>
 <body>
   <!-- Primeira carga (some quando o painel abre; vira aviso de erro se faltar internet) -->
-  <section id="boot" class="screen"><div class="boot-logo"><span class="logo-badge"><svg class="entre-logo anim splash" viewBox="26 16 68 70" aria-hidden="true"><path class="b" d="M30 70 V34 A14 14 0 0 1 44 20 H76 A14 14 0 0 1 90 34 V56 A14 14 0 0 1 76 70 H48 L34 82 Z"/><circle class="d" cx="47" cy="45" r="5"/><circle class="d" cx="60" cy="45" r="5"/><circle class="d" cx="73" cy="45" r="5"/></svg></span><p class="loading">Carregando…</p></div></section>
+  <!-- Abertura (25/11): fundo escuro, a logo se desenha, o nome sobe, um círculo verde toma a tela e a logo vai para o lugar dela -->
+  <section id="boot" class="screen"><i class="boot-fill" aria-hidden="true"></i><div class="boot-logo"><span class="logo-badge"><svg class="entre-logo anim splash" viewBox="26 16 68 70" aria-hidden="true"><path class="b" d="M30 70 V34 A14 14 0 0 1 44 20 H76 A14 14 0 0 1 90 34 V56 A14 14 0 0 1 76 70 H48 L34 82 Z"/><circle class="d" cx="47" cy="45" r="5"/><circle class="d" cx="60" cy="45" r="5"/><circle class="d" cx="73" cy="45" r="5"/></svg></span><div class="boot-word"><b>Entre</b><small>Sua secretária de WhatsApp</small></div><p class="loading">Carregando…</p></div></section>
 
   <!-- Entrar -->
   <section id="login" class="screen" hidden>
-    <form id="loginForm" class="card narrow">
-      <div class="brand"><span class="logo-badge"><svg class="entre-logo" viewBox="26 16 68 70" aria-hidden="true"><path class="b" d="M30 70 V34 A14 14 0 0 1 44 20 H76 A14 14 0 0 1 90 34 V56 A14 14 0 0 1 76 70 H48 L34 82 Z"/><circle class="d" cx="47" cy="45" r="5"/><circle class="d" cx="60" cy="45" r="5"/><circle class="d" cx="73" cy="45" r="5"/></svg></span><div class="rv" style="--i:0"><b>Entre</b><small>Sua secretária de WhatsApp</small></div></div>
-      <label class="rv" style="--i:2">E-mail<input name="email" type="email" autocomplete="username" required></label>
-      <label class="rv" style="--i:3">Senha<input name="password" type="password" autocomplete="current-password" required></label>
-      <button class="btn primary block rv" style="--i:4" type="submit">Entrar</button>
-      <p class="hint rv" style="--i:5">Esqueceu a senha? Fale com a equipe Entre pelo WhatsApp.</p>
+    <div class="lg-top"><span class="logo-badge"><svg class="entre-logo" viewBox="26 16 68 70" aria-hidden="true"><path class="b" d="M30 70 V34 A14 14 0 0 1 44 20 H76 A14 14 0 0 1 90 34 V56 A14 14 0 0 1 76 70 H48 L34 82 Z"/><circle class="d" cx="47" cy="45" r="5"/><circle class="d" cx="60" cy="45" r="5"/><circle class="d" cx="73" cy="45" r="5"/></svg></span><div class="lg-word"><b>Entre</b><small>Sua secretária de WhatsApp</small></div></div>
+    <form id="loginForm" class="lg-sheet">
+      <h2 class="rv" style="--i:0">Que bom te ver</h2>
+      <label class="rv" style="--i:1">E-mail<input name="email" type="email" autocomplete="username" placeholder="voce@email.com" required></label>
+      <label class="rv" style="--i:2">Senha<input name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required></label>
+      <button class="btn primary block rv" style="--i:3" type="submit">Entrar</button>
       <p id="loginError" class="error" role="alert"></p>
+      <p class="hint rv" style="--i:4">Esqueceu a senha? Fale com a equipe Entre pelo WhatsApp.</p>
+      <p class="lg-safe rv" style="--i:5"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Conexão segura. Seus dados ficam protegidos.</p>
     </form>
   </section>
 
@@ -46,11 +50,10 @@
     </header>
     <main id="view" aria-live="polite"></main>
     <nav class="tabs" aria-label="Seções">
-      <button data-tab="inicio" type="button"><svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z"/></svg><span>Início</span><i class="badge" id="badgeInicio" hidden></i></button>
+      <button data-tab="inicio" type="button"><svg viewBox="0 0 24 24"><path d="M3.5 11.2L12 4.5l8.5 6.7V20a1 1 0 0 1-1 1h-4.5v-5.5h-6V21H4.5a1 1 0 0 1-1-1z"/></svg><span>Início</span><i class="badge" id="badgeInicio" hidden></i></button>
       <button data-tab="agenda" type="button"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Agenda</span></button>
-      <button data-tab="conversas" type="button"><svg viewBox="0 0 24 24"><path d="M5 6h14v10h-9l-5 4z"/></svg><span>Conversas</span><i class="badge" id="badgeConversas" hidden></i></button>
-      <button data-tab="clientes" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.5"/><path d="M5 20c1.2-3.5 4-5 7-5s5.8 1.5 7 5"/></svg><span>Clientes</span></button>
-      <button data-tab="ajustes" type="button"><svg viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Ajustes</span></button>
+      <button data-tab="clientes" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6"/></svg><span>Clientes</span><i class="badge" id="badgeConversas" hidden></i></button>
+      <button data-tab="ajustes" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v2M12 19.5v2M3.8 7.3l1.7 1M18.5 15.7l1.7 1M3.8 16.7l1.7-1M18.5 8.3l1.7-1"/></svg><span>Ajustes</span></button>
     </nav>
   </div>
 
@@ -58,7 +61,7 @@
   <div id="toast" class="toast" role="status"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-  <script src="config.js?v=20261124b"></script>
-  <script src="app.js?v=20261124b"></script>
+  <script src="config.js?v=20261125b"></script>
+  <script src="app.js?v=20261125b"></script>
 </body>
 </html>

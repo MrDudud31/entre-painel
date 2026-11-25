@@ -84,8 +84,10 @@
     document.head.appendChild(l);
   }
   /** Troca o estilo da tela. persist=false é só a prévia (Ajustes); o salvo fica em businesses.theme. */
-  function applyStyle(id, { persist = true } = {}) {
-    const st = STYLES[id] ? id : 'entre';
+  // 25/11 (pedido do Eduardo): o painel tem um visual só, o do Entre. Os estilos por ramo só valem na prévia
+  // do primeiro acesso (free: true); o tema salvo no negócio não muda mais a cara do painel.
+  function applyStyle(id, { persist = true, free = false } = {}) {
+    const st = free && STYLES[id] ? id : 'entre';
     loadFonts(st);
     if (st === 'entre') delete document.documentElement.dataset.style; else document.documentElement.dataset.style = st;
     syncThemeColor();
@@ -93,7 +95,9 @@
   }
   /** Cor da barrinha do celular acompanha o fundo do app. */
   function syncThemeColor() {
-    $('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.body).backgroundColor);
+    // No painel a barrinha do celular fica da cor do topo verde.
+    const v2 = document.documentElement.classList.contains('v2');
+    $('meta[name="theme-color"]')?.setAttribute('content', v2 ? (document.documentElement.dataset.mode === 'dark' ? '#145A3F' : '#1F7A57') : getComputedStyle(document.body).backgroundColor);
   }
   // Modo claro/escuro: 'auto' segue o celular; 'light'/'dark' fixam (guardado só neste aparelho).
   const darkQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
@@ -347,6 +351,8 @@
     try { await fn(); } catch (err) { toast(friendly(err), 'bad'); } finally { btn.disabled = false; btn.textContent = txt; }
   }
 
+  /** Visual novo (25/11): vale no painel (html.v2). Login e primeiro acesso continuam como estavam. */
+  function markV2(id) { document.documentElement.classList.toggle('v2', id === 'main'); syncThemeColor(); }
   function show(id) {
     // Enquanto a abertura roda, só guarda pra onde ir; ela troca de tela quando o símbolo terminar.
     if (splash === 'on' || splash === 'wait') {
@@ -355,6 +361,7 @@
       return;
     }
     for (const s of ['login', 'onboard', 'main']) $('#' + s).hidden = s !== id;
+    markV2(id);
     const boot = $('#boot');
     if (boot) boot.hidden = true;
   }
@@ -366,36 +373,49 @@
   const splashReady = new Promise((res) => {
     const dot = document.querySelector('#boot .entre-logo .d:last-of-type');
     const a = dot && dot.getAnimations ? dot.getAnimations()[0] : null;
-    if (a) a.finished.then(() => setTimeout(res, 300), res); // vale mesmo se o desenho já acabou
-    setTimeout(res, 3000); // segurança: nunca prende a pessoa aqui
+    if (a) a.finished.then(() => setTimeout(res, 700), res); // espera o nome "Entre" aparecer embaixo da logo
+    setTimeout(res, 3200); // segurança: nunca prende a pessoa aqui
   });
   function leaveSplash() {
     if (splash !== 'wait') return; // um aviso de erro já tomou a tela
     splash = 'off';
-    const id = splashTo, boot = $('#boot'), badge = $('.boot-logo .logo-badge', boot);
+    // 25/11 (desenho aprovado): depois do desenho da logo, um círculo verde cresce do meio e toma a tela.
+    // Sem login: a logo e o nome sobem juntos até o lugar deles na tela de entrar e a folha do formulário sobe por baixo.
+    // Logado: o verde vira o topo verde do painel e a abertura some.
+    const id = splashTo, boot = $('#boot'), group = $('.boot-logo', boot), badge = $('.logo-badge', group);
     for (const s of ['login', 'onboard', 'main']) $('#' + s).hidden = s !== id;
+    markV2(id);
     const sec = $('#' + id);
     let done = false;
     const end = (reveal) => {
       if (done) return;
       done = true;
       boot.hidden = true;
-      boot.classList.remove('leave', 'out');
-      if (badge) badge.style.transform = '';
+      boot.classList.remove('grow', 'out');
+      if (group) { group.style.transform = ''; group.style.transition = ''; }
       if (reveal) { sec.classList.remove('intro'); sec.classList.add('reveal'); }
     };
-    const target = id === 'login' && $('.brand .logo-badge', sec);
-    if (target && badge && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      sec.classList.add('intro');
-      const to = target.getBoundingClientRect(), from = badge.getBoundingClientRect();
-      boot.classList.add('leave');
-      badge.style.transform = `translate(${to.left + to.width / 2 - from.left - from.width / 2}px, ${to.top + to.height / 2 - from.top - from.height / 2}px) scale(${to.width / from.width})`;
-      badge.addEventListener('transitionend', () => end(true), { once: true });
-      setTimeout(() => end(true), 1100);
-    } else {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !group) {
       if (id === 'login') sec.classList.add('reveal');
       boot.classList.add('out');
       setTimeout(() => end(false), 450);
+      return;
+    }
+    boot.classList.add('grow');
+    const target = id === 'login' && $('.lg-top', sec);
+    if (target) {
+      sec.classList.add('intro');
+      setTimeout(() => {
+        // move o conjunto (logo + nome) pelo centro da logo, até a logo da tela de entrar
+        const toB = $('.logo-badge', target).getBoundingClientRect(), fromB = badge.getBoundingClientRect(), g = group.getBoundingClientRect();
+        const k = toB.width / fromB.width;
+        group.style.transformOrigin = `${fromB.left + fromB.width / 2 - g.left}px ${fromB.top + fromB.height / 2 - g.top}px`;
+        group.style.transition = 'transform .85s cubic-bezier(.65, 0, .25, 1)';
+        group.style.transform = `translate(${toB.left + toB.width / 2 - fromB.left - fromB.width / 2}px, ${toB.top + toB.height / 2 - fromB.top - fromB.height / 2}px) scale(${k})`;
+        setTimeout(() => end(true), 900);
+      }, 420);
+    } else {
+      setTimeout(() => { boot.classList.add('out'); setTimeout(() => end(false), 450); }, 850);
     }
   }
 
@@ -485,7 +505,7 @@
       must(await sb.from('businesses').update({ assistant_enabled: !on }).eq('id', S.biz.id));
       await reloadBiz();
       toast(on ? 'Secretária desligada.' : 'Secretária ligada ✅', on ? 'warn' : 'ok');
-      if (S.tab === 'inicio') go('inicio');
+      if (S.tab === 'inicio' || S.tab === 'ajustes') go(S.tab, { quiet: true });
     } });
   };
 
@@ -687,10 +707,15 @@
   // Uma pergunta por tela (cabe sem rolar), um mini celular no topo com a secretária respondendo do jeito escolhido,
   // telas que deslizam, botões que reagem, os desenhos do ramo flutuando no fundo e comemoração no fim.
   // As perguntas novas podem ser puladas; o que ficar faltando aparece em Início › "Termine de configurar".
-  const WIZ_ALL = ['oi', 'tipo', 'nome', 'voce', 'whats', 'jeito', 'emoji', 'trato', 'saudacao', 'equipe', 'servicos', 'horario',
-    'endereco', 'confirma', 'prazo', 'atraso', 'cancela', 'pagamento', 'pix', 'sinal', 'estilo', 'imagens', 'pronto'];
-  const wizSteps = (W) => WIZ_ALL.filter((s) => !((s === 'pix' || s === 'sinal') && !W.pays.pix));
-  const WIZ_SKIP = new Set(['whats', 'jeito', 'emoji', 'trato', 'saudacao', 'equipe', 'servicos', 'endereco', 'confirma', 'prazo', 'atraso', 'cancela', 'pagamento', 'pix', 'sinal']);
+  // 25/11 (desenho aprovado: https://claude.ai/artifact/BYadnHa5GrEuXFg9DYruiA): só o essencial, 8 perguntas.
+  // Endereço, regras, pagamento, Pix, sinal e saudação ficam para Ajustes (aparecem em Início › "Termine de configurar").
+  // Depois das perguntas: "Confira o que a secretária vai saber", a secretária atendendo sozinha e a entrada no app.
+  // As telas antigas (emoji, trato, saudacao, endereco, confirma, prazo, atraso, cancela, pagamento, pix, sinal, estilo, pronto)
+  // continuam no código, mas fora da lista.
+  const WIZ_ALL = ['oi', 'tipo', 'nome', 'servicos', 'horario', 'equipe', 'jeito', 'whats', 'imagens', 'resumo', 'demo'];
+  const WIZ_Q = ['tipo', 'nome', 'servicos', 'horario', 'equipe', 'jeito', 'whats', 'imagens']; // as 8 perguntas (barra "N de 8")
+  const wizSteps = () => WIZ_ALL;
+  const WIZ_SKIP = new Set(['whats', 'jeito', 'equipe', 'servicos']);
 
   // Jeitos prontos da secretária. `tone` vai para businesses.tone, que entra no prompt da secretária ("com tom …").
   // `pre` é a interjeição do exemplo; fica separada para não repetir quando a conversa já começou com a saudação.
@@ -804,13 +829,118 @@
     return m;
   }
   // Quais telas mostram o mini celular, e com qual conversa
-  const WIZ_CHAT = { nome: ['oi'], jeito: ['jeito'], emoji: ['oi'], trato: ['oi'], saudacao: ['oi'], servicos: ['preco'], endereco: ['onde'], confirma: ['marcar'], atraso: ['atraso'], cancela: ['cancela'], pagamento: ['pagar'], sinal: ['pagar'] };
+  /** Conversa da tela "demo" (fim do cadastro): monta com o que a pessoa respondeu. Não usa IA; é a prévia de como ela atende.
+   *  Mensagem da secretária começa com "<nome do negócio> aqui." (regra do texto). Preços e horários vão destacados. */
+  function wizDemo(W) {
+    const biz = W.name.trim() || 'Seu negócio';
+    const items = wizServices(W).list;
+    const svc = items.find((it) => it.price != null) || null;
+    const rows = (HOURS_PRESETS[W.hours] || HOURS_PRESETS.comercial).rows;
+    const today = new Date().getDay();
+    let day = 1, row = null;
+    for (; day <= 7; day++) { row = rows.find((r) => r[0] === (today + day) % 7); if (row) break; }
+    const wd = (today + day) % 7;
+    const when = day === 1 ? 'amanhã' : `${wd === 0 || wd === 6 ? 'no' : 'na'} ${WD[wd].toLowerCase()}`;
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const m0 = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+    const hm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    const open = row ? m0(row[1]) : 540, close = row ? m0(row[2]) : 1080;
+    const t = [open, open + 60, open + 150].filter((x) => x <= close - 30).map(hm);
+    while (t.length < 3) t.push(hm(open + 30 * t.length));
+    const short = (x) => (x.endsWith(':00') ? `${Number(x.slice(0, 2))}h` : `${Number(x.slice(0, 2))}h${x.slice(3)}`);
+    const H = (x) => `<mark>${esc(x)}</mark>`;
+    const e = esc;
+    const svcLow = svc ? svc.name.toLowerCase() : '';
+    return {
+      msgs: [
+        { who: 'in', html: e(`Oi! Tem horário ${when}${svc ? ` pra ${svcLow}` : ''}?`) },
+        { who: 'out', html: `${e(biz)} aqui! ${svc ? `${e(svc.name)} sai ${H(money(svc.price))} e leva ${H(durLabel(svc.dur))}. ` : ''}${e(cap(when))} tenho ${H(t[0])}, ${H(t[1])} e ${H(t[2])}. Qual fica melhor?` },
+        { who: 'in', html: e(`${short(t[1])}!`) },
+        { who: 'out', html: `Fechado! Anotei ${svc ? e(svcLow) + ' ' : ''}${e(when)} às ${H(t[1])}. Assim que confirmarem, eu te aviso por aqui.` },
+      ],
+      notif: `${svc ? svc.name : 'Horário'} · ${when} às ${t[1]}`,
+    };
+  }
+  // 25/11: sem o mini celular durante as perguntas (telas limpas); a conversa aparece inteira no fim (tela "demo").
+  const WIZ_CHAT = {};
   const CHECK = '<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
   /** Botão de opção do primeiro acesso (o ✓ se desenha quando fica marcado). */
   const optBtn = (attr, val, on, inner, cls = '') => `<button type="button" class="wz-opt ${cls}" data-${attr}="${val}" aria-pressed="${on}">${inner}${CHECK}</button>`;
   // vibração leve (só Android; o iPhone não deixa site vibrar). Só depois de um toque de verdade, senão o navegador recusa.
   const buzz = (p = 8) => { try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(p); } catch { /* sem vibração */ } };
   const calmMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- Toque, som e vibração (25/11): todo botão do painel dá um "tic" baixinho e uma vibração curta.
+  // Confirmar um pedido toca um sininho de duas notas. Dá para desligar em Ajustes › Aparência.
+  // (No iPhone o navegador não deixa vibrar; o som funciona.)
+  let actx = null;
+  const tapOn = () => store.get('tap') !== 'off';
+  function beep(notes) {
+    if (!tapOn()) return;
+    try {
+      actx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      const t0 = actx.currentTime;
+      notes.forEach(([freq, at, dur, vol]) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t0 + at);
+        g.gain.exponentialRampToValueAtTime(vol, t0 + at + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + at + dur);
+        o.connect(g); g.connect(actx.destination);
+        o.start(t0 + at); o.stop(t0 + at + dur + 0.02);
+      });
+    } catch { /* sem som */ }
+  }
+  const tick = () => beep([[1250, 0, 0.05, 0.035]]);
+  const chime = () => { beep([[880, 0, 0.16, 0.07], [1320, 0.09, 0.26, 0.07]]); if (tapOn()) buzz([12, 40, 18]); };
+  document.addEventListener('pointerdown', (e) => {
+    if (!document.documentElement.classList.contains('v2')) return;
+    const el = e.target.closest?.('button, .btn, a, .tile, summary, [data-booking], [data-client], [data-conv]');
+    if (!el || el.disabled) return;
+    tick();
+    if (tapOn()) buzz(6);
+  }, { passive: true });
+
+  // ---- Topo verde das telas (25/11, desenho aprovado no Claude Design) ----
+  // Desenhos próprios do Entre, simples, nas cores da marca. Nada de foto de banco de imagem.
+  const ART = {
+    home: `<svg viewBox="0 0 230 200"><circle cx="140" cy="104" r="86" fill="#26915F"/><path d="M40 176c10-22 28-30 44-30" stroke="#145A3F" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M58 168c-14-8-18-24-10-36 10 4 16 18 10 36z" fill="#34C77B"/><path d="M70 162c2-16 14-26 28-24-2 14-14 24-28 24z" fill="#2BB673"/><rect x="104" y="30" width="86" height="150" rx="16" fill="#12241F"/><rect x="110" y="38" width="74" height="134" rx="11" fill="#F6F7F3"/><rect x="117" y="52" width="46" height="16" rx="8" fill="#E3EAE4"/><rect x="131" y="74" width="46" height="16" rx="8" fill="#1F7A57"/><rect x="117" y="96" width="38" height="16" rx="8" fill="#E3EAE4"/><rect x="117" y="122" width="60" height="38" rx="9" fill="#fff" stroke="#E1E7DF" stroke-width="2"/><rect x="117" y="122" width="60" height="10" rx="5" fill="#F2994A"/><path d="M137 148l5 5 10-10" stroke="#1F7A57" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 40h54a14 14 0 0114 14v18a14 14 0 01-14 14H70l-14 11V86H44a14 14 0 01-14-14V54a14 14 0 0114-14z" fill="#F2994A"/><circle cx="56" cy="63" r="4.5" fill="#fff"/><circle cx="71" cy="63" r="4.5" fill="#fff"/><circle cx="86" cy="63" r="4.5" fill="#fff"/><path d="M200 26l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#FFD66B"/><path d="M26 112l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#FFD66B"/></svg>`,
+    agenda: `<svg viewBox="0 0 120 100"><circle cx="70" cy="50" r="46" fill="#26915F"/><rect x="34" y="22" width="72" height="62" rx="12" fill="#F6F7F3"/><rect x="34" y="22" width="72" height="18" rx="9" fill="#F2994A"/><rect x="34" y="32" width="72" height="8" fill="#F2994A"/><rect x="48" y="16" width="6" height="14" rx="3" fill="#12241F"/><rect x="86" y="16" width="6" height="14" rx="3" fill="#12241F"/><rect x="44" y="48" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="63" y="48" width="12" height="10" rx="3" fill="#1F7A57"/><rect x="82" y="48" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="44" y="64" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="63" y="64" width="12" height="10" rx="3" fill="#BFDCCB"/><path d="M14 20l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#FFD66B"/></svg>`,
+    people: `<svg viewBox="0 0 130 96"><circle cx="78" cy="48" r="44" fill="#26915F"/><circle cx="58" cy="40" r="14" fill="#FDEBD8"/><path d="M34 82c3-15 13-22 24-22s21 7 24 22z" fill="#F2994A"/><circle cx="94" cy="44" r="12" fill="#D9EEE2"/><path d="M74 82c2-13 10-19 20-19s18 6 20 19z" fill="#12241F"/><path d="M110 10h14a6 6 0 016 6v6a6 6 0 01-6 6h-8l-6 5v-5a6 6 0 01-6-6v-6a6 6 0 016-6z" fill="#fff"/><path d="M14 22l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z" fill="#FFD66B"/></svg>`,
+    shop: `<svg viewBox="0 0 150 120"><circle cx="90" cy="60" r="52" fill="#26915F"/><path d="M58 104V58l32-22 32 22v46z" fill="#F6F7F3"/><path d="M52 60l38-27 38 27" stroke="#F2994A" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="80" y="74" width="20" height="30" rx="4" fill="#12241F"/><rect x="66" y="68" width="10" height="10" rx="2" fill="#BFDCCB"/><rect x="104" y="68" width="10" height="10" rx="2" fill="#BFDCCB"/><path d="M22 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#FFD66B"/></svg>`,
+    money: `<svg viewBox="0 0 130 96"><circle cx="78" cy="48" r="44" fill="#26915F"/><rect x="40" y="30" width="70" height="40" rx="8" fill="#D9EEE2"/><rect x="30" y="40" width="70" height="40" rx="8" fill="#F6F7F3"/><circle cx="65" cy="60" r="11" fill="#34C77B"/><path d="M65 53v14M68.5 55.5h-5a2.2 2.2 0 000 4.4h3a2.2 2.2 0 010 4.4h-5" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M14 22l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z" fill="#FFD66B"/></svg>`,
+    chat: `<svg viewBox="0 0 130 96"><circle cx="78" cy="48" r="44" fill="#26915F"/><path d="M44 22h50a12 12 0 0112 12v18a12 12 0 01-12 12H66l-14 11V64h-8a12 12 0 01-12-12V34a12 12 0 0112-12z" fill="#F2994A"/><circle cx="56" cy="43" r="4.5" fill="#fff"/><circle cx="69" cy="43" r="4.5" fill="#fff"/><circle cx="82" cy="43" r="4.5" fill="#fff"/><path d="M84 58h26a8 8 0 018 8v8a8 8 0 01-8 8h-4v7l-9-7H84a8 8 0 01-8-8v-8a8 8 0 018-8z" fill="#F6F7F3"/><path d="M14 22l2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z" fill="#FFD66B"/></svg>`,
+    done: `<svg viewBox="0 0 120 100" role="img" aria-label="Agenda em dia"><rect x="14" y="18" width="72" height="66" rx="12" fill="#E7F3EC"/><rect x="14" y="18" width="72" height="18" rx="9" fill="#F2994A"/><rect x="14" y="28" width="72" height="8" fill="#F2994A"/><rect x="28" y="12" width="6" height="14" rx="3" fill="#12241F"/><rect x="66" y="12" width="6" height="14" rx="3" fill="#12241F"/><rect x="25" y="45" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="44" y="45" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="63" y="45" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="25" y="62" width="12" height="10" rx="3" fill="#BFDCCB"/><rect x="44" y="62" width="12" height="10" rx="3" fill="#1F7A57"/><circle cx="88" cy="70" r="20" fill="#34C77B"/><path d="M79 70l6 6 12-12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M100 18l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#F2994A"/></svg>`,
+  };
+  const CHEV_L = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  /** Foto/logo do negócio, ou as iniciais num círculo escuro. */
+  function bizAvatar() {
+    return S.biz?.logo_url ? `<img alt="" src="${esc(S.biz.logo_url)}">` : esc(initials(S.biz?.name || 'Entre'));
+  }
+  /** Topo verde: título grande, desenho à direita e, se quiser, uma linha em cima (top) e outra embaixo (bottom).
+   *  back = texto do botão de voltar (telas de dentro); backAttr = o atributo que a tela já escuta. */
+  function hero({ title, kicker = '', sub = '', art = '', top = '', bottom = '', back = '', backAttr = 'data-hero-back', small = false, cover = '' }) {
+    const bg = cover ? ` style="background-image:linear-gradient(180deg,rgba(18,36,31,.35),rgba(20,90,63,.92)),url(&quot;${esc(String(cover).replace(/["\\]/g, ''))}&quot;)"` : '';
+    return `<section class="hero${small ? ' small' : ''}${cover ? ' has-cover' : ''}"${bg}>
+      ${art && !cover ? `<div class="hero-art" aria-hidden="true">${art}</div>` : ''}
+      ${back ? `<button type="button" class="hero-back" ${backAttr}>${CHEV_L}${esc(back)}</button>` : ''}
+      ${top}${kicker ? `<span class="hero-kicker">${esc(kicker)}</span>` : ''}
+      <h1 class="hero-title">${esc(title)}</h1>${sub ? `<p class="hero-sub">${sub}</p>` : ''}${bottom}</section>`;
+  }
+  /** Pessoas | Conversas, no topo de Clientes (as conversas não têm mais aba própria). */
+  function cliSeg(sel) {
+    const n = S.needN || 0;
+    return `<div class="hero-seg" role="group" aria-label="Pessoas ou conversas">
+      <button type="button" data-ctab="pessoas" class="${sel === 'pessoas' ? 'sel' : ''}">Pessoas</button>
+      <button type="button" data-ctab="conversas" class="${sel === 'conversas' ? 'sel' : ''}">Conversas${n ? `<i>${n > 9 ? '9+' : n}</i>` : ''}</button></div>`;
+  }
+  function bindCliSeg() {
+    $$('[data-ctab]').forEach((b) => { b.onclick = () => {
+      if (b.classList.contains('sel')) return;
+      if (b.dataset.ctab === 'conversas') { S.conv = null; go('conversas'); } else go('clientes');
+    }; });
+  }
 
   /** Fundo vivo: desenhos do ramo flutuando devagar. Troca com um esmaecer quando o ramo muda. */
   function wizFloat(layer, kind) {
@@ -864,7 +994,8 @@
     const W = {
       step: 'oi', kind: '', name: '', owner: '', wa: '', theme: 'entre', logo: null, cover: null, hours: 'comercial',
       tone: 'leve', toneSkip: false, emoji: true, trato: 'voce', greet: '', solo: true, team: [], menu: null, menuSkip: false,
-      address: '', auto: false, notice: 60, late: 15, cancel: 120, rules: '', pays: { pix: true, cartao: true, dinheiro: true },
+      // atraso, cancelamento e pagamento não são perguntados no cadastro curto: começam vazios (nada inventado).
+      address: '', auto: false, notice: 60, late: 0, cancel: 0, rules: '', pays: {},
       pixKey: '', pixCity: '', sinal: false, sinalVal: '', saving: false, bizId: null,
     };
     const url = { logo: null, cover: null }; // prévia das imagens escolhidas (ainda não enviadas)
@@ -872,8 +1003,8 @@
     box.classList.add('wizapp');
     box.innerHTML = `<div class="wz-float" aria-hidden="true"></div>
       <form class="wz" novalidate>
-        <div class="wz-top"><button type="button" class="icon-btn" id="wBack" aria-label="Voltar">‹</button>
-          <div class="wz-bar" aria-hidden="true"><i></i></div><button type="button" class="wz-out" id="wOut">Sair</button><button type="button" class="wz-out wz-skip" id="wSkip">Pular</button></div>
+        <div class="wz-top"><button type="button" class="icon-btn" id="wBack" aria-label="Voltar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <div class="wz-bar" aria-hidden="true"><i></i></div><span class="wz-count" id="wCount"></span><button type="button" class="wz-out" id="wOut">Sair</button><button type="button" class="wz-out wz-skip" id="wSkip">Pular</button></div>
         <div class="wz-phone" id="wzPhone" aria-label="Exemplo de conversa da secretária">
           <div class="wzp"><div class="wzp-head"><span class="wc-av" id="wzpAv">?</span><span><b id="wzpName">Seu negócio</b><small>assistente virtual · online</small></span></div>
           <div class="wzp-body" id="wzpBody" aria-live="polite"></div></div></div>
@@ -913,15 +1044,22 @@
     const paneHtml = (step) => {
       const T = TONES[W.tone] || TONES.acolhe;
       switch (step) {
-        case 'oi': return `<div class="wz-hello"><span class="wz-logo">${LOGO('anim')}</span>
-            <h1 class="wz-type" data-type="Oi, tudo bem?"></h1>
-            <p class="wz-sub wz-late">Vou montar o app e a sua secretária do WhatsApp com você. Uma pergunta por tela; o que não souber, dá para pular.</p></div>`;
-        case 'tipo': return `<h2>Com o que você trabalha?</h2><p class="wz-sub">Trago serviços de exemplo e o tema do seu ramo.</p>
+        case 'oi': return `<div class="wz-welcome"><span class="wz-mark">${LOGO()}</span>
+            <h1>Vamos montar<br>o seu app.</h1>
+            <p class="wz-lead">8 perguntas rápidas. No final, você vê a secretária atendendo com os seus preços e horários.</p>
+            <div class="wz-trust">
+              <div><span class="ti c1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><span><b>Leva uns 3 minutos</b><small>O que não souber agora, você ajusta depois.</small></span></div>
+              <div><span class="ti c2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></span><span><b>Você aprova tudo</b><small>Ela só usa os preços e horários que você cadastrar, e nada é confirmado sem você querer.</small></span></div>
+              <div><span class="ti c3"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span><b>Seus dados protegidos</b><small>Os seus dados e os dos seus clientes ficam guardados com segurança. Não vendemos nada.</small></span></div>
+            </div></div>`;
+        case 'tipo': return `<h2>Com o que você trabalha?</h2><p class="wz-sub">Eu já trago serviços de exemplo do seu ramo. Você muda depois.</p>
             <div class="wz-kinds">${Object.keys(KINDS).map((k) => `<button type="button" class="wz-opt wz-kind" data-kind="${k}" aria-pressed="${W.kind === k}">
               <svg viewBox="0 0 24 24" aria-hidden="true">${KIND_ICON[k]}</svg><span>${esc(KIND_SHORT[k] || KINDS[k].label)}</span>${CHECK}</button>`).join('')}</div>`;
         case 'nome': return `<h2>Como se chama o seu negócio?</h2>
             <input class="wiz-input" id="wName" maxlength="80" autocomplete="organization" aria-label="Nome do negócio" placeholder="Ex.: ${({ barbearia: 'Barbearia do Zé', salao: 'Salão da Rê', manicure: 'Studio Bela Unha', clinica: 'Clínica Bem Viver', dentista: 'Sorriso Odontologia', pet: 'Pet Amigo', academia: 'Studio Movimento', spa: 'Spa Serenidade', tatuagem: 'Tinta Preta Tattoo', terapia: 'Espaço Escuta', estetica: 'Olhar Studio' })[W.kind] || 'Espaço Silva'}" value="${esc(W.name)}">
-            <p class="wz-sub">Veja lá em cima: a secretária já se apresenta com ele.</p>`;
+            <label class="wz-lab" for="wOwner">E como posso te chamar?</label>
+            <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" placeholder="Seu nome" value="${esc(W.owner)}">
+            <p class="wz-sub">A secretária se apresenta com o nome do negócio. O seu nome aparece no "Boa noite, …" do app.</p>`;
         case 'voce': return `<h2>E como posso te chamar?</h2>
             <input class="wiz-input" id="wOwner" maxlength="60" autocomplete="given-name" aria-label="Seu nome" placeholder="Seu nome" value="${esc(W.owner)}">
             <p class="wz-sub">Vai na saudação do app, tipo "Bom dia, ${esc(firstName(W.owner) || 'Ana')}."</p>`;
@@ -943,7 +1081,9 @@
               <div class="inline"><input id="wTeam" maxlength="60" placeholder="Nome de quem atende" aria-label="Nome de quem atende" autocomplete="off"><button type="button" class="btn" id="wTeamAdd">Adicionar</button></div>`}`;
         case 'servicos':
           if (W.reading) return `<h2>Lendo sua tabela…</h2>${readingHtml('Estou lendo os serviços e os preços da foto. Leva uns segundos.')}`;
-          return `<div class="wz-row"><h2>Seus preços</h2><button type="button" class="btn small ghost" id="wMenu">${CAM} Foto da tabela</button></div>
+          return `<h2>Seus serviços e preços</h2><p class="wz-sub wz-sub-top">A secretária só fala o que estiver aqui.</p>
+            <button type="button" class="wz-photo" id="wMenu"><span class="ti">${CAM}</span><span><b>Tirar foto da tabela</b><small>O app lê a foto e monta a lista para você</small></span></button>
+            <p class="wz-sec">Ou ajuste os de exemplo</p>
             ${W.menu.aviso ? `<p class="banner warn">${esc(W.menu.aviso)}</p>` : ''}
             <div class="wz-menu">${W.menu.items.map((it, i) => `<div class="wz-mi ${it.on ? '' : 'off'}" data-mi="${i}">
               <input type="checkbox" data-mf="on" ${it.on ? 'checked' : ''} aria-label="Incluir ${esc(it.name || 'serviço')}">
@@ -984,12 +1124,42 @@
             ${modePickerHtml()}`;
         }
         case 'imagens': return `<h2>Logo e capa</h2>
-            <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Capa</span>'}</div>
-              <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : LOGO()}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
+            <div class="wiz-preview"><div class="wp-cover" id="wpCover">${url.cover ? '' : '<span>Sua capa aqui</span>'}</div>
+              <div class="wp-bar"><span class="wp-logo" id="wpLogo">${url.logo ? '' : esc(initials(W.name || 'Seu negócio'))}</span><b>${esc(W.name || 'Seu negócio')}</b></div></div>
             <div class="wiz-files">
               <label class="btn ghost">${url.logo ? 'Trocar a logo' : 'Escolher logo'}<input type="file" id="wLogo" accept="image/png,image/jpeg,image/webp" hidden></label>
               <label class="btn ghost">${url.cover ? 'Trocar a capa' : 'Escolher capa'}<input type="file" id="wCover" accept="image/png,image/jpeg,image/webp" hidden></label></div>
-            <p class="wz-sub">A logo aparece no topo; a capa, no início do app.</p>`;
+            <p class="wz-sub">A capa aparece no topo do Início; a logo, ao lado do seu nome. Sem foto agora? Toque em "Pular": dá para pôr depois em Ajustes.</p>`;
+        case 'resumo': {
+          const sv = wizServices(W);
+          const priced = sv.list.filter((it) => it.price != null || W.menu?.fromPhoto);
+          const people = [W.owner, ...(W.solo ? [] : W.team)].map((n) => firstName(n) || n).filter(Boolean);
+          const wa = W.wa.replace(/\D/g, '') ? phoneText(phoneDigits(W.wa)) : '';
+          const row = (color, icon, title, body, step) => `<div class="rs-row"><span class="rs-ic" style="background:${color}"><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></span>
+            <span class="grow"><b>${title}</b><small>${body}</small></span><button type="button" class="rs-edit" data-edit="${step}">Mudar</button></div>`;
+          return `<h2>Confira o que a secretária vai saber</h2>
+            <div class="rs-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>
+              <span>Ela só usa o que está aqui. Se perguntarem algo que não está na lista, ela não inventa: chama você.</span></div>
+            <div class="rs-card">
+              <div class="rs-row rs-biz"><span class="rs-av" id="wpLogo">${url.logo ? '' : esc(initials(W.name))}</span>
+                <span class="grow"><b>${esc(W.name)}</b><small>${esc([KIND_SHORT[W.kind], firstName(W.owner)].filter(Boolean).join(' · '))}${wa ? ` · <span class="nowrap">${esc(wa)}</span>` : ''}</small></span><button type="button" class="rs-edit" data-edit="nome">Mudar</button></div>
+              ${row('#1F7A57', '<path d="M5 6h14M5 12h14M5 18h9"/>', priced.length ? `${priced.length} ${priced.length === 1 ? 'serviço' : 'serviços'}` : 'Serviços',
+                priced.length ? priced.slice(0, 4).map((it) => esc(`${it.name} · ${durLabel(it.dur)} · ${it.price != null ? money(it.price) : 'sob consulta'}`)).join('<br>') + (priced.length > 4 ? `<br>e mais ${priced.length - 4}` : '')
+                  : 'Ainda sem preço. Os de exemplo ficam desligados até você pôr os preços.', 'servicos')}
+              ${row('#E8872F', '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', 'Horários', esc(HOURS_PRESETS[W.hours].label), 'horario')}
+              ${row('#2B5C8F', '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7"/>', 'Quem atende', esc(joinE(people) || 'Você'), 'equipe')}
+              ${row('#12241F', '<path d="M4 5h16v11H9l-5 4z"/>', 'Jeito de falar', esc(W.toneSkip ? 'Simpático e educado (padrão)' : `${T.label}${W.emoji ? ', com emoji de vez em quando' : ', sem emoji'}`), 'jeito')}
+            </div>`;
+        }
+        case 'demo': {
+          return `<div class="dm-head"><span class="dm-kicker">Seu app está pronto</span><h2>Veja a sua secretária atendendo</h2></div>
+            <div class="dm-phone" id="dmPhone"><div class="dm-screen">
+              <div class="dm-bar"><span class="dm-av" id="wpLogo">${url.logo ? '' : esc(initials(W.name))}</span><span><b>${esc(W.name)}</b><small id="dmStatus">online</small></span></div>
+              <div class="dm-body" id="dmBody"></div>
+              <div class="dm-input"><span>Mensagem</span><i></i></div></div>
+              <div class="dm-notif" id="dmNotif" hidden><span class="dm-ni">${LOGO()}</span><span><b>Pedido novo · Entre</b><small id="dmNotifTxt"></small></span></div></div>
+            <p class="dm-cap" id="dmCap" hidden>Ela usou os <b>seus preços</b> e os <b>seus horários</b>. Você só confirma.</p>`;
+        }
         case 'pronto': {
           const sv = wizServices(W);
           const people = new Set([W.owner, ...(W.solo ? [] : W.team)].map(normName).filter(Boolean)).size;
@@ -1014,10 +1184,14 @@
     const draw = (dir = 1) => {
       const steps = wizSteps(W);
       const i = steps.indexOf(W.step);
-      $('.wz-bar i', box).style.width = `${Math.round((i / (steps.length - 1)) * 100)}%`;
-      $('#wBack', box).style.visibility = i > 0 ? 'visible' : 'hidden';
+      const qi = WIZ_Q.indexOf(W.step);
+      // barra: as 8 perguntas; no resumo e na demo fica cheia
+      $('.wz-bar i', box).style.width = `${W.step === 'oi' ? 0 : qi < 0 ? 100 : Math.round(((qi + 1) / WIZ_Q.length) * 100)}%`;
+      $('#wCount', box).textContent = qi >= 0 ? `${qi + 1} de ${WIZ_Q.length}` : W.step === 'resumo' ? 'Pronto' : '';
+      $('#wBack', box).style.visibility = i > 0 && W.step !== 'demo' ? 'visible' : 'hidden';
       $('#wOut', box).hidden = i !== 0;
-      $('#wNext', box).textContent = W.step === 'oi' ? 'Começar' : W.step === 'pronto' ? 'Entrar no meu app' : 'Continuar';
+      $('#wNext', box).textContent = W.step === 'oi' ? 'Começar' : W.step === 'resumo' ? 'Está tudo certo' : W.step === 'demo' ? 'Entrar no meu app' : W.ret ? 'Voltar ao resumo' : 'Continuar';
+      $('#wNext', box).disabled = W.step === 'demo' && !W.demoDone;
       $('#wSkip', box).hidden = !(WIZ_SKIP.has(W.step) || (W.step === 'imagens' && !W.logo && !W.cover));
       box.dataset.step = W.step;
       err('');
@@ -1043,11 +1217,67 @@
           setTimeout(() => { typingTimer = setInterval(() => { ty.textContent = txt.slice(0, ++n); if (n >= txt.length) { clearInterval(typingTimer); setTimeout(() => ty.classList.add('done'), 700); } }, 38); }, startAt);
         }
       }
-      if (W.step === 'pronto' && dir > 0) { setTimeout(() => { wizConfetti(); buzz([20, 40, 20, 40, 60]); }, 450); }
+      if (W.step === 'demo' && dir !== 0) playDemo(pane);
       const first = $('.wiz-input', pane);
       if (first && dir !== 0 && !['saudacao', 'pix'].includes(W.step)) setTimeout(() => first.focus({ preventScroll: true }), 480);
     };
+    // ---------- fim: a secretária atendendo sozinha (a conversa vai aparecendo, com som baixinho)
+    let demoTimers = [];
+    const playDemo = (pane) => {
+      demoTimers.forEach(clearTimeout); demoTimers = [];
+      W.demoDone = false;
+      const d = wizDemo(W), body = $('#dmBody', pane), status = $('#dmStatus', pane);
+      const add = (html, cls) => { const p = document.createElement('p'); p.className = cls; p.innerHTML = html; body.appendChild(p); return p; };
+      const typing = (on) => {
+        status.textContent = on ? 'digitando…' : 'online';
+        $('.dm-typing', body)?.remove();
+        if (on) add('<i></i><i></i><i></i>', 'out dm-typing');
+      };
+      const at = (ms, fn) => demoTimers.push(setTimeout(() => { if (W.step === 'demo') fn(); }, calmMotion() ? 0 : ms));
+      at(700, () => { add(d.msgs[0].html, 'in'); tick(); });
+      at(1500, () => typing(true));
+      at(3100, () => { typing(false); add(d.msgs[1].html, 'out'); tick(); });
+      at(4500, () => { add(d.msgs[2].html, 'in'); tick(); });
+      at(5200, () => typing(true));
+      at(6700, () => { typing(false); add(d.msgs[3].html, 'out'); tick(); });
+      at(7900, () => { $('#dmNotifTxt', pane).textContent = d.notif; $('#dmNotif', pane).hidden = false; chime(); });
+      at(8900, () => { $('#dmCap', pane).hidden = false; W.demoDone = true; $('#wNext', box).disabled = false; box.classList.add('demo-end'); });
+    };
+
+    // ---------- entrada no app: o celular da demonstração cresce até virar a tela inteira (verde) e o app aparece por baixo
+    const enterApp = async (res) => {
+      const ph = $('#dmPhone', stage);
+      const r = ph ? ph.getBoundingClientRect() : { left: innerWidth / 2 - 100, top: innerHeight / 2 - 180, width: 200, height: 360 };
+      const z = document.createElement('div');
+      z.className = 'wz-zoom';
+      Object.assign(z.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+      document.body.appendChild(z);
+      const calm = calmMotion();
+      const grow = calm ? null : z.animate([
+        { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '38px' },
+        { left: '0px', top: '0px', width: innerWidth + 'px', height: innerHeight + 'px', borderRadius: '0px' },
+      ], { duration: 900, easing: 'cubic-bezier(.7, 0, .25, 1)', fill: 'forwards' });
+      buzz([10, 30, 16]);
+      // o verde cobre a tela primeiro; só então o app é montado por baixo e o verde some, virando o topo verde do Início.
+      // Segurança: aconteça o que acontecer, o verde sai da frente (nunca prende a pessoa numa tela verde).
+      const drop = () => {
+        if (!z.isConnected) return;
+        const fade = z.animate([{ opacity: 1 }, { opacity: 0 }], { duration: calm ? 1 : 500, easing: 'ease', fill: 'forwards' });
+        fade.finished.catch(() => null).then(() => z.remove());
+        setTimeout(() => z.remove(), 900);
+      };
+      setTimeout(drop, 8000);
+      if (grow) await Promise.race([grow.finished.catch(() => null), new Promise((r) => setTimeout(r, 1200))]);
+      try { await start(); } finally { drop(); }
+      chime();
+      toast(`Tudo pronto, ${firstName(W.owner) || W.owner}. Seu app já está no ar.`, 'ok');
+      if (res?.imgFail) setTimeout(() => toast('Uma imagem não subiu. Tente de novo em Ajustes › Aparência.', 'warn'), 3200);
+      else if (res && !res.active) setTimeout(() => toast('Agora coloque os preços em Ajustes › Serviços.', 'ok'), 3200);
+    };
+
     const goStep = (dir) => {
+      demoTimers.forEach(clearTimeout);
+      box.classList.remove('demo-end');
       const steps = wizSteps(W);
       const n = steps[steps.indexOf(W.step) + dir];
       if (!n) return;
@@ -1072,19 +1302,19 @@
       if (pl && url.logo) pl.style.backgroundImage = `url("${url.logo}")`;
       // opções de uma escolha só: marca, faz o pulinho e atualiza a conversa
       const pick = (attr, fn) => $$(`[data-${attr}]`, pane).forEach((b) => { b.onclick = () => {
-        buzz();
+        buzz(); tick();
         if (fn(b.dataset[attr]) === 'redraw') return draw(0);
         $$(`[data-${attr}]`, pane).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
         setPhone(true);
       }; });
       pick('kind', (v) => {
-        W.kind = v;
-        if (!W.themePicked) { W.theme = KIND_THEME[W.kind] || 'entre'; applyStyle(W.theme, { persist: false }); }
+        W.kind = v; // 25/11: sem tema por ramo; o visual é um só, o do Entre
         if (!W.tonePicked) W.tone = KIND_TONE[W.kind] || 'leve';
         if (!W.menu || (!W.menu.fromPhoto && !W.menu.touched && W.menu.kind !== W.kind)) W.menu = tplMenu(W.kind);
-        wizFloat(floatL, W.kind);
       });
+      // Resumo: "Mudar" leva para a pergunta e o botão de baixo volta direto para o resumo
+      $$('[data-edit]', pane).forEach((b) => { b.onclick = () => { tick(); W.ret = 'resumo'; W.step = b.dataset.edit; draw(-1); }; });
       pick('tone', (v) => { W.tone = v; W.tonePicked = true; W.toneSkip = false; if (!W.emojiPicked) W.emoji = v !== 'formal'; });
       pick('emoji', (v) => { W.emoji = v === '1'; W.emojiPicked = true; });
       pick('trato', (v) => { W.trato = v; });
@@ -1104,7 +1334,7 @@
         setPhone(true);
       }; });
       // campos de texto: a conversa muda enquanto a pessoa digita
-      for (const [id, key] of [['#wName', 'name'], ['#wGreet', 'greet'], ['#wAddr', 'address'], ['#wPix', 'pixKey'], ['#wPixCity', 'pixCity'], ['#wSinal', 'sinalVal']]) {
+      for (const [id, key] of [['#wName', 'name'], ['#wOwner', 'owner'], ['#wGreet', 'greet'], ['#wAddr', 'address'], ['#wPix', 'pixKey'], ['#wPixCity', 'pixCity'], ['#wSinal', 'sinalVal']]) {
         const el = $(id, pane);
         if (el) el.addEventListener('input', () => { W[key] = el.value; setPhone(false); });
       }
@@ -1122,7 +1352,7 @@
         $$('[data-team-rm]', pane).forEach((b) => { b.onclick = () => { W.team.splice(Number(b.dataset.teamRm), 1); draw(0); }; });
       }
       if (W.step === 'estilo') {
-        bindStylePicker(pane, (id) => { buzz(); W.theme = id; W.themePicked = true; applyStyle(id, { persist: false }); });
+        bindStylePicker(pane, (id) => { buzz(); W.theme = id; W.themePicked = true; applyStyle(id, { persist: false, free: true }); });
         bindModePicker(pane);
         const sel = $('.wz-theme[aria-pressed="true"]', pane);
         if (sel) setTimeout(() => sel.scrollIntoView({ inline: 'center', block: 'nearest' }), 60);
@@ -1161,7 +1391,12 @@
       }
     };
 
-    $('#wBack', box).onclick = () => { if (!W.saving) { buzz(); goStep(-1); } };
+    $('#wBack', box).onclick = () => {
+      if (W.saving || W.step === 'demo') return;
+      buzz(); tick();
+      if (W.ret) { W.step = W.ret; W.ret = null; return draw(-1); } // estava corrigindo algo do resumo
+      goStep(-1);
+    };
     $('#wOut', box).onclick = () => sb.auth.signOut();
     $('#wSkip', box).onclick = () => {
       if (W.saving) return;
@@ -1179,7 +1414,9 @@
       if (s === 'pagamento') { W.pays = {}; W.sinal = false; W.sinalVal = ''; W.pixKey = ''; W.pixCity = ''; }
       if (s === 'pix') { W.pixKey = ''; W.pixCity = ''; }
       if (s === 'sinal') { W.sinal = false; W.sinalVal = ''; }
-      buzz(); goStep(1);
+      buzz(); tick();
+      if (W.ret) { W.step = W.ret; W.ret = null; return draw(1); }
+      goStep(1);
     };
     form.onsubmit = async (e) => {
       e.preventDefault();
@@ -1187,10 +1424,9 @@
       const s = W.step, val = (id) => ($(id, stage)?.value || '').trim();
       err('');
       if (s === 'tipo' && !W.kind) return err('Toque numa das opções.');
-      if (s === 'nome') { W.name = val('#wName'); if (W.name.length < 2) return err('Escreva o nome do negócio.'); }
-      if (s === 'voce') {
-        W.owner = val('#wOwner');
-        if (!W.owner) return err('Escreva seu nome.');
+      if (s === 'nome') {
+        W.name = val('#wName'); if (W.name.length < 2) return err('Escreva o nome do negócio.');
+        W.owner = val('#wOwner'); if (!W.owner) return err('Escreva o seu nome.');
         W.team = W.team.filter((n) => normName(n) !== normName(W.owner)); // não deixa a mesma pessoa duas vezes
       }
       if (s === 'whats') { W.wa = val('#wWa'); const d = W.wa.replace(/\D/g, ''); if (d && (d.length < 10 || d.length > 13)) return err('Confira o número, com DDD. Ou toque em "Pular".'); }
@@ -1208,17 +1444,32 @@
         W.pixCity = W.pixCity.trim();
         if (W.pixCity.length < 2) return err('Escreva a cidade. Ela aparece no Pix para quem paga.');
       }
-      buzz();
-      if (s !== 'pronto') return goStep(1);
+      buzz(); tick();
+      // veio do resumo ("Mudar"): volta direto para ele
+      if (W.ret && s !== 'resumo' && s !== 'demo') { W.step = W.ret; W.ret = null; return draw(1); }
+      // "Está tudo certo": começa a criar o negócio por trás enquanto a secretária aparece atendendo
+      if (s === 'resumo') {
+        W.saveErr = null;
+        W.save = finishOnboarding(W, { enter: false }).catch((e) => { W.saveErr = e; W.save = null; return null; });
+        return goStep(1);
+      }
+      if (s !== 'demo') return goStep(1);
       W.saving = true;
-      $('#wBack', box).disabled = true;
-      try { await busy($('#wNext', box), () => finishOnboarding(W)); }
-      finally { W.saving = false; $('#wBack', box).disabled = false; }
+      try {
+        await busy($('#wNext', box), async () => {
+          let res = W.save ? await W.save : null;
+          if (!res) { // a gravação falhou (internet?): tenta de novo agora
+            if (W.saveErr) console.warn(W.saveErr);
+            res = await finishOnboarding(W, { enter: false });
+          }
+          await enterApp(res);
+        });
+      } finally { W.saving = false; }
     };
     draw(1);
   }
 
-  async function finishOnboarding(W) {
+  async function finishOnboarding(W, { enter = true } = {}) {
     // O id do negócio é um só por tentativa: se algo falhar no meio, o negócio parcial é apagado e dá para tentar de novo.
     const id = (W.bizId ||= crypto.randomUUID());
     const pixKey = W.pays.pix && W.pixKey ? W.pixKey.slice(0, 77) : null;
@@ -1262,8 +1513,9 @@
     }
     store.set('biz', id);
     S.tab = 'inicio';
-    await start();
     const active = rows.filter((r) => r.active).length;
+    if (!enter) return { active, imgFail }; // o primeiro acesso novo faz a entrada animada e chama start()
+    await start();
     if (imgFail) toast('Tudo criado, mas uma imagem não subiu. Tente de novo em Ajustes › Aparência.', 'warn');
     else toast(active ? 'Pronto! A secretária já sabe seus preços.' : 'Pronto! Agora coloque os preços em Ajustes › Serviços.', 'ok');
   }
@@ -1293,7 +1545,9 @@
     if (tab !== 'conversas') S.conv = null;
     // Saiu de Ajustes sem salvar o estilo? Volta para o estilo salvo.
     if (tab !== 'ajustes' && S.biz) { S.previewStyle = null; applyStyle(S.biz.theme); }
-    $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+    // Conversas não tem aba própria (25/11): fica dentro de Clientes.
+    const tabKey = tab === 'conversas' ? 'clientes' : tab;
+    $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabKey));
     const view = $('#view');
     view.classList.toggle('enter', !opts.quiet);
     if (!opts.quiet) { view.innerHTML = '<div class="loading">Carregando…</div>'; window.scrollTo(0, 0); }
@@ -1316,6 +1570,7 @@
     const set = (id, n) => { const el = $('#' + id); el.hidden = !n; el.textContent = n > 9 ? '9+' : String(n || ''); };
     set('badgeInicio', p.count || 0);
     set('badgeConversas', c.count || 0);
+    S.needN = c.count || 0;
   }
 
   // Atualiza sozinho a cada 30 s (se a pessoa não estiver digitando nem com uma janela aberta)
@@ -1361,6 +1616,7 @@
       try { msg = (await error.context.json()).erro || msg; } catch { /* sem detalhe */ }
       throw new Error(msg);
     }
+    if (status === 'confirmed') chime();
     const okMsg = status === 'confirmed' ? 'Confirmado' : 'Cancelado';
     if (data?.avisada) toast(`${okMsg} e a pessoa foi avisada no WhatsApp ✅`, 'ok');
     else toast(`${okMsg}. A pessoa NÃO foi avisada pelo WhatsApp${data?.aviso ? ': ' + data.aviso : '.'}`, 'warn');
@@ -1866,24 +2122,29 @@
     // Mensagens prontas = o número de cada cartão; nos aniversários, só os de hoje (os próximos ainda não têm botão).
     const avisarCount = avisarParts.reduce((s, h, i) => s + (i === 1 ? (h.match(/data-bday="/g) || []).length : Number((/class="count">(\d+)</.exec(h) || [])[1] || 0)), 0);
     const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
-    const back = `<button type="button" class="back-btn" data-home-back><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Início</button>`;
     let html = '';
 
     if (sub === 'dinheiro') {
-      html += `${back}<h2 class="page-title">Dinheiro</h2>`;
+      html += hero({ title: 'Dinheiro', back: 'Início', backAttr: 'data-home-back', art: ART.money, small: true });
+      html += '<div class="paper">';
       html += cashCard(H, PG);
       html += `<button type="button" class="card rep-card" id="toReport">
         <span class="grow"><small>${esc(MONTHS[Number(ym.slice(5, 7)) - 1])} até agora</small><b>${esc(money(mesTotal))}</b>
         <small>${M.length} atendimento${M.length === 1 ? '' : 's'} · ver relatório do mês</small></span><b class="go">›</b></button>`;
       html += winCard(W) || '<p class="muted">Quando a secretária ou o link marcarem horários sozinhos, o valor aparece aqui.</p>';
+      html += '</div>';
     } else if (sub === 'avisar') {
-      html += `${back}<h2 class="page-title">Avisar clientes</h2>
-        <p class="hint page-lead">Cada botão abre o <b>seu</b> WhatsApp com a mensagem já escrita. Você só aperta enviar.</p>`;
+      html += hero({ title: 'Avisar clientes', back: 'Início', backAttr: 'data-home-back', art: ART.chat, small: true,
+        sub: 'Cada botão abre o <b>seu</b> WhatsApp com a mensagem já escrita.' });
+      html += '<div class="paper">';
       const parts = avisarParts.filter(Boolean);
       html += parts.length ? parts.join('') : '<p class="muted card">Nada para avisar agora. Quando alguém tiver horário amanhã, fizer aniversário ou uma vaga abrir, aparece aqui.</p>';
+      html += '</div>';
     } else {
-      html += S.biz.cover_url ? `<div class="cover"><img alt="" src="${esc(S.biz.cover_url)}"></div>` : '';
-      html += `<div class="greet"><h2>${hello}${who ? ', ' + esc(who) : ''}.</h2><p>${esc(dateLong)}</p></div>`;
+      const on = S.biz.assistant_enabled;
+      html += hero({ title: `${hello}${who ? ', ' + who : ''}`, sub: esc(dateLong), art: ART.home, cover: S.biz.cover_url,
+        top: `<div class="hero-top"><span class="hero-av">${bizAvatar()}</span><button type="button" class="hero-chip ${on ? 'on' : 'off'}" data-bot><i></i>Secretária ${on ? 'ligada' : 'desligada'}</button></div>` });
+      html += '<div class="paper">';
       // Um aviso só no topo: o que falta para a secretária funcionar (ou, depois, o "termine de configurar").
       const fin = finishList();
       const finDone = fin.filter((x) => x[0]).length;
@@ -1905,37 +2166,60 @@
           <button type="button" class="btn ghost" id="fimLater">Esconder</button></div>
         </section>`;
       }
-      if (!S.biz.assistant_enabled) html += `<div class="banner warn">A secretária está <b>desligada</b>: ninguém está respondendo automaticamente. Toque no botão lá em cima para ligar.</div>`;
-      html += '<h3 class="sec-title">Precisa de você</h3>';
-    }
-    if (!sub) html += `<section class="card"><h3>Pedidos para confirmar ${P.length ? `<span class="count">${P.length}</span>` : ''}</h3>
-      ${P.length ? P.map((b) => { S.bk.set(b.id, b); return `<div class="pend">
-          <button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
-          <small>${b.created_by === 'link' ? 'Pelo link · ' : ''}${esc(svcName(b.service_id))}${staffName(b.staff_id) ? ' com ' + esc(staffName(b.staff_id)) : ''} · ${esc(whenLabel(b.starts_at))}</small></button>
-          <div class="actions"><button type="button" class="btn small primary" data-decide="confirmed" data-id="${b.id}">Confirmar</button>
-          <button type="button" class="btn small ghost" data-decide="cancelled" data-id="${b.id}">Recusar</button></div></div>`; }).join('')
-        : '<p class="muted">Nenhum pedido esperando. Quando a secretária marcar algo pelo WhatsApp, aparece aqui.</p>'}
-    </section>`;
-    if (!sub) {
-      if (C.length) {
-        html += `<section class="card"><h3>${C.length === 1 ? '1 conversa esperando você' : `${C.length} conversas esperando você`}</h3>
-          ${C.map((c) => `<button type="button" class="row" data-conv="${c.id}"><span class="avatar">${esc(initials(clientLabel(c.clients)))}</span>
-            <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${esc(ago(c.last_message_at))}</small></span><b class="go">›</b></button>`).join('')}
-        </section>`;
+      if (!on) html += `<div class="banner warn">A secretária está <b>desligada</b>: ninguém está respondendo automaticamente. Toque em "Secretária desligada", lá em cima, para ligar.</div>`;
+
+      // Uma coisa de cada vez: pedidos e conversas que precisam da pessoa, um cartão por vez.
+      // "Depois" esconde só até sair do app (fica guardado na memória desta tela, não no banco).
+      S.homeSkip ||= new Set();
+      const queue = [...P.map((b) => ({ key: 'b:' + b.id, b })), ...C.map((c) => ({ key: 'c:' + c.id, c }))].filter((x) => !S.homeSkip.has(x.key));
+      const skipped = P.length + C.length - queue.length;
+      if (queue.length) {
+        const q = queue[0];
+        const dots = `<span class="focus-dots" aria-label="${queue.length} para resolver">${queue.slice(0, 6).map((_, i) => `<i class="${i === 0 ? 'on' : ''}"></i>`).join('')}</span>`;
+        const deco = '<svg class="focus-deco" viewBox="0 0 190 150" aria-hidden="true"><path d="M60 20h100a24 24 0 0124 24v40a24 24 0 01-24 24H98l-26 20v-20H60a24 24 0 01-24-24V44a24 24 0 0124-24z"/><circle cx="86" cy="64" r="7"/><circle cx="110" cy="64" r="7"/><circle cx="134" cy="64" r="7"/></svg>';
+        if (q.b) {
+          const b = q.b;
+          S.bk.set(b.id, b);
+          const staff = staffName(b.staff_id);
+          html += `<section class="focus">${deco}
+            <div class="focus-top"><span class="focus-tag">${b.created_by === 'link' ? 'Pedido pelo link' : 'Pedido novo'}</span>${dots}</div>
+            <button type="button" class="focus-main" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
+              <span>${esc(svcName(b.service_id) || 'Atendimento')}${staff ? ' com ' + esc(staff) : ''}</span>
+              <strong>${esc(whenLabel(b.starts_at))}${b.price_cents ? ' · ' + esc(money(b.price_cents)) : ''}</strong></button>
+            <div class="focus-btns"><button type="button" class="btn" data-decide="cancelled" data-id="${b.id}">Recusar</button>
+              <button type="button" class="btn go" data-decide="confirmed" data-id="${b.id}">Confirmar</button></div></section>`;
+        } else {
+          const c = q.c;
+          html += `<section class="focus">${deco}
+            <div class="focus-top"><span class="focus-tag">Conversa para você</span>${dots}</div>
+            <button type="button" class="focus-main" data-conv="${c.id}"><b>${esc(clientLabel(c.clients))}</b>
+              <span>A secretária pediu a sua ajuda</span><strong>${esc(ago(c.last_message_at))}</strong></button>
+            <div class="focus-btns"><button type="button" class="btn" data-skip="${esc(q.key)}">Depois</button>
+              <button type="button" class="btn go" data-conv="${c.id}">Responder</button></div></section>`;
+        }
+      } else {
+        html += `<section class="card done-card">${ART.done}<span class="grow"><b>Tudo em dia</b>
+          <small>${skipped ? `${skipped} ${skipped === 1 ? 'ficou' : 'ficaram'} para depois.` : 'Nada esperando você agora.'}</small>
+          ${skipped ? '<button type="button" class="link-btn" data-unskip>Ver de novo</button>' : ''}</span></section>`;
       }
-      const hojeTxt = hojeAtend.length ? `${hojeAtend.length} atendimento${hojeAtend.length > 1 ? 's' : ''} · ${total % 100 === 0 ? 'R$ ' + (total / 100).toLocaleString('pt-BR') : brl(total)}` : 'nenhum atendimento';
-      html += `<div class="sec-head"><h3 class="sec-title">Hoje</h3><span>${esc(hojeTxt)}</span></div>
-        <section class="card">
-        ${H.length ? `<div class="list">${H.map((b) => bookingRow(b)).join('')}</div>` : '<p class="muted">Agenda livre hoje.</p>'}
-        <button type="button" class="btn ghost block" id="toAgenda">Ver agenda completa</button></section>`;
-      html += `<h3 class="sec-title">Ver mais</h3>
-        <section class="card more-list">
-          <button type="button" class="more-row" data-home-sub="dinheiro"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span>
-            <span class="grow"><b>Dinheiro</b><small>${esc(money(recebidoHoje))} hoje · ${esc(money(mesTotal))} no mês</small></span>${chev}</button>
-          <button type="button" class="more-row" data-home-sub="avisar"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></span>
-            <span class="grow"><b>Avisar clientes</b><small>${avisarCount ? `${avisarCount} ${avisarCount === 1 ? 'mensagem pronta' : 'mensagens prontas'} para mandar` : 'Nada para avisar agora'}</small></span>
-            ${avisarCount ? `<span class="more-count">${avisarCount}</span>` : ''}${chev}</button>
-        </section>`;
+
+      // Quadrados coloridos: hoje, dinheiro, mensagens prontas e o que a secretária fez.
+      const nowMs = Date.now();
+      const next = hojeAtend.find((b) => ['pending', 'confirmed'].includes(b.status) && new Date(b.ends_at).getTime() > nowMs);
+      const nightN = W.filter((b) => !wasOpen(b.created_at)).length;
+      html += `<div class="tiles">
+        <button type="button" class="tile t-copper" id="toAgenda"><span class="tile-h"><span>Hoje</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="4" opacity=".2"/><rect x="3" y="5" width="18" height="5" rx="2.5" opacity=".5"/></svg></span>
+          <span class="tile-big"><b>${hojeAtend.length}</b><small>${hojeAtend.length === 1 ? 'atendimento' : 'atendimentos'}</small></span>
+          <span class="tile-foot">${next ? `${next.status === 'pending' ? 'A confirmar' : 'Próximo'} ${esc(partsOf(next.starts_at).time)} · ${esc(firstName(bookingName(next)) || bookingName(next))}` : hojeAtend.length ? 'Por hoje é só' : 'Agenda livre'}</span></button>
+        <button type="button" class="tile t-mint" data-home-sub="dinheiro"><span class="tile-h"><span>Entrou hoje</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path class="cut" d="M12 7v10M14.5 9.3c-.4-.8-1.4-1.3-2.5-1.3-1.5 0-2.5.8-2.5 1.9 0 2.6 5 1.3 5 4 0 1.1-1.1 1.9-2.5 1.9-1.2 0-2.2-.5-2.6-1.4"/></svg></span>
+          <span class="tile-val">${esc(money(recebidoHoje))}</span>
+          <span class="tile-foot">${esc(money(mesTotal))} no mês</span></button>
+        <button type="button" class="tile t-white short" data-home-sub="avisar"><svg class="tile-ic" viewBox="0 0 34 28" aria-hidden="true"><path d="M6 2h22a5 5 0 015 5v10a5 5 0 01-5 5H14l-7 5v-5H6a5 5 0 01-5-5V7a5 5 0 015-5z"/><circle cx="11" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="23" cy="12" r="2"/></svg>
+          <span><b>${avisarCount ? `${avisarCount} ${avisarCount === 1 ? 'mensagem' : 'mensagens'}` : 'Avisar clientes'}</b><small>${avisarCount ? 'prontas para mandar' : 'nada para mandar agora'}</small></span></button>
+        <button type="button" class="tile t-navy short" data-home-sub="dinheiro"><svg class="tile-ic" viewBox="0 0 64 40" aria-hidden="true"><path d="M22 4a16 16 0 1016 20A13 13 0 0122 4z" fill="#FFD66B"/><circle cx="46" cy="8" r="2" fill="#fff"/><circle cx="56" cy="20" r="1.5" fill="#fff" opacity=".7"/><circle cx="40" cy="30" r="1.2" fill="#fff" opacity=".6"/></svg>
+          <span><b>${W.length ? `${W.length} ${W.length === 1 ? 'marcado' : 'marcados'}` : 'Secretária'}</b><small>${W.length ? (nightN ? `${nightN} com o negócio fechado` : 'por ela e pelo link em 7 dias') : 'ainda não marcou nada'}</small></span></button>
+      </div>`;
+      html += '</div>';
     }
 
     if (stale(opts)) return;
@@ -1948,6 +2232,9 @@
     $('#toAgenda', v)?.addEventListener('click', () => go('agenda'));
     $$('[data-home-sub]', v).forEach((b) => { b.onclick = () => go('inicio', { sub: b.dataset.homeSub }); });
     $('[data-home-back]', v)?.addEventListener('click', () => go('inicio'));
+    $('[data-bot]', v)?.addEventListener('click', () => $('#botPill').click());
+    $$('[data-skip]', v).forEach((b) => { b.onclick = () => { S.homeSkip.add(b.dataset.skip); go('inicio', { quiet: true }); }; });
+    $('[data-unskip]', v)?.addEventListener('click', () => { S.homeSkip.clear(); go('inicio', { quiet: true }); });
     $('#toCash')?.addEventListener('click', (e) => {
       const b = e.currentTarget;
       if (b.disabled) return;
@@ -2115,18 +2402,18 @@
     const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
     if (stale(opts)) return;
-    $('#view').innerHTML = `<div class="agenda-head">
-        <button type="button" class="icon-btn" id="prevW" aria-label="Semana anterior">‹</button>
-        <b>${MONTHS[m]} ${d.slice(0, 4)}</b>
-        <button type="button" class="icon-btn" id="nextW" aria-label="Próxima semana">›</button>
-        ${d !== t ? '<button type="button" class="btn small ghost" id="todayBtn">Hoje</button>' : ''}
-      </div>
-      <div class="week">${days.map((x) => {
+    const weekHtml = `<div class="week">${days.map((x) => {
         const n = (byDay[x] || []).filter((b) => b.status !== 'block').length;
         const closed = !S.hours.some((h) => h.weekday === weekdayOf(x));
         return `<button type="button" data-day="${x}" class="${x === d ? 'sel' : ''} ${x === t ? 'today' : ''} ${closed ? 'closed' : ''}">
           <small>${WDS[weekdayOf(x)]}</small><b>${x.slice(8, 10)}</b><i>${n ? n : ''}</i></button>`;
-      }).join('')}</div>
+      }).join('')}</div>`;
+    const navHtml = `<div class="hero-nav">
+        <button type="button" class="hero-round" id="prevW" aria-label="Semana anterior">${CHEV_L}</button>
+        ${d !== t ? '<button type="button" class="hero-pill" id="todayBtn">Hoje</button>' : ''}
+        <button type="button" class="hero-round flip" id="nextW" aria-label="Próxima semana">${CHEV_L}</button></div>`;
+    $('#view').innerHTML = `${hero({ title: 'Agenda', kicker: `${MONTHS[m]} ${d.slice(0, 4)}`, art: ART.agenda, top: navHtml, bottom: weekHtml })}
+      <div class="paper">
       <div class="day-head"><h3 class="sec-title">${esc(WD[weekdayOf(d)])}, ${d.slice(8, 10)}/${d.slice(5, 7)}</h3><p>${esc(dayTxt)}</p></div>
       ${multi && open.length ? `<div class="seg ag-view-seg" role="group" aria-label="Como ver o dia"><button type="button" data-aview="lista" class="${aview === 'lista' ? 'sel' : ''}">Lista</button><button type="button" data-aview="grade" class="${aview === 'grade' ? 'sel' : ''}">Por pessoa</button></div>` : ''}
       <section class="card">
@@ -2141,7 +2428,8 @@
         <button type="button" class="more-row" id="newBlock"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
           <span class="grow"><b>Bloquear horário</b><small>Folga, almoço ou compromisso</small></span>${chev}</button>
       </section>
-      <div class="fab-row"><button type="button" class="btn primary" id="newBk">+ Marcar horário</button></div>`;
+      </div>
+      <div class="fab-row"><button type="button" class="btn primary" id="newBk">+ Marcar</button></div>`;
     const v = $('#view');
     bindBookingRows(v);
     $$('[data-day]', v).forEach((b) => { b.onclick = () => { S.day = b.dataset.day; go('agenda', { quiet: true }); }; });
@@ -2507,7 +2795,9 @@
     const shown = S.convFilter === 'ajuda' ? convs.filter((c) => c.needs_human) : convs;
     const who = { client: '', assistant: 'Secretária: ', owner: 'Você: ' };
     if (stale(opts)) return;
-    $('#view').innerHTML = `<div class="seg">
+    $('#view').innerHTML = `${hero({ title: 'Clientes', art: ART.people, bottom: cliSeg('conversas') })}
+      <div class="paper">
+      <div class="seg">
         <button type="button" data-f="todas" class="${S.convFilter === 'todas' ? 'sel' : ''}">Todas</button>
         <button type="button" data-f="ajuda" class="${S.convFilter === 'ajuda' ? 'sel' : ''}">Precisam de você${need ? ` (${need})` : ''}</button>
       </div>
@@ -2518,7 +2808,9 @@
           <span class="avatar">${esc(initials(clientLabel(c.clients)))}</span>
           <span class="grow"><b>${esc(clientLabel(c.clients))}</b><small>${m ? esc((who[m.author] + String(m.body).replace(/^\[foto\]/, '📷 Foto')).slice(0, 90)) : ''}</small></span>
           <span class="meta"><small>${esc(ago(c.last_message_at))}</small>${c.needs_human ? '<i class="chip warn">Você</i>' : paused ? '<i class="chip muted">Pausada</i>' : ''}</span></button>`;
-      }).join('')}</div>` : `<div class="empty">${S.convFilter === 'ajuda' ? 'Nenhuma conversa esperando você. 🎉' : 'Ainda não há conversas. Quando alguém mandar mensagem no WhatsApp do negócio, a conversa aparece aqui.'}</div>`}`;
+      }).join('')}</div>` : `<div class="empty">${S.convFilter === 'ajuda' ? 'Nenhuma conversa esperando você. 🎉' : 'Ainda não há conversas. Quando alguém mandar mensagem no WhatsApp do negócio, a conversa aparece aqui.'}</div>`}
+      </div>`;
+    bindCliSeg();
     $$('[data-f]').forEach((b) => { b.onclick = () => { S.convFilter = b.dataset.f; go('conversas', { quiet: true }); }; });
     $$('[data-conv]').forEach((b) => { b.onclick = () => { S.conv = b.dataset.conv; go('conversas'); }; });
   }
@@ -2652,28 +2944,30 @@
 
     if (stale(opts)) return;
     if (!sub) {
-      $('#view').innerHTML = `<h2 class="page-title">Clientes</h2>
-      <label class="search"><input type="search" id="cq" placeholder="Buscar por nome ou telefone" value="${esc(S.clientQuery)}"></label>
-      ${!q && (due.length || everCame) ? `<section class="card more-list">
-        <button type="button" class="more-row" data-cli-sub="voltar"><span class="more-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10.5h6"/></svg></span>
-          <span class="grow"><b>Chamar de volta</b><small>${voltarN ? `${voltarN} ${voltarN === 1 ? 'pessoa para chamar' : 'pessoas para chamar'}` : 'Ninguém para chamar agora'}</small></span>
-          ${voltarN ? `<span class="more-count">${voltarN}</span>` : ''}${chev}</button>
-      </section>` : ''}
-      <div class="sec-head"><h3 class="sec-title">${q ? 'Resultado' : 'Todas as pessoas'}</h3><span>${q ? shown.length : clients.length}</span></div>
+      $('#view').innerHTML = `${hero({ title: 'Clientes', art: ART.people, bottom: `${cliSeg('pessoas')}
+        <label class="hero-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input type="search" id="cq" placeholder="Buscar nome ou telefone" aria-label="Buscar cliente" value="${esc(S.clientQuery)}"></label>` })}
+      <div class="paper">
+      ${!q && (due.length || everCame) ? `<button type="button" class="cta-copper${voltarN ? '' : ' quiet'}" data-cli-sub="voltar"><span class="cta-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></span>
+          <span class="grow"><b>Chamar de volta</b><small>${voltarN ? `${voltarN} ${voltarN === 1 ? 'pessoa já passou do tempo' : 'pessoas já passaram do tempo'}` : 'Ninguém para chamar agora'}</small></span>
+          ${voltarN ? `<span class="cta-n">${voltarN}</span>` : chev}</button>` : ''}
+      <h3 class="sec-title small">${q ? 'Resultado' : 'Todas as pessoas'} · ${q ? shown.length : clients.length}</h3>
       ${shown.length ? `<div class="card list flush">${shown.slice(0, 300).map((c) => {
         const x = info.get(c.id);
         const sub2 = [c.birthday && c.birthday === mdOf(t) ? 'aniversário hoje 🎂' : '', x.next ? 'próxima ' + whenLabel(x.next.starts_at) : x.last ? 'última ' + relDay(partsOf(x.last.starts_at).date) : 'sem visitas ainda', x.noshow ? `${x.noshow} falta${x.noshow > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
         return `<button type="button" class="row" data-client="${c.id}"><span class="avatar">${esc(initials(clientLabel(c)))}</span>
           <span class="grow"><b>${esc(clientLabel(c))}</b><small>${esc(sub2)}</small></span><b class="go">›</b></button>`;
-      }).join('')}</div>` : `<div class="empty">${clients.length ? 'Ninguém encontrado.' : 'As pessoas aparecem aqui sozinhas quando mandam mensagem ou são marcadas.'}</div>`}`;
+      }).join('')}</div>` : `<div class="empty">${clients.length ? 'Ninguém encontrado.' : 'As pessoas aparecem aqui sozinhas quando mandam mensagem ou são marcadas.'}</div>`}
+      </div>`;
+      bindCliSeg();
       const cq = $('#cq');
       cq.oninput = () => { S.clientQuery = cq.value; clearTimeout(cq.t); cq.t = setTimeout(() => S.tab === 'clientes' && go('clientes', { quiet: true }).then(() => { const n = $('#cq'); if (!n || S.tab !== 'clientes') return; n.focus(); n.setSelectionRange(n.value.length, n.value.length); }), 250); };
       $$('[data-client]').forEach((b) => { b.onclick = () => openClient(b.dataset.client); });
       $$('[data-cli-sub]').forEach((b) => { b.onclick = () => go('clientes', { sub: b.dataset.cliSub }); });
       return;
     }
-    $('#view').innerHTML = `${back}<h2 class="page-title">Chamar de volta</h2>
-      <p class="hint page-lead">Cada botão abre o <b>seu</b> WhatsApp com a mensagem já escrita. Você só aperta enviar.</p>
+    $('#view').innerHTML = `${hero({ title: 'Chamar de volta', back: 'Clientes', backAttr: 'data-cli-back', art: ART.chat, small: true,
+        sub: 'Cada botão abre o <b>seu</b> WhatsApp com a mensagem já escrita.' })}
+      <div class="paper">
       ${due.length ? `<section class="card"><h3>Hora de voltar <span class="count">${due.length}</span></h3>
         <p class="hint">Já passou o tempo de retorno do serviço e não têm horário marcado.</p>
         ${due.slice(0, 30).map((d) => `<div class="pend"><div class="pend-info"><b>${esc(clientLabel(d.c))}</b><small>${esc(d.svc.name)} há ${d.days} dias · retorno sugerido: ${d.svc.return_days} dias</small></div>
@@ -2686,7 +2980,8 @@
           <div class="actions"><a class="btn small primary" target="_blank" rel="noopener" href="${waLink(g.c.phone, goneMsg(g))}">Chamar no WhatsApp</a></div></div>`).join('')
           + (gone.length > goneShown.length ? `<button type="button" class="btn ghost block" id="goneAll">Ver todas (${gone.length})</button>` : '')
         : `<p class="muted">Ninguém sumido há mais de ${goneDays} dias. 🎉</p>`}
-      </section>` : ''}`;
+      </section>` : ''}
+      </div>`;
     $('[data-cli-back]')?.addEventListener('click', () => go('clientes'));
     $$('[data-gone]').forEach((b) => { b.onclick = () => { S.goneDays = Number(b.dataset.gone); store.set('goneDays', b.dataset.gone); S.goneAll = false; go('clientes', { quiet: true, keepScroll: true }); }; });
     $('#goneAll')?.addEventListener('click', () => { S.goneAll = true; go('clientes', { quiet: true, keepScroll: true }); });
@@ -2803,31 +3098,37 @@
         ['link', 'Link de agendamento', b.booking_link_enabled ? 'Ligado' : 'Desligado', false, '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'],
       ]],
       ['App', [
-        ['aparencia', 'Aparência', `Estilo ${(STYLES[b.theme] || STYLES.entre).nome}, logo e capa`, false, '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.6 1.6-2.6H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>'],
+        ['aparencia', 'Aparência', 'Claro ou escuro, som, logo e capa', false, '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.4-1.9-.5-1.2.3-2.6 1.6-2.6H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>'],
         ['conta', 'Minha conta', 'Trocar senha e sair', false, '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/>'],
       ]],
     ];
     const TITLES = Object.fromEntries(MENU.flatMap(([, rows]) => rows.map(([k, t]) => [k, t])));
     const chev = '<svg class="go-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    // Ícones em quadradinhos coloridos, como nos Ajustes do iPhone (vermelho quando falta algo).
+    const IC_COLOR = { servicos: '#1F7A57', horarios: '#E8872F', equipe: '#2B5C8F', negocio: '#6A3F94', secretaria: '#12241F', whatsapp: '#25A366', link: '#2BB673', aparencia: '#C2417A', conta: '#7A8580' };
     const menuHtml = MENU.map(([g, rows]) => `<h3 class="sec-title small">${esc(g)}</h3><section class="card more-list">
-      ${rows.map(([k, t, s, warn, ic]) => `<button type="button" class="more-row" data-set-open="${k}"><span class="more-ic${warn ? ' warn' : ''}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span>
+      ${rows.map(([k, t, s, warn, ic]) => `<button type="button" class="more-row" data-set-open="${k}"><span class="more-ic${warn ? ' warn' : ''}" style="--ic:${warn ? '#E5484D' : IC_COLOR[k] || '#1F7A57'}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span>
         <span class="grow"><b>${esc(t)}</b><small class="${warn ? 'warn-txt' : ''}">${esc(s)}</small></span>${chev}</button>`).join('')}</section>`).join('');
 
     $('#view').innerHTML = `
       <div id="setMenu" ${page ? 'hidden' : ''}>
-        <h2 class="page-title">Ajustes</h2>
+        ${hero({ title: 'Ajustes', art: ART.shop, bottom: `<div class="hero-biz"><span class="hero-av big">${bizAvatar()}</span><span><b>${esc(b.name)}</b><small>${esc(KINDS[b.kind]?.label || 'Meu negócio')}</small></span></div>` })}
+        <div class="paper">
+        <div class="bot-card"><span class="bot-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v9a2 2 0 01-2 2H10l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><circle cx="8" cy="10.5" r="1.3"/><circle cx="12" cy="10.5" r="1.3"/><circle cx="16" cy="10.5" r="1.3"/></svg></span>
+          <span class="grow"><b>Secretária</b><small>${b.assistant_enabled ? 'Respondendo no WhatsApp' : 'Desligada: ninguém responde sozinho'}</small></span>
+          <button type="button" class="ios-switch${b.assistant_enabled ? ' on' : ''}" data-bot aria-pressed="${b.assistant_enabled ? 'true' : 'false'}" aria-label="${b.assistant_enabled ? 'Desligar' : 'Ligar'} a secretária"><i></i></button></div>
         ${S.bizList.length > 1 ? `<label class="card">Negócio<select id="bizSel">${S.bizList.map((x) => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
         ${menuHtml}
-        <p class="muted small center">Entre · painel versão 2</p>
+        <p class="muted small center">Entre · painel versão 3</p>
+        </div>
       </div>
-      <div id="setHead" ${page ? '' : 'hidden'}><button type="button" class="back-btn" id="setBack"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Ajustes</button>
-        <h2 class="page-title" id="setTitle">${esc(TITLES[page] || '')}</h2></div>
+      <div id="setHead" ${page ? '' : 'hidden'}>${hero({ title: TITLES[page] || '', back: 'Ajustes', backAttr: 'id="setBack"', small: true })}</div>
+      <div class="paper set-pages">
       <details class="card set-page" ${sec('aparencia')}><summary>Aparência do app</summary>
         <form id="lookForm">
-          <p class="hint">Toque num estilo para ver como fica. Cada um tem versão clara e escura.</p>
-          ${stylePickerHtml(S.previewStyle || b.theme || 'entre', b.kind)}
           <p class="label">Claro ou escuro (vale para este aparelho)</p>
           ${modePickerHtml()}
+          <label class="switch"><input type="checkbox" id="tapToggle" ${tapOn() ? 'checked' : ''}><span>Som e vibração ao tocar (neste aparelho)</span></label>
           <label>Seu nome (aparece em "Bom dia, …")<input name="owner_name" maxlength="60" value="${esc(b.owner_name || '')}" placeholder="Ex.: Ana"></label>
           <p class="label">Logo do negócio (aparece no topo)</p>
           <div class="img-pick"><span class="thumb" id="logoThumb"></span><div class="grow"><input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp">
@@ -2909,6 +3210,7 @@
         <button type="button" class="btn ghost block" id="changePass">Trocar minha senha</button>
         <button type="button" class="btn ghost block" id="logout">Sair</button>
       </details>
+      </div>
 `;
 
     const v = $('#view');
@@ -2917,13 +3219,15 @@
       const target = k === 'secretaria' ? 'negocio' : k;
       $('#setMenu', v).hidden = true;
       $('#setHead', v).hidden = false;
-      $('#setTitle', v).textContent = TITLES[k] || '';
+      $('#setHead .hero-title', v).textContent = TITLES[k] || '';
       $$('details.set-page', v).forEach((d) => { const on = d.dataset.sec === target; d.hidden = !on; if (on) d.open = true; });
       if (target === 'negocio') $('#bizForm', v).dataset.part = k === 'secretaria' ? 'secretaria' : 'negocio';
       window.scrollTo(0, 0);
     };
     $$('[data-set-open]', v).forEach((btn) => { btn.onclick = () => showPage(btn.dataset.setOpen); });
     $('#setBack', v).onclick = () => go('ajustes');
+    $('[data-bot]', v)?.addEventListener('click', () => $('#botPill').click());
+    $('#tapToggle', v)?.addEventListener('change', (e) => { store.set('tap', e.target.checked ? 'on' : 'off'); if (e.target.checked) { tick(); buzz(8); } });
     // Nas telas próprias o título da seção já está em cima: o "abrir/fechar" da seção não faz sentido.
     $$('details.set-page > summary', v).forEach((s) => { s.addEventListener('click', (e) => e.preventDefault()); });
     $('#bizSel')?.addEventListener('change', async (e) => {
