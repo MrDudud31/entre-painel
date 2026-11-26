@@ -2280,7 +2280,7 @@
     const cur = ymOf(today());
     const from = dayStartIso(ymAdd(ym, -1) + '-01'), mid = dayStartIso(ym + '-01'), to = dayStartIso(ymAdd(ym, 1) + '-01');
     const [bk, nc, pg] = await Promise.all([
-      sb.from('bookings').select('starts_at, ends_at, status, price_cents, paid_cents, paid_method, paid_at, service_id, staff_id, client_id, client_name, created_by')
+      sb.from('bookings').select('starts_at, ends_at, status, price_cents, paid_cents, paid_method, paid_at, service_id, extra_service_ids, staff_id, client_id, client_name, created_by')
         .eq('business_id', S.biz.id).neq('status', 'block').gte('starts_at', from).lt('starts_at', to).limit(10000),
       sb.from('clients').select('id', { count: 'exact', head: true }).eq('business_id', S.biz.id).gte('created_at', mid).lt('created_at', to),
       // Recebido no mês (pela data do pagamento, inclui sinal de horário de outro mês)
@@ -2318,7 +2318,16 @@
       const max = Math.max(1, ...rows.map((r) => r.n));
       return `<div class="rep-bars">${rows.map((r) => `<div class="rep-bar"><span>${esc(r.label)}</span><i style="--w:${Math.round((r.n / max) * 100)}%"></i><em>${esc(fmt(r))}</em></div>`).join('')}</div>`;
     };
-    const bySvc = [...group(A, (b) => b.service_id)].map(([k, v]) => ({ label: svcName(k) || 'Serviço apagado', ...v })).sort((a, b) => b.n - a.n || b.c - a.c).slice(0, 6);
+    // Serviços que mais saem: um horário com vários serviços (Corte + Barba) conta cada um; o valor é dividido
+    // pelo preço de tabela de cada serviço (ou igual, se não tiver preço).
+    const svcMap = new Map();
+    for (const b of A) {
+      const ids = [b.service_id, ...(b.extra_service_ids || [])].filter(Boolean);
+      const prices = ids.map((id) => S.services.find((s) => s.id === id)?.price_cents || 0);
+      const tot = prices.reduce((a, p) => a + p, 0);
+      ids.forEach((id, i) => { const x = svcMap.get(id) || { n: 0, c: 0 }; x.n++; x.c += Math.round(charged(b) * (tot ? prices[i] / tot : 1 / ids.length)); svcMap.set(id, x); });
+    }
+    const bySvc = [...svcMap].map(([k, v]) => ({ label: svcName(k) || 'Serviço apagado', ...v })).sort((a, b) => b.n - a.n || b.c - a.c).slice(0, 6);
     const byWd = group(A, (b) => partsOf(b.starts_at).weekday);
     const wdRows = WEEK_ORDER.filter((w) => byWd.has(w) || S.hours.some((h) => h.weekday === w)).map((w) => ({ label: WD[w], n: byWd.get(w)?.n || 0 }));
     const byHour = group(A, (b) => partsOf(b.starts_at).time.slice(0, 2));
