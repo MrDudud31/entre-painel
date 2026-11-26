@@ -1906,3 +1906,8 @@ html.v2 .ag2 .ag-chip-r input:checked + span { background: var(--brand); color: 
 html.v2[data-mode="dark"] .ag2-ticket { background: #145A3F; }
 html.v2[data-mode="dark"] .ag2-ticket::after { background: #26915F; }
 html.v2[data-mode="dark"] .ag2-mini, html.v2[data-mode="dark"] .ag2-logo { background: #26362F; }
+/* vários serviços (26/11): o escolhido ganha ✓ no quadrado; o que não dá para juntar fica apagado */
+.ag2-svc.sel .ag2-ic { background: var(--brand); color: var(--brand-ink); }
+.ag2-ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.ag2-svc.off { opacity: .45; box-shadow: none; cursor: not-allowed; }
+.ag2-screen > .ag2-lead { margin-top: -10px; }

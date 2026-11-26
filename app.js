@@ -238,8 +238,10 @@
   const bookingUrl = (slug) => new URL('agendar.html?n=' + encodeURIComponent(slug), APP_BASE).href;
   const linkOn = () => !!(S.biz?.booking_link_enabled && S.biz?.booking_slug);
   const svcName = (id) => S.services.find((s) => s.id === id)?.name || '';
+  // Horário com mais de um serviço (marcado pelo link, 26/11): o nome junto ("Corte + Barba") vem em service_label.
+  const bkSvc = (b) => b.service_label || svcName(b.service_id);
   const staffName = (id) => S.staff.find((p) => p.id === id)?.name || '';
-  const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, paid_cents, paid_method, paid_at, note, created_by, service_id, staff_id, reminded_at, clients(name, phone, username)';
+  const BOOK_SEL = 'id, starts_at, ends_at, status, client_name, client_id, price_cents, paid_cents, paid_method, paid_at, note, created_by, service_id, service_label, staff_id, reminded_at, clients(name, phone, username)';
   // Caixa: forma de pagamento e valor de verdade do atendimento (o recebido, se já recebeu; senão o preço)
   const PAY = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro', outro: 'Outro' };
   const charged = (b) => (b.paid_at ? b.paid_cents || 0 : b.price_cents || 0);
@@ -1598,7 +1600,7 @@
     S.bk.set(b.id, b);
     const p = partsOf(b.starts_at), e = partsOf(b.ends_at);
     const [lab, cls] = STATUS[b.status] || ['', ''];
-    const sub = [b.status === 'block' ? (b.staff_id ? staffName(b.staff_id) : 'Todos') : svcName(b.service_id), b.status === 'block' ? '' : staffName(b.staff_id)].filter(Boolean).join(' · ');
+    const sub = [b.status === 'block' ? (b.staff_id ? staffName(b.staff_id) : 'Todos') : bkSvc(b), b.status === 'block' ? '' : staffName(b.staff_id)].filter(Boolean).join(' · ');
     const risk = noShowRisk(b);
     const paid = (b.paid_at && b.status !== 'block' ? ` · <span class="paid">pago${PAY[b.paid_method] ? ' (' + PAY[b.paid_method] + ')' : ''}</span>` : '')
       + (risk ? ` · <span class="risk r-${risk.level === 'alto' ? 'alto' : 'medio'}">pode faltar</span>` : '');
@@ -1632,7 +1634,7 @@
     const rows = [
       b.status !== 'block' && ['Cliente', esc(bookingName(b))],
       phone && ['WhatsApp', `<a href="${waLink(phone)}" target="_blank" rel="noopener">${esc(phoneText(phone))}</a>`],
-      b.service_id && ['Serviço', esc(svcName(b.service_id))],
+      b.service_id && ['Serviço', esc(bkSvc(b))],
       ['Profissional', esc(staffName(b.staff_id) || (b.status === 'block' ? 'Todos' : '—'))],
       ['Quando', `${esc(WD[weekdayOf(p.date)])}, ${p.date.slice(8, 10)}/${p.date.slice(5, 7)} · ${p.time}–${e.time}`],
       b.status !== 'block' && ['Valor', esc(brl(b.price_cents))],
@@ -1877,7 +1879,7 @@
     const last = store.get('payMethod');
     const sel = b.paid_method || (PAY[last] ? last : 'pix');
     const val = b.paid_at ? b.paid_cents : b.price_cents;
-    const what = [svcName(b.service_id), staffName(b.staff_id)].filter(Boolean).join(' · ');
+    const what = [bkSvc(b), staffName(b.staff_id)].filter(Boolean).join(' · ');
     const form = sheet(justDone ? 'Atendimento feito ✓' : b.paid_at ? 'Pagamento' : 'Receber pagamento', `
       <p class="pay-who"><b>${esc(bookingName(b))}</b><small>${esc(what)}${what ? ' · ' : ''}${esc(whenLabel(b.starts_at))}</small></p>
       <label>${justDone ? 'Quanto você recebeu?' : 'Valor recebido'}<span class="money-big"><span>R$</span><input name="value" inputmode="decimal" autocomplete="off" maxlength="12" value="${esc(centsIn(val))}" placeholder="0,00"></span></label>
@@ -1922,12 +1924,12 @@
       const code = pixCode({ key: S.biz.pix_key, name: S.biz.name, city: S.biz.pix_city || 'BRASIL', cents });
       return {
         code,
-        text: `${hi(b.client_name || b.clients?.name)} Para segurar o seu horário ${dayWords(p.date)} às ${p.time}${svcName(b.service_id) ? ' (' + svcName(b.service_id) + ')' : ''}, pedimos um sinal de ${money(cents)} pelo Pix. `
+        text: `${hi(b.client_name || b.clients?.name)} Para segurar o seu horário ${dayWords(p.date)} às ${p.time}${bkSvc(b) ? ' (' + bkSvc(b) + ')' : ''}, pedimos um sinal de ${money(cents)} pelo Pix. `
           + `É só copiar o código abaixo e colar no app do seu banco, em "Pix copia e cola". O valor entra como parte do pagamento.\n\n${code}`,
       };
     };
     const form = sheet('Pedir sinal por Pix', `
-      <p class="pay-who"><b>${esc(bookingName(b))}</b><small>${esc(svcName(b.service_id))} · ${esc(whenLabel(b.starts_at))}${price ? ' · ' + esc(brl(price)) : ''}</small></p>
+      <p class="pay-who"><b>${esc(bookingName(b))}</b><small>${esc(bkSvc(b))} · ${esc(whenLabel(b.starts_at))}${price ? ' · ' + esc(brl(price)) : ''}</small></p>
       <label>Valor do sinal<span class="money-big"><span>R$</span><input name="value" inputmode="decimal" autocomplete="off" maxlength="10" value="${esc(centsIn(def))}"></span></label>
       <p class="hint">O Pix vai para a sua chave (${esc(S.biz.pix_key)}). Quando cair na conta, abra o agendamento e toque em "Registrar sinal recebido".</p>
       <a class="btn primary block" id="depWa" target="_blank" rel="noopener">Mandar pelo WhatsApp</a>
@@ -1966,7 +1968,7 @@
     const isToday = date === today();
     [...dayRows, ...paid].forEach((b) => S.bk.set(b.id, b));
     const line = (b, btn) => `<div class="pend"><button type="button" class="pend-info" data-pay="${b.id}"><b>${esc(bookingName(b))}</b>
-        <small>${esc([partsOf(b.starts_at).time, svcName(b.service_id), staffName(b.staff_id)].filter(Boolean).join(' · '))}</small></button>
+        <small>${esc([partsOf(b.starts_at).time, bkSvc(b), staffName(b.staff_id)].filter(Boolean).join(' · '))}</small></button>
         ${btn}</div>`;
     const body = `<div class="rep-nav">
         <button type="button" class="icon-btn" data-cash="${addDays(date, -1)}" aria-label="Dia anterior">‹</button>
@@ -2049,7 +2051,7 @@
     return `<section class="card"><h3>Lembrar quem vem amanhã <span class="count">${left}</span></h3>
       <p class="hint">Lembrar diminui as faltas.</p>
       ${list.map((b) => { S.bk.set(b.id, b); const done = sent.has(b.id); return `<div class="pend${done ? ' sent' : ''}"><button type="button" class="pend-info" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
-        <small>${esc(partsOf(b.starts_at).time)}${svcName(b.service_id) ? ' · ' + esc(svcName(b.service_id)) : ''}</small></button>
+        <small>${esc(partsOf(b.starts_at).time)}${bkSvc(b) ? ' · ' + esc(bkSvc(b)) : ''}</small></button>
         <div class="actions">${done ? `<span class="chip ok">${b.reminded_at ? '✓ Lembrado pela secretária' : '✓ Lembrado'}</span>` : ''}<a class="btn small ${done ? 'ghost' : 'primary'}" target="_blank" rel="noopener" data-remind="${b.id}" href="${waLink(b.clients.phone, remindMsg(b))}">${done ? 'De novo' : 'Lembrar'}</a></div></div>`; }).join('')}
     </section>`;
   }
@@ -2184,7 +2186,7 @@
           html += `<section class="focus">${deco}
             <div class="focus-top"><span class="focus-tag">${b.created_by === 'link' ? 'Pedido pelo link' : 'Pedido novo'}</span>${dots}</div>
             <button type="button" class="focus-main" data-booking="${b.id}"><b>${esc(bookingName(b))}</b>
-              <span>${esc(svcName(b.service_id) || 'Atendimento')}${staff ? ' com ' + esc(staff) : ''}</span>
+              <span>${esc(bkSvc(b) || 'Atendimento')}${staff ? ' com ' + esc(staff) : ''}</span>
               <strong>${esc(whenLabel(b.starts_at))}${b.price_cents ? ' · ' + esc(money(b.price_cents)) : ''}</strong></button>
             <div class="focus-btns"><button type="button" class="btn" data-decide="cancelled" data-id="${b.id}">Recusar</button>
               <button type="button" class="btn go" data-decide="confirmed" data-id="${b.id}">Confirmar</button></div></section>`;
@@ -2361,7 +2363,7 @@
       const lines = [['Data', 'Hora', 'Cliente', 'Serviço', 'Profissional', 'Situação', 'Preço', 'Recebido', 'Forma', 'Origem'].join(';')];
       [...inMonth].sort((a, b) => a.starts_at.localeCompare(b.starts_at)).forEach((b) => {
         const p = partsOf(b.starts_at);
-        lines.push([`${p.date.slice(8, 10)}/${p.date.slice(5, 7)}/${p.date.slice(0, 4)}`, p.time, b.client_name, svcName(b.service_id), staffName(b.staff_id),
+        lines.push([`${p.date.slice(8, 10)}/${p.date.slice(5, 7)}/${p.date.slice(0, 4)}`, p.time, b.client_name, bkSvc(b), staffName(b.staff_id),
           STATUS[b.status]?.[0] || b.status, num(b.price_cents), b.paid_at ? num(b.paid_cents) : '', PAY[b.paid_method] || '', ORIGIN[b.created_by] || ''].map(cell).join(';'));
       });
       const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
@@ -2479,7 +2481,7 @@
           ${nowLine != null && nowLine >= t0 && nowLine <= t1 ? `<i class="gnow" style="top:${y(nowLine)}px"></i>` : ''}
           ${mine.map((b) => { S.bk.set(b.id, b); const [s, e] = span(b); const risk = noShowRisk(b);
             return `<button type="button" class="gb st-${b.status}${risk ? ' risky' : ''}" data-booking="${b.id}" style="top:${y(s)}px;height:${Math.max(20, (e - s) * GRID_PX - 2).toFixed(1)}px">
-              <b>${partsOf(b.starts_at).time} ${esc(bookingName(b))}</b>${b.status !== 'block' ? `<small>${esc(svcName(b.service_id))}${b.paid_at ? ' · pago' : ''}</small>` : ''}</button>`; }).join('')}
+              <b>${partsOf(b.starts_at).time} ${esc(bookingName(b))}</b>${b.status !== 'block' ? `<small>${esc(bkSvc(b))}${b.paid_at ? ' · pago' : ''}</small>` : ''}</button>`; }).join('')}
         </div></div>`;
     };
     return `<div class="grid-wrap"><div class="gtimes" style="height:${H}px;margin-top:28px">${hoursCol}</div>
@@ -2750,7 +2752,7 @@
   // Enquanto a Meta não libera mensagem automática, o app abre o WhatsApp do dono com o texto pronto.
   function remindMsg(b) {
     const p = partsOf(b.starts_at);
-    const svc = svcName(b.service_id), pro = staffName(b.staff_id);
+    const svc = bkSvc(b), pro = staffName(b.staff_id);
     const many = S.staff.filter((x) => x.active).length > 1;
     return `${hi(b.client_name || b.clients?.name)} Passando para lembrar do seu horário ${dayWords(p.date)} às ${p.time}${svc ? ': ' + svc : ''}${pro && many ? ' com ' + pro : ''}.`
       + `${S.biz.address ? `\n📍 ${S.biz.address}` : ''}\nSe precisar remarcar, é só responder aqui. Até lá!`;

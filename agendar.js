@@ -60,10 +60,23 @@
   // ------------------------------------------------------------------ estado
   // Uma tela por vez (26/11, pedido do Eduardo): home (o negócio) › servico › prof (se tiver mais de um) › quando › dados.
   const S = {
-    info: null, step: 'home', dir: 1, svc: null, prof: null, dias: null, data: null, horarios: null, hora: null,
+    info: null, step: 'home', dir: 1, svcs: [], svc: null, prof: null, dias: null, data: null, horarios: null, hora: null,
     nome: local.get('nome'), tel: local.get('tel'), obs: '', done: null, esperaDone: false, mine: null,
   };
-  const svc = () => S.info.servicos.find((s) => s.id === S.svc);
+  // Serviços escolhidos (26/11: pode ser mais de um; "Corte + Barba" vira um horário só, com a soma do tempo e do preço,
+  // feito por uma pessoa que faz todos). S.svcs = ids na ordem do toque; S.svc = os mesmos ids com vírgula (vai para a função).
+  const MAX_SVCS = 4;
+  const svcOf = (ids) => {
+    const list = ids.map((id) => S.info.servicos.find((s) => s.id === id)).filter(Boolean);
+    if (list.length < 2) return list[0] || null;
+    return {
+      id: ids.join(','), nome: list.map((s) => s.nome).join(' + '), obs: '',
+      duracao: list.reduce((a, s) => a + s.duracao, 0),
+      preco: list.every((s) => s.preco != null) ? list.reduce((a, s) => a + s.preco, 0) : null,
+      profissionais: list.reduce((acc, s) => acc.filter((p) => s.profissionais.includes(p)), list[0].profissionais),
+    };
+  };
+  const svc = () => svcOf(S.svcs);
   const profName = (id) => S.info.profissionais.find((p) => p.id === id)?.nome || '';
   const KIND = { salao: 'Salão de beleza', manicure: 'Unhas', barbearia: 'Barbearia', estetica: 'Estética', clinica: 'Clínica', dentista: 'Dentista', pet: 'Pet shop', academia: 'Academia e pilates', spa: 'Spa e massagem', tatuagem: 'Estúdio de tatuagem', terapia: 'Psicologia e terapia' };
   const COLORS = ['copper', 'mint', 'navy', 'green', 'sun'];
@@ -116,8 +129,14 @@
     if (S.step === 'espera') return go('quando', -1);
     go(i > 0 ? list[i - 1] : 'home', -1);
   }
-  function pickService(id) {
-    S.svc = id; S.prof = null; S.dias = null; S.data = null; S.horarios = null; S.hora = null;
+  // Toque num serviço marca/desmarca; "Continuar" segue com os marcados.
+  function toggleService(id) {
+    S.svcs = S.svcs.includes(id) ? S.svcs.filter((x) => x !== id) : S.svcs.length < MAX_SVCS ? [...S.svcs, id] : S.svcs;
+    render(true);
+  }
+  function nextFromService() {
+    if (!S.svcs.length || !svc()?.profissionais.length) return;
+    S.svc = S.svcs.join(','); S.prof = null; S.dias = null; S.data = null; S.horarios = null; S.hora = null;
     go(svc().profissionais.length > 1 ? 'prof' : 'quando');
     loadDays();
   }
@@ -129,7 +148,7 @@
   async function loadDays() {
     const key = S.svc + '|' + S.prof;
     try {
-      const r = await api({ n: SLUG, servico: S.svc, ...(S.prof ? { prof: S.prof } : {}) });
+      const r = await api({ n: SLUG, servicos: S.svc, ...(S.prof ? { prof: S.prof } : {}) });
       if (key !== S.svc + '|' + S.prof) return;
       S.dias = r.dias;
       const first = r.dias.find((d) => d.livres > 0);
@@ -141,7 +160,7 @@
     S.data = d; S.horarios = null; S.hora = null;
     if (S.step === 'quando') render(true);
     try {
-      const r = await api({ n: SLUG, servico: S.svc, data: d, ...(S.prof ? { prof: S.prof } : {}) });
+      const r = await api({ n: SLUG, servicos: S.svc, data: d, ...(S.prof ? { prof: S.prof } : {}) });
       if (S.data === d) S.horarios = r.horarios;
     } catch (e) { toast(e.message, 'bad'); }
     if (S.step === 'quando' && S.data === d) render(true);
@@ -157,7 +176,7 @@
     btn.disabled = true; btn.textContent = 'Enviando…';
     try {
       const r = await api(null, {
-        n: SLUG, servico: S.svc, prof: S.prof, data: S.data, hora: S.hora,
+        n: SLUG, servicos: S.svcs, prof: S.prof, data: S.data, hora: S.hora,
         nome: S.nome, telefone: S.tel, obs: S.obs, empresa_url: String(f.get('empresa_url') || ''),
       });
       local.set('nome', S.nome); local.set('tel', S.tel);
@@ -180,7 +199,7 @@
     btn.disabled = true; btn.textContent = 'Enviando…';
     try {
       await api(null, {
-        acao: 'espera', n: SLUG, servico: S.svc, prof: S.prof, data: f.get('qualquer') ? null : S.data, periodo: String(f.get('periodo') || 'any'),
+        acao: 'espera', n: SLUG, servico: S.svcs[0], prof: S.prof, data: f.get('qualquer') ? null : S.data, periodo: String(f.get('periodo') || 'any'),
         nome: S.nome, telefone: S.tel, empresa_url: String(f.get('empresa_url') || ''),
       });
       local.set('nome', S.nome); local.set('tel', S.tel);
@@ -249,11 +268,19 @@
   }
 
   function viewServico() {
-    return flow(`<h2>O que você vai fazer?</h2><div class="ag2-svcs">
-      ${S.info.servicos.map((x, i) => `<button type="button" class="ag2-svc c-${COLORS[i % COLORS.length]}${S.svc === x.id ? ' sel' : ''}" data-svc="${esc(x.id)}" aria-pressed="${S.svc === x.id}">
-        <span class="ag2-ic">${esc(initials(x.nome).slice(0, 1))}</span>
-        <span class="grow"><b>${esc(x.nome)}</b><small>${esc(dur(x.duracao))}${x.obs ? ' · ' + esc(x.obs) : ''}</small></span>
-        <span class="ag2-price">${esc(priceShort(x.preco))}</span></button>`).join('')}</div>`);
+    const cur = svc();
+    return flow(`<h2>O que você vai fazer?</h2><p class="ag2-lead">Pode escolher mais de um.</p><div class="ag2-svcs">
+      ${S.info.servicos.map((x, i) => {
+        const on = S.svcs.includes(x.id);
+        // Só junta serviços que a mesma pessoa faz
+        const off = !on && cur && (S.svcs.length >= MAX_SVCS || !cur.profissionais.some((p) => x.profissionais.includes(p)));
+        return `<button type="button" class="ag2-svc c-${COLORS[i % COLORS.length]}${on ? ' sel' : ''}${off ? ' off' : ''}" data-svc="${esc(x.id)}" aria-pressed="${on}" ${off ? 'disabled' : ''}>
+        <span class="ag2-ic">${on ? CHECK : esc(initials(x.nome).slice(0, 1))}</span>
+        <span class="grow"><b>${esc(x.nome)}</b><small>${off ? 'não dá para juntar com o que você escolheu' : esc(dur(x.duracao)) + (x.obs ? ' · ' + esc(x.obs) : '')}</small></span>
+        <span class="ag2-price">${esc(priceShort(x.preco))}</span></button>`;
+      }).join('')}</div>`,
+    cur ? `<button type="button" class="ag2-go" id="svcNext">Continuar · ${esc(dur(cur.duracao))} · ${esc(priceShort(cur.preco))}</button>
+      ${S.svcs.length > 1 ? `<p class="ag2-fine">${esc(cur.nome)}, tudo no mesmo horário.</p>` : ''}` : '');
   }
 
   function viewProf() {
@@ -342,7 +369,7 @@
       show(endPage(`<span class="ag2-ok">${CHECK}</span><h2>Você está na lista!</h2>
         <p class="ag2-lead">Quando vagar um horário, ${esc(S.info.negocio.nome)} chama você pelo WhatsApp.</p>
         <button type="button" class="ag2-go ghost" id="again">Voltar ao começo</button>`));
-      $('#again').onclick = () => { Object.assign(S, { esperaDone: false, step: 'home', svc: null, prof: null, dias: null, data: null, horarios: null, hora: null }); S.dir = -1; render(); window.scrollTo(0, 0); };
+      $('#again').onclick = () => { Object.assign(S, { esperaDone: false, step: 'home', svcs: [], svc: null, prof: null, dias: null, data: null, horarios: null, hora: null }); S.dir = -1; render(); window.scrollTo(0, 0); };
       return;
     }
     const v = { home: viewHome, servico: viewServico, prof: viewProf, quando: viewQuando, dados: viewDados, espera: viewEspera }[S.step] || viewHome;
@@ -366,7 +393,8 @@
     if (b.id === 'start') return go('servico');
     if (b.id === 'back') return back();
     if (b.id === 'share') return navigator.share?.({ title: S.info.negocio.nome, url: location.href }).catch(() => {});
-    if (d.svc) return pickService(d.svc);
+    if (b.id === 'svcNext') return nextFromService();
+    if (d.svc) return toggleService(d.svc);
     if ('prof' in d) return pickProf(d.prof);
     if (d.day) return pickDay(d.day);
     if (d.hora) { S.hora = d.hora; return go('dados'); }
@@ -428,7 +456,7 @@
         ${calendarLinks(`${d.servico} · ${n.nome}`, d.inicio, d.fim, n.endereco)}
         ${d.token ? `<p class="ag2-fine">Precisa cancelar? Use <a href="${esc(mineUrl(d.token))}">este link do seu horário</a> (guarde ou mande no WhatsApp).</p>` : ''}
         <button type="button" class="ag2-go ghost" id="again">Marcar outro horário</button>`));
-    $('#again').onclick = () => { Object.assign(S, { done: null, step: 'home', svc: null, prof: null, dias: null, data: null, horarios: null, hora: null, obs: '' }); S.dir = -1; render(); window.scrollTo(0, 0); };
+    $('#again').onclick = () => { Object.assign(S, { done: null, step: 'home', svcs: [], svc: null, prof: null, dias: null, data: null, horarios: null, hora: null, obs: '' }); S.dir = -1; render(); window.scrollTo(0, 0); };
   }
 
   boot();
