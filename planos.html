@@ -28,7 +28,8 @@
 :root[data-theme="dark"] { --bg: #0F1B17; --fg: #E8EFEA; --muted: #9AAEA5; --card: #18261F; --line: #26362F; --soft: #1C3229;
   --chat: #13211C; --b-in: #22322B; --b-out: #145A3F; --b-fg: #E8EFEA; color-scheme: dark }
 * { box-sizing: border-box }
-body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.4; font-weight: 700; overflow-x: hidden }
+html { background: #1F7A57 }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.4; font-weight: 700; overflow-x: hidden; min-height: 100vh }
 .in { max-width: 1060px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
 h1, h2, h3 { margin: 0; font-weight: 900; line-height: 1.08; text-wrap: balance }
 .tnum { font-variant-numeric: tabular-nums }

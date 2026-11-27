@@ -1966,3 +1966,10 @@ html.v2 .paper .row.booking.has-pc .time small { color: #fff; opacity: .85; }
 .gcol .ghead { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .gcol .gb.st-confirmed, .gcol .gb.st-pending, .gcol .gb.st-done { background: color-mix(in srgb, var(--pc) 18%, var(--card, #fff)); border-left: 4px solid var(--pc); }
 .gcol .gb.st-pending { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--pc) 18%, var(--card, #fff)) 0 8px, color-mix(in srgb, var(--pc) 8%, var(--card, #fff)) 8px 16px); }
+
+/* ============ AJUSTES DE 27/11 (noite), pedidos do Eduardo ============ */
+/* abertura no mesmo verde do app (antes era um verde quase preto) */
+#boot::before { background: #1F7A57; }
+#boot .loading { color: #D7EEDF; }
+/* topo sem faixa branca: o verde vai até em cima, embaixo da barra do celular */
+html { background-color: #1F7A57; }
