@@ -1922,3 +1922,47 @@ html.v2[data-mode="dark"] .ag2-mini, html.v2[data-mode="dark"] .ag2-logo { backg
 .use-card.near .use-bar i { background: #F2994A; }
 .use-card.full .use-bar i { background: #E5484D; }
 .use-card p { margin: 8px 0 0; font-size: 14px; color: var(--muted, #5B6B64); }
+
+/* ============ LOGO A "BALÃO DIGITANDO" (27/11/2026, escolhida pelo Eduardo) ============
+   Balão branco cheio, pontinhos verdes com o do meio cobre, num quadrado verde #1F7A57.
+   :root na frente para valer por cima das cores antigas de cada tela. */
+:root .logo-badge { background: #1F7A57; }
+:root .entre-logo .b, #boot .entre-logo .b, #login .entre-logo .b { fill: #FFFFFF; stroke: #FFFFFF; stroke-width: 4; }
+:root .entre-logo .d, #boot .entre-logo .d, #login .entre-logo .d { fill: #1F7A57; }
+:root .entre-logo .d:nth-of-type(2), #boot .entre-logo .d:nth-of-type(2), #login .entre-logo .d:nth-of-type(2) { fill: #F2994A; }
+/* a abertura desenha o contorno e depois enche o balão */
+:root .entre-logo.anim .b { fill-opacity: 0; animation: logo-draw 1s cubic-bezier(.6, .1, .3, 1) .15s forwards, logo-fill .35s ease .95s forwards; }
+@keyframes logo-fill { to { fill-opacity: 1; } }
+/* logo pequena sem quadradinho (topo do app): balão verde com pontinhos brancos */
+:root .top-brand .entre-logo .b { fill: #1F7A57; stroke: #1F7A57; }
+:root .top-brand .entre-logo .d { fill: #FFFFFF; }
+:root .top-brand .entre-logo .d:nth-of-type(2) { fill: #F2994A; }
+@media (prefers-reduced-motion: reduce) { :root .entre-logo.anim .b { fill-opacity: 1; } }
+
+/* ============ ANIMAÇÕES DA PÁGINA DE PLANOS NO APP (27/11/2026) ============ */
+/* bolinhas que flutuam no topo verde (e fogem do dedo: app.js mexe no "translate") */
+.hero > i.hero-blob { position: absolute; border-radius: 50%; pointer-events: none; transition: translate .6s cubic-bezier(.2, .8, .3, 1); }
+.hero > i.hero-blob::before { content: ""; display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--c); opacity: var(--o); animation: hb-float var(--t) ease-in-out infinite; }
+.hero > i.hb1 { width: 120px; height: 120px; left: -52px; bottom: -64px; --c: #FFD66B; --o: .95; --t: 8s; }
+.hero > i.hb2 { width: 170px; height: 170px; right: -60px; top: -70px; --c: #34C77B; --o: .3; --t: 9s; }
+.hero > i.hb3 { width: 22px; height: 22px; left: 58%; top: calc(20px + env(safe-area-inset-top)); --c: #FFFFFF; --o: .16; --t: 5s; }
+.hero > i.hb3::before { animation-direction: reverse; }
+@keyframes hb-float { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(14px, -12px) scale(1.07); } }
+.hero.has-cover > i.hero-blob { display: none; }
+/* cartões entram um depois do outro, com um pulinho */
+.pop-in { animation: pop-in .55s cubic-bezier(.2, 1.4, .4, 1) backwards; animation-delay: calc(var(--in, 0) * 55ms); }
+@keyframes pop-in { from { transform: translateY(22px) scale(.96); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero > i.hero-blob::before, .pop-in { animation: none !important; }
+  .hero > i.hero-blob { transition: none; }
+}
+
+/* ============ AGENDA COLORIDA POR PESSOA (27/11/2026) ============ */
+.pc-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 12px; }
+.pc-legend span { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 99px; font-size: 14px; font-weight: 700; background: color-mix(in srgb, var(--pc) 14%, transparent); color: var(--ink); }
+.pc-legend i, .pc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pc); display: inline-block; flex: none; }
+html.v2 .paper .row.booking.has-pc .time, .row.booking.has-pc .time { background: var(--pc); color: #fff; }
+html.v2 .paper .row.booking.has-pc .time small { color: #fff; opacity: .85; }
+.gcol .ghead { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.gcol .gb.st-confirmed, .gcol .gb.st-pending, .gcol .gb.st-done { background: color-mix(in srgb, var(--pc) 18%, var(--card, #fff)); border-left: 4px solid var(--pc); }
+.gcol .gb.st-pending { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--pc) 18%, var(--card, #fff)) 0 8px, color-mix(in srgb, var(--pc) 8%, var(--card, #fff)) 8px 16px); }

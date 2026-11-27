@@ -925,6 +925,7 @@
   function hero({ title, kicker = '', sub = '', art = '', top = '', bottom = '', back = '', backAttr = 'data-hero-back', small = false, cover = '' }) {
     const bg = cover ? ` style="background-image:linear-gradient(180deg,rgba(18,36,31,.35),rgba(20,90,63,.92)),url(&quot;${esc(String(cover).replace(/["\\]/g, ''))}&quot;)"` : '';
     return `<section class="hero${small ? ' small' : ''}${cover ? ' has-cover' : ''}"${bg}>
+      <i class="hero-blob hb1" aria-hidden="true"></i><i class="hero-blob hb2" aria-hidden="true"></i><i class="hero-blob hb3" aria-hidden="true"></i>
       ${art && !cover ? `<div class="hero-art" aria-hidden="true">${art}</div>` : ''}
       ${back ? `<button type="button" class="hero-back" ${backAttr}>${CHEV_L}${esc(back)}</button>` : ''}
       ${top}${kicker ? `<span class="hero-kicker">${esc(kicker)}</span>` : ''}
@@ -1554,7 +1555,7 @@
     view.classList.toggle('enter', !opts.quiet);
     if (!opts.quiet) { view.innerHTML = '<div class="loading">Carregando…</div>'; window.scrollTo(0, 0); }
     const run = (rendering = VIEWS[tab](opts));
-    try { await run; } catch (err) {
+    try { await run; if (!opts.quiet && opts.alive()) playIn(view); } catch (err) {
       fatal(err);
       if (rendering === run && !opts.quiet) view.innerHTML = `<div class="empty">Não consegui carregar. <button class="btn small" id="retry">Tentar de novo</button></div>`;
       $('#retry')?.addEventListener('click', () => go(tab));
@@ -1562,6 +1563,49 @@
     refreshBadges();
   }
   $$('.tabs button').forEach((b) => { b.onclick = () => go(b.dataset.tab); });
+
+  // Animações da página de planos no app (27/11, escolha do Eduardo): cartões entram um depois do outro,
+  // números sobem contando e as bolinhas do topo verde flutuam e fogem do dedo. Nada disso com "menos movimento" ligado.
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+  function playIn(root) {
+    if (RM.matches) return;
+    const cards = [...root.querySelectorAll('.tiles .tile, .bot-card, .use-card, .more-list, .paper > .card, .paper > section, .paper > .banner')].slice(0, 14);
+    cards.forEach((el, i) => {
+      el.style.setProperty('--in', i);
+      el.classList.add('pop-in');
+      el.addEventListener('animationend', () => el.classList.remove('pop-in'), { once: true });
+    });
+    root.querySelectorAll('.tile-big b, .tile-val').forEach(countUp);
+  }
+  function countUp(el) {
+    const txt = el.textContent, m = txt.match(/\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?/);
+    if (!m) return;
+    const raw = m[0], cents = raw.includes(','), target = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
+    if (!(target > 0)) return;
+    const pre = txt.slice(0, m.index), post = txt.slice(m.index + raw.length);
+    const fmt = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+    const t0 = performance.now(), dur = 750;
+    const step = (t) => {
+      if (!el.isConnected) return;
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = k < 1 ? pre + fmt(target * e) + post : txt;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    el.textContent = pre + fmt(0) + post;
+    requestAnimationFrame(step);
+  }
+  const fleeBlobs = (e) => {
+    if (RM.matches) return;
+    const hero = e.target.closest?.('.hero');
+    if (!hero) return;
+    hero.querySelectorAll('.hero-blob').forEach((b, i) => {
+      const r = b.getBoundingClientRect(), dx = r.left + r.width / 2 - e.clientX, dy = r.top + r.height / 2 - e.clientY;
+      const d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / 300) * (26 + i * 8);
+      b.style.translate = `${(dx / d * f).toFixed(1)}px ${(dy / d * f).toFixed(1)}px`;
+    });
+  };
+  document.addEventListener('pointermove', fleeBlobs, { passive: true });
+  document.addEventListener('pointerdown', fleeBlobs, { passive: true });
 
   async function refreshBadges() {
     if (!S.biz) return;
@@ -1596,15 +1640,29 @@
     if (b.status === 'block') return b.note || 'Horário bloqueado';
     return b.client_name || clientLabel(b.clients);
   }
+  // Agenda colorida por pessoa (27/11, escolha do Eduardo): cada profissional ativo ganha uma cor fixa, na ordem do cadastro.
+  const STAFF_COLORS = ['#1F7A57', '#2B5C8F', '#E8872F', '#C2417A', '#6A3F94', '#1E9C8F', '#B8901A', '#5C7A2E'];
+  function staffColor(id) {
+    const act = S.staff.filter((p) => p.active);
+    if (act.length < 2 || !id) return '';
+    const i = act.findIndex((p) => p.id === id);
+    return i < 0 ? '' : STAFF_COLORS[i % STAFF_COLORS.length];
+  }
+  function staffLegend() {
+    const act = S.staff.filter((p) => p.active);
+    if (act.length < 2) return '';
+    return `<div class="pc-legend">${act.map((p) => `<span style="--pc:${staffColor(p.id)}"><i></i>${esc(firstName(p.name) || p.name)}</span>`).join('')}</div>`;
+  }
   function bookingRow(b, { showDay = false } = {}) {
     S.bk.set(b.id, b);
     const p = partsOf(b.starts_at), e = partsOf(b.ends_at);
+    const pc = b.status === 'block' ? '' : staffColor(b.staff_id);
     const [lab, cls] = STATUS[b.status] || ['', ''];
     const sub = [b.status === 'block' ? (b.staff_id ? staffName(b.staff_id) : 'Todos') : bkSvc(b), b.status === 'block' ? '' : staffName(b.staff_id)].filter(Boolean).join(' · ');
     const risk = noShowRisk(b);
     const paid = (b.paid_at && b.status !== 'block' ? ` · <span class="paid">pago${PAY[b.paid_method] ? ' (' + PAY[b.paid_method] + ')' : ''}</span>` : '')
       + (risk ? ` · <span class="risk r-${risk.level === 'alto' ? 'alto' : 'medio'}">pode faltar</span>` : '');
-    return `<button type="button" class="row booking st-${b.status}" data-booking="${b.id}">
+    return `<button type="button" class="row booking st-${b.status}${pc ? ' has-pc' : ''}" data-booking="${b.id}"${pc ? ` style="--pc:${pc}"` : ''}>
       <span class="time"><b>${p.time}</b><small>${e.time}</small></span>
       <span class="grow"><b>${esc(bookingName(b))}</b><small>${esc(sub)}${showDay ? ' · ' + relDay(p.date) : ''}${paid}</small></span>
       <span class="chip ${cls}">${lab}</span></button>`;
@@ -2426,6 +2484,7 @@
     $('#view').innerHTML = `${hero({ title: 'Agenda', kicker: `${MONTHS[m]} ${d.slice(0, 4)}`, art: ART.agenda, top: navHtml, bottom: weekHtml })}
       <div class="paper">
       <div class="day-head"><h3 class="sec-title">${esc(WD[weekdayOf(d)])}, ${d.slice(8, 10)}/${d.slice(5, 7)}</h3><p>${esc(dayTxt)}</p></div>
+      ${multi && list.some((b) => b.status !== 'block') ? staffLegend() : ''}
       ${multi && open.length ? `<div class="seg ag-view-seg" role="group" aria-label="Como ver o dia"><button type="button" data-aview="lista" class="${aview === 'lista' ? 'sel' : ''}">Lista</button><button type="button" data-aview="grade" class="${aview === 'grade' ? 'sel' : ''}">Por pessoa</button></div>` : ''}
       <section class="card">
         ${multi && open.length && aview === 'grade' ? dayGrid(d, list, open)
@@ -2484,7 +2543,7 @@
     const hoursCol = Array.from({ length: (t1 - t0) / 60 }, (_, i) => `<span style="top:${y(t0 + i * 60)}px">${(t0 / 60) + i}h</span>`).join('');
     const col = (p) => {
       const mine = list.filter((b) => b.staff_id === p.id || (b.status === 'block' && !b.staff_id));
-      return `<div class="gcol"><div class="ghead">${esc(firstName(p.name))}</div>
+      return `<div class="gcol" style="--pc:${staffColor(p.id) || 'var(--hero)'}"><div class="ghead"><i class="pc-dot"></i>${esc(firstName(p.name))}</div>
         <div class="gbody" data-gstaff="${p.id}" style="height:${H}px">
           ${closedBands.map(([a, b]) => `<i class="gclosed" style="top:${y(a)}px;height:${((b - a) * GRID_PX).toFixed(1)}px"></i>`).join('')}
           ${nowLine != null && nowLine >= t0 && nowLine <= t1 ? `<i class="gnow" style="top:${y(nowLine)}px"></i>` : ''}
