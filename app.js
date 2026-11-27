@@ -3074,6 +3074,20 @@
         <small>${esc(brl(s.price_cents))} · ${s.duration_min} min${who.length ? ' · ' + esc(who.join(', ')) : ' · <span class="err">ninguém faz</span>'}</small></span>
         ${s.active ? '' : '<i class="chip muted">Desativado</i>'}<b class="go">›</b></button>`;
     }).join('');
+    // Plano e conversas da secretária no mês (27/11). Uma conversa = uma pessoa atendida num dia (tabela conversation_days).
+    const PLANS = { start: ['Start', 150], pro: ['Pro', 600], max: ['Max', 2000] };
+    let usageHtml = '';
+    if (PLANS[b.plan]) {
+      const d = new Date(), m0 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+      const { count, error } = await sb.from('conversation_days').select('day', { count: 'exact', head: true }).eq('business_id', b.id).gte('day', m0);
+      if (!error && count != null) {
+        const [pName, lim] = PLANS[b.plan], pct = Math.min(100, Math.round((count / lim) * 100));
+        const tone = count >= lim ? 'full' : pct >= 80 ? 'near' : '';
+        usageHtml = `<div class="use-card ${tone}"><div class="use-top"><b>Plano ${esc(pName)}</b><small class="tnum">${count} de ${lim}${b.plan === 'max' ? ' (uso justo)' : ''} conversas este mês</small></div>
+          <div class="use-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${lim}" aria-valuenow="${count}" aria-label="Conversas usadas este mês"><i style="width:${pct}%"></i></div>
+          ${tone === 'full' ? '<p>Chegou ao limite do plano. A secretária atende só mais um pouco e depois deixa as conversas novas para você. Para aumentar, fale com o Entre.</p>' : tone === 'near' ? '<p>Está perto do limite do plano deste mês.</p>' : ''}</div>`;
+      }
+    }
     if (stale(opts)) return;
     const hoursRow = (w) => {
       const hs = S.hours.filter((h) => h.weekday === w).sort((a, c) => a.opens.localeCompare(c.opens));
@@ -3128,6 +3142,7 @@
         <div class="bot-card"><span class="bot-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v9a2 2 0 01-2 2H10l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><circle cx="8" cy="10.5" r="1.3"/><circle cx="12" cy="10.5" r="1.3"/><circle cx="16" cy="10.5" r="1.3"/></svg></span>
           <span class="grow"><b>Secretária</b><small>${b.assistant_enabled ? 'Respondendo no WhatsApp' : 'Desligada: ninguém responde sozinho'}</small></span>
           <button type="button" class="ios-switch${b.assistant_enabled ? ' on' : ''}" data-bot aria-pressed="${b.assistant_enabled ? 'true' : 'false'}" aria-label="${b.assistant_enabled ? 'Desligar' : 'Ligar'} a secretária"><i></i></button></div>
+        ${usageHtml}
         ${S.bizList.length > 1 ? `<label class="card">Negócio<select id="bizSel">${S.bizList.map((x) => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
         ${menuHtml}
         <p class="muted small center">Entre · painel versão 3</p>
