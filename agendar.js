@@ -169,7 +169,7 @@
 
   async function send(form) {
     const f = new FormData(form);
-    S.nome = String(f.get('nome') || '').trim(); S.tel = String(f.get('tel') || '').trim(); S.obs = String(f.get('obs') || '').trim();
+    S.nome = String(f.get('nome') || '').trim(); S.tel = String(f.get('tel') || '').trim(); S.obs = String(f.get('obs') || '').trim(); S.avisos = !!f.get('avisos');
     if (S.nome.length < 2) return toast('Escreva seu nome.', 'bad');
     if (S.tel.replace(/\D/g, '').length < 10) return toast('Escreva seu WhatsApp com DDD.', 'bad');
     const btn = submitBtn(form);
@@ -177,7 +177,7 @@
     try {
       const r = await api(null, {
         n: SLUG, servicos: S.svcs, prof: S.prof, data: S.data, hora: S.hora,
-        nome: S.nome, telefone: S.tel, obs: S.obs, empresa_url: String(f.get('empresa_url') || ''),
+        nome: S.nome, telefone: S.tel, obs: S.obs, aceita_avisos: !!f.get('avisos'), empresa_url: String(f.get('empresa_url') || ''),
       });
       local.set('nome', S.nome); local.set('tel', S.tel);
       S.done = { status: r.status, servico: svc().nome, com: r.resumo?.com || (S.prof ? profName(S.prof) : ''), data: S.data, hora: S.hora, nome: S.nome, token: r.token || '', inicio: r.inicio || '', fim: r.fim || '' };
@@ -200,7 +200,7 @@
     try {
       await api(null, {
         acao: 'espera', n: SLUG, servico: S.svcs[0], prof: S.prof, data: f.get('qualquer') ? null : S.data, periodo: String(f.get('periodo') || 'any'),
-        nome: S.nome, telefone: S.tel, empresa_url: String(f.get('empresa_url') || ''),
+        nome: S.nome, telefone: S.tel, aceita_avisos: !!f.get('avisos'), empresa_url: String(f.get('empresa_url') || ''),
       });
       local.set('nome', S.nome); local.set('tel', S.tel);
       S.esperaDone = true; chime(); buzz([18, 60, 18]);
@@ -327,10 +327,11 @@
         <label>Seu nome<input name="nome" autocomplete="name" maxlength="80" required value="${esc(S.nome)}"></label>
         <label>Seu WhatsApp (com DDD)<input name="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required placeholder="(11) 91234-5678" value="${esc(S.tel)}"></label>
         <label>Alguma observação? <span class="muted small">(opcional)</span><input name="obs" maxlength="200" value="${esc(S.obs)}"></label>
+        <label class="switch ag2-optin"><input type="checkbox" name="avisos" ${S.avisos ? 'checked' : ''}><span>Quero receber a confirmação e o lembrete pelo WhatsApp. <a href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
         <label class="ag-hp" aria-hidden="true">Não preencha<input name="empresa_url" tabindex="-1" autocomplete="off"></label>
       </form>`,
     `<button type="submit" form="agForm" class="ag2-go">${auto ? 'Marcar horário' : 'Pedir horário'}</button>
-      <p class="ag2-fine">${auto ? 'O horário fica marcado na hora.' : 'A confirmação chega pelo seu WhatsApp.'}</p>`);
+      <p class="ag2-fine">${auto ? 'O horário fica marcado na hora.' : 'O negócio confirma o seu horário. Marque a caixinha para receber a confirmação no WhatsApp.'}</p>`);
   }
 
   function viewEspera() {
@@ -342,6 +343,7 @@
         ${S.data ? '<label class="switch"><input type="checkbox" name="qualquer"><span>Pode ser outro dia também</span></label>' : ''}
         <label>Seu nome<input name="nome" autocomplete="name" maxlength="80" required value="${esc(S.nome)}"></label>
         <label>Seu WhatsApp (com DDD)<input name="tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required placeholder="(11) 91234-5678" value="${esc(S.tel)}"></label>
+        <label class="switch ag2-optin"><input type="checkbox" name="avisos" ${S.avisos ? 'checked' : ''}><span>Quero receber o aviso pelo WhatsApp quando vagar. <a href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></span></label>
         <label class="ag-hp" aria-hidden="true">Não preencha<input name="empresa_url" tabindex="-1" autocomplete="off"></label>
       </form>`,
     '<button type="submit" form="waitForm" class="ag2-go">Entrar na lista de espera</button>');
@@ -378,7 +380,7 @@
     const form = $('#agForm');
     if (form) {
       form.onsubmit = (e) => { e.preventDefault(); send(form); };
-      form.oninput = () => { const f = new FormData(form); S.nome = String(f.get('nome')); S.tel = String(f.get('tel')); S.obs = String(f.get('obs')); };
+      form.oninput = () => { const f = new FormData(form); S.nome = String(f.get('nome')); S.tel = String(f.get('tel')); S.obs = String(f.get('obs')); S.avisos = !!f.get('avisos'); };
     }
     const wf = $('#waitForm');
     if (wf) wf.onsubmit = (e) => { e.preventDefault(); sendWait(wf); };

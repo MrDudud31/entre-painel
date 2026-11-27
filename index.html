@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=DM+Sans:opsz,wght@9..40,400..700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261127c">
+  <link rel="stylesheet" href="style.css?v=20261127d">
 </head>
 <body>
   <!-- Primeira carga (some quando o painel abre; vira aviso de erro se faltar internet) -->
@@ -34,7 +34,8 @@
       <label class="rv" style="--i:2">Senha<input name="password" type="password" autocomplete="current-password" placeholder="Sua senha" required></label>
       <button class="btn primary block rv" style="--i:3" type="submit">Entrar</button>
       <p id="loginError" class="error" role="alert"></p>
-      <p class="hint rv" style="--i:4">Esqueceu a senha? Fale com a equipe Entre pelo WhatsApp.</p>
+      <p class="hint rv" style="--i:4"><button type="button" class="link-btn" id="forgotBtn">Esqueci minha senha</button></p>
+      <p class="hint lg-terms rv" style="--i:4">Ao entrar, você concorda com os <a href="termos.html" target="_blank" rel="noopener">Termos de uso</a> e a <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</p>
       <p class="lg-safe rv" style="--i:5"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Conexão segura. Seus dados ficam protegidos.</p>
     </form>
   </section>
@@ -61,7 +62,7 @@
   <div id="toast" class="toast" role="status"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-  <script src="config.js?v=20261127c"></script>
-  <script src="app.js?v=20261127c"></script>
+  <script src="config.js?v=20261127d"></script>
+  <script src="app.js?v=20261127d"></script>
 </body>
 </html>

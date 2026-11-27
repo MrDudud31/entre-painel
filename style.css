@@ -1973,3 +1973,11 @@ html.v2 .paper .row.booking.has-pc .time small { color: #fff; opacity: .85; }
 #boot .loading { color: #D7EEDF; }
 /* topo sem faixa branca: o verde vai até em cima, embaixo da barra do celular */
 html { background-color: #1F7A57; }
+/* caixinha de aceite de avisos no link de agendamento (27/11) */
+.ag2-optin { align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.35; }
+.ag2-optin input { margin-top: 2px; }
+.ag2-optin a { color: inherit; text-decoration: underline; }
+/* login: esqueci a senha e termos (27/11) */
+#login .lg-terms { font-size: 13px; opacity: .85; }
+#login .lg-terms a { color: inherit; text-decoration: underline; }
+#newPassForm h2 { margin-top: 0; }

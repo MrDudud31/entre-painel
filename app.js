@@ -21,6 +21,8 @@
     }
   }
   if (!window.supabase || !CFG) { bootMsg('Não consegui carregar o painel. Confira a internet e tente de novo.', true); return; }
+  // 27/11: link de "esqueci minha senha" volta com #...type=recovery. Guarda antes de o Supabase limpar o endereço.
+  let RECOVERY = /type=recovery/.test(location.hash);
   const sb = window.supabase.createClient(CFG.url, CFG.key);
   const MIN = 60000;
   const POLL_MS = 30000;
@@ -433,11 +435,56 @@
     if (error) $('#loginError').textContent = /invalid/i.test(error.message) ? 'E-mail ou senha errados.' : friendly(error);
   };
 
+  // "Esqueci minha senha" (27/11): manda um link para o e-mail; o link volta para o app e pede a senha nova.
+  $('#forgotBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget, email = String($('#loginForm input[name=email]').value || '').trim();
+    const out = $('#loginError');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { out.textContent = 'Escreva o seu e-mail no campo acima e toque de novo em "Esqueci minha senha".'; $('#loginForm input[name=email]').focus(); return; }
+    btn.disabled = true;
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    btn.disabled = false;
+    out.textContent = error && !/rate|limit/i.test(error.message) ? friendly(error)
+      : `Se ${email} tiver conta no Entre, chega um e-mail com o link para criar a senha nova. Olhe também a caixa de spam.`;
+  });
+  function showNewPassword() {
+    $('#loginForm').hidden = true;
+    let f = $('#newPassForm');
+    if (!f) {
+      f = document.createElement('form');
+      f.id = 'newPassForm'; f.className = 'lg-sheet'; f.noValidate = true;
+      f.innerHTML = `<h2>Crie a senha nova</h2>
+        <label>Senha nova (8 letras ou números, no mínimo)<input name="p1" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label>Repita a senha nova<input name="p2" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn primary block" type="submit">Salvar senha nova</button>
+        <p class="error" id="npError" role="alert"></p>`;
+      $('#loginForm').after(f);
+      f.onsubmit = async (ev) => {
+        ev.preventDefault();
+        const d = new FormData(f), p1 = String(d.get('p1') || ''), p2 = String(d.get('p2') || '');
+        if (p1.length < 8) return void ($('#npError').textContent = 'A senha precisa ter pelo menos 8 letras ou números.');
+        if (p1 !== p2) return void ($('#npError').textContent = 'As duas senhas estão diferentes.');
+        const b = $('button[type=submit]', f); b.disabled = true;
+        const { error } = await sb.auth.updateUser({ password: p1 });
+        b.disabled = false;
+        if (error) return void ($('#npError').textContent = /same|different/i.test(error.message) ? 'Escolha uma senha diferente da antiga.' : friendly(error));
+        RECOVERY = false;
+        history.replaceState(null, '', location.pathname + location.search);
+        f.remove(); $('#loginForm').hidden = false;
+        toast('Senha nova salva ✅', 'ok');
+        if (S.session && !S.started) { S.started = true; start().catch(fatal); }
+      };
+    }
+    show('login');
+  }
+
   async function boot() {
     loadFonts(store.get('style')); // o estilo salvo neste celular já vale na primeira tela
     applyMode();
     sb.auth.onAuthStateChange((event, session) => {
       S.session = session;
+      // Veio pelo link de "esqueci minha senha": primeiro cria a senha nova, depois abre o app.
+      if (event === 'PASSWORD_RECOVERY') RECOVERY = true;
+      if (session && RECOVERY) { setTimeout(showNewPassword, 0); return; }
       // Saiu da conta: o tema do negócio não fica no aparelho; volta para o estilo do Entre.
       if (!session) { S.started = false; S.biz = null; S.previewStyle = null; applyStyle('entre'); show('login'); return; }
       if (!S.started) {

@@ -2,62 +2,104 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Entre · Política de Privacidade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacidade do Entre</title>
+  <meta name="theme-color" content="#1F7A57">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <style>
-    :root { --bg: #faf6f3; --ink: #2a1f24; --muted: #7b6b72; --brand: #7a3e5c; --card: #fff; --line: #ece3de; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #17121a; --ink: #f2eaee; --muted: #b3a3ab; --brand: #d58fb1; --card: #221b25; --line: #3a2f3d; } }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
-    h1 { font-size: 1.6rem; margin: 0 0 4px; } h2 { font-size: 1.1rem; margin: 28px 0 6px; color: var(--brand); }
-    .muted { color: var(--muted); font-size: .9rem; } a { color: var(--brand); } ul { padding-left: 1.2rem; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+  <link rel="stylesheet" href="legal.css?v=20261127d">
 </head>
 <body>
-<main>
-  <h1>Política de Privacidade — Entre</h1>
-  <p class="muted">Última atualização: 12 de novembro de 2026</p>
+<header class="lg-head">
+  <div class="in">
+    <a class="lg-brand" href="planos.html"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="24" fill="#FFFFFF"/><path d="M34 20 H66 A13 13 0 0 1 79 33 V55 A13 13 0 0 1 66 68 H45 L29 80 V67.5 A13 13 0 0 1 21 55 V33 A13 13 0 0 1 34 20 Z" fill="#1F7A57"/><circle cx="37" cy="44" r="5.5" fill="#FFFFFF"/><circle cx="50" cy="44" r="5.5" fill="#F2994A"/><circle cx="63" cy="44" r="5.5" fill="#FFFFFF"/></svg>Entre</a>
+    <h1>Política de Privacidade</h1>
+    <p>Quais dados o Entre usa, para quê e como pedir para ver ou apagar. Última atualização: 27 de novembro de 2026.</p>
+  </div>
+</header>
+<main class="in lg-body">
+  <nav class="lg-toc" aria-label="Nesta página">
+    <a href="#quem">Quem é quem</a><a href="#dados">Quais dados</a><a href="#para-que">Para quê</a><a href="#com-quem">Com quem</a><a href="#tempo">Por quanto tempo</a><a href="#direitos">Seus direitos</a><a href="#contato">Contato</a>
+  </nav>
 
-  <p>O <b>Entre</b> é uma assistente virtual de WhatsApp para salões e pequenos negócios. Ela responde dúvidas (serviços, preços, horários) e anota pedidos de agendamento para o negócio confirmar. Esta página explica quais dados usamos e por quê.</p>
+  <section id="quem">
+    <h2>1. Quem é quem</h2>
+    <p>O Entre é um aplicativo de agenda com uma secretária virtual de WhatsApp, usado por salões, barbearias, clínicas e outros negócios que atendem com horário.</p>
+    <ul>
+      <li><b>Se você é cliente de um negócio</b> que usa o Entre: o negócio é o responsável pelos seus dados (o controlador, na LGPD). O Entre trata esses dados em nome dele, só para fazer o atendimento funcionar.</li>
+      <li><b>Se você é dono ou faz parte da equipe</b> do negócio: o Entre é o responsável pelos dados da sua conta.</li>
+    </ul>
+  </section>
 
-  <h2>Quem é quem</h2>
-  <p>O <b>negócio</b> (salão, estúdio, clínica etc.) com quem você conversa decide como atender você e é o responsável pelos seus dados de cliente. O Entre é o serviço que esse negócio usa para atender pelo WhatsApp e trata os dados em nome dele.</p>
+  <section id="dados">
+    <h2>2. Quais dados usamos</h2>
+    <p><b>De quem é atendido pelo negócio:</b></p>
+    <ul>
+      <li>nome, número de WhatsApp (ou o identificador de usuário do WhatsApp) e o nome do perfil;</li>
+      <li>as mensagens trocadas com o negócio pelo WhatsApp, incluindo fotos que você mandar (por exemplo, uma foto de referência de corte ou unha);</li>
+      <li>os agendamentos: serviço, dia, horário, profissional, observação e a situação (pedido, confirmado, cancelado, atendido, faltou);</li>
+      <li>a lista de espera, se você entrar nela;</li>
+      <li>se você aceitou receber avisos pelo WhatsApp (a caixinha do link de agendamento) e quando aceitou;</li>
+      <li>anotações e data de aniversário, se o negócio cadastrar.</li>
+    </ul>
+    <p><b>De quem usa o app:</b> e-mail de login, nome, dados do negócio (nome, endereço, serviços, preços, horários, equipe) e o registro de uso da secretária (quantas conversas e quanto da inteligência artificial foi usado).</p>
+    <p>Não pedimos documentos, dados de saúde, dados bancários nem de cartão pela conversa. Se uma foto parecer um comprovante ou documento, a secretária não lê os valores e chama a equipe.</p>
+    <p>No seu celular, o app guarda só preferências (claro ou escuro, som ao tocar). Não usamos cookies de propaganda.</p>
+  </section>
 
-  <h2>Quais dados usamos</h2>
-  <ul>
-    <li>Seu número de WhatsApp (ou identificador de usuário do WhatsApp) e o nome do seu perfil;</li>
-    <li>As mensagens que você troca com o negócio pelo WhatsApp;</li>
-    <li>Os agendamentos: serviço, dia, horário, profissional e a situação (pedido, confirmado, cancelado, atendido).</li>
-  </ul>
-  <p>Não pedimos dados de saúde, documentos, dados bancários ou de cartão pela conversa.</p>
+  <section id="para-que">
+    <h2>3. Para que usamos</h2>
+    <ul>
+      <li>responder suas perguntas e mostrar os horários livres;</li>
+      <li>criar, confirmar, remarcar, cancelar e lembrar seus agendamentos;</li>
+      <li>avisar quando vagar um horário, se você estiver na lista de espera;</li>
+      <li>deixar a equipe do negócio ver a conversa e responder você pessoalmente;</li>
+      <li>mostrar ao negócio o relatório do mês e o histórico de atendimentos;</li>
+      <li>cobrar o plano e contar as conversas usadas por mês.</li>
+    </ul>
+    <p><b>Avisos pelo WhatsApp:</b> quem marca pelo link só recebe confirmação e lembrete se marcar a caixinha "quero receber avisos pelo WhatsApp". Quem escreve para o negócio no WhatsApp recebe a resposta na própria conversa. Para parar de receber, é só responder "parar" ou pedir para a equipe.</p>
+    <p>Não vendemos seus dados e não usamos suas mensagens para propaganda.</p>
+  </section>
 
-  <h2>Para que usamos</h2>
-  <ul>
-    <li>Responder suas perguntas e mostrar horários livres;</li>
-    <li>Criar, lembrar, remarcar ou cancelar seus agendamentos;</li>
-    <li>Permitir que a equipe do negócio veja a conversa e responda você pessoalmente.</li>
-  </ul>
-  <p>Não vendemos seus dados e não usamos suas mensagens para publicidade.</p>
+  <section id="com-quem">
+    <h2>4. Com quem os dados são compartilhados</h2>
+    <ul>
+      <li><b>O próprio negócio</b>, que vê as conversas, a ficha e os agendamentos no app dele. Cada negócio só vê os próprios clientes.</li>
+      <li><b>Meta (WhatsApp)</b>, que entrega as mensagens.</li>
+      <li><b>Anthropic</b>, empresa da inteligência artificial que escreve as respostas da secretária. Ela recebe a conversa e os dados necessários para responder (por exemplo, os horários livres), e não usa esses dados para treinar a inteligência artificial.</li>
+      <li><b>Supabase</b>, onde ficam o banco de dados e o login.</li>
+      <li><b>GitHub</b>, que hospeda o site e o app (não recebe dados de clientes).</li>
+    </ul>
+    <p>Alguns desses serviços guardam dados fora do Brasil, com as proteções exigidas pela LGPD.</p>
+  </section>
 
-  <h2>Com quem os dados são compartilhados</h2>
-  <ul>
-    <li><b>O próprio negócio</b>, que vê as conversas e os agendamentos no painel dele;</li>
-    <li><b>Meta / WhatsApp</b>, que transmite as mensagens;</li>
-    <li><b>Fornecedores de tecnologia</b> que usamos para funcionar: hospedagem e banco de dados (Supabase) e o modelo de inteligência artificial que redige as respostas (Anthropic). Eles só processam os dados para prestar esse serviço.</li>
-  </ul>
+  <section id="tempo">
+    <h2>5. Por quanto tempo guardamos</h2>
+    <ul>
+      <li>Enquanto o negócio usar o Entre, os dados ficam guardados para o atendimento e o histórico.</li>
+      <li>Se o negócio cancelar, os dados ficam guardados por <b>30 dias</b> e depois são apagados.</li>
+      <li>Fazemos uma cópia de segurança por semana e guardamos as 8 últimas. Dados apagados somem também das cópias em até 8 semanas.</li>
+    </ul>
+  </section>
 
-  <h2>Por quanto tempo guardamos</h2>
-  <p>Enquanto o negócio usar o Entre e for necessário para o atendimento e o histórico de agendamentos. Quando o negócio deixa de usar o serviço, ou quando você pede, os dados são apagados.</p>
+  <section id="direitos">
+    <h2>6. Seus direitos (LGPD)</h2>
+    <p>Você pode pedir para ver, corrigir, levar ou apagar seus dados, parar de receber avisos ou parar de falar com a secretária virtual. Peça na própria conversa do WhatsApp (a equipe do negócio é avisada) ou escreva para o contato abaixo. Respondemos em até 15 dias.</p>
+  </section>
 
-  <h2>Seus direitos (LGPD)</h2>
-  <p>Você pode pedir para ver, corrigir ou apagar seus dados, ou parar de falar com a assistente virtual. Basta pedir na própria conversa do WhatsApp (a equipe do negócio é avisada) ou escrever para o contato abaixo.</p>
+  <section id="seguranca">
+    <h2>7. Segurança</h2>
+    <p>A conexão é criptografada, o acesso ao banco de dados é restrito e cada negócio só enxerga os próprios dados. Se acontecer um problema de segurança que afete você, avisamos.</p>
+  </section>
 
-  <h2>Segurança</h2>
-  <p>Os dados ficam em banco de dados com acesso restrito: cada negócio só vê os próprios clientes, e a conexão é criptografada.</p>
+  <section id="contato">
+    <h2>8. Contato</h2>
+    <p>Dúvidas ou pedidos sobre dados: <b class="lg-mail">entre.atendimento@outlook.com</b></p>
+    <p>A razão social e o CNPJ da empresa responsável serão publicados aqui assim que o registro for concluído.</p>
+  </section>
 
-  <h2>Contato</h2>
-  <p>Dúvidas ou pedidos sobre seus dados: <a href="mailto:goyano.eduardo@icloud.com">goyano.eduardo@icloud.com</a></p>
+  <p class="lg-foot"><a href="termos.html">Termos de uso</a> · <a href="planos.html">Planos</a></p>
 </main>
 </body>
 </html>
