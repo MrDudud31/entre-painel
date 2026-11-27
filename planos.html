@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Uma secretária no seu WhatsApp que responde e marca horário na sua agenda. Planos a partir de R$ 69 por mês, com 7 dias grátis.">
+<meta property="og:title" content="Planos do Entre">
+<meta property="og:description" content="Uma secretária no seu WhatsApp. Planos a partir de R$ 69 por mês, com 7 dias grátis.">
+<meta name="theme-color" content="#1F7A57">
+<link rel="icon" href="icon-192.png">
+<title>Planos do Entre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: topo verde com a pergunta e a régua; os 3 planos em cartões grandes (no celular, um por vez, arrastando); o que todos têm; dúvidas em balões de conversa. */
+:root {
+  --bg: #F2F4EF; --fg: #17241F; --muted: #5B6B64; --card: #FFFFFF; --line: #DCE3DD;
+  --hero: #1F7A57; --hero-deep: #145A3F; --go: #34C77B; --sun: #FFD66B; --sun-deep: #E0B23E;
+  --navy: #2B3D6B; --navy-deep: #1C2A4D; --copper: #F2994A; --copper-deep: #C9722A;
+  --soft: #E3F1E8; --track: rgba(255,255,255,.28);
+  --chat: #E9EEE8; --b-in: #FFFFFF; --b-out: #DDF3E6; --b-fg: #17241F;
+  --font: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F1B17; --fg: #E8EFEA; --muted: #9AAEA5; --card: #18261F; --line: #26362F; --soft: #1C3229;
+  --chat: #13211C; --b-in: #22322B; --b-out: #145A3F; --b-fg: #E8EFEA; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0F1B17; --fg: #E8EFEA; --muted: #9AAEA5; --card: #18261F; --line: #26362F; --soft: #1C3229;
+  --chat: #13211C; --b-in: #22322B; --b-out: #145A3F; --b-fg: #E8EFEA; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.4; font-weight: 700; overflow-x: hidden }
+.in { max-width: 1060px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+h1, h2, h3 { margin: 0; font-weight: 900; line-height: 1.08; text-wrap: balance }
+.tnum { font-variant-numeric: tabular-nums }
+
+/* topo */
+.top { background: var(--hero); color: #fff; margin-top: calc(-1 * env(safe-area-inset-top, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 22px); padding-bottom: 96px; position: relative; overflow: hidden }
+.blob { position: absolute; border-radius: 50%; pointer-events: none; will-change: transform; transition: transform .6s cubic-bezier(.2,.8,.3,1) }
+.blob i { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--c); opacity: var(--o) }
+.b1 { width: 260px; height: 260px; right: -70px; top: -80px; --c: var(--go); --o: .35 }
+.b2 { width: 140px; height: 140px; left: -50px; bottom: -60px; --c: var(--sun); --o: .9 }
+.b3 { width: 70px; height: 70px; right: 22%; bottom: 40px; --c: #fff; --o: .14 }
+.b4 { width: 34px; height: 34px; left: 46%; top: 70px; --c: var(--sun); --o: .55 }
+.b1 i { animation: f1 9s ease-in-out infinite } .b2 i { animation: f2 7s ease-in-out infinite }
+.b3 i { animation: f1 6s ease-in-out infinite reverse } .b4 i { animation: f2 5s ease-in-out infinite }
+@keyframes f1 { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(-18px, 22px) scale(1.06) } }
+@keyframes f2 { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(16px, -14px) } }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 900; position: relative }
+.brand i { width: 34px; height: 34px; border-radius: 11px; background: #fff; display: grid; place-items: center; font-style: normal; color: var(--hero); font-size: 20px }
+.top h1 { font-size: clamp(30px, 6vw, 52px); margin-top: 30px; max-width: 16ch; position: relative }
+.top p { font-size: 18px; opacity: .92; margin: 12px 0 0; max-width: 40ch; position: relative }
+.ruler { position: relative; margin-top: 26px; background: rgba(0,0,0,.14); border-radius: 26px; padding: 18px 20px 20px; max-width: 620px }
+.ruler label { font-size: 15px; opacity: .95 }
+.ruler .val { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 10px; flex-wrap: wrap }
+.ruler .val b { font-size: 46px; font-weight: 900; line-height: 1 }
+.ruler .val > span { opacity: .9 }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; border-radius: 99px; background: var(--track); outline: none }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 34px; height: 34px; border-radius: 50%; background: var(--sun); border: 4px solid #fff; box-shadow: 0 3px 0 var(--sun-deep); cursor: pointer }
+input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--sun); border: 4px solid #fff; cursor: pointer }
+input[type=range]:focus-visible { box-shadow: 0 0 0 3px var(--sun) }
+.hint { margin-top: 12px; font-size: 15px; background: #fff; color: #17241F; border-radius: 16px; padding: 10px 14px; display: inline-block }
+.hint b { color: #1F7A57 }
+
+/* planos */
+.plans-wrap { margin-top: -64px; position: relative }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch }
+@media (max-width: 860px) {
+  .plans { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 14px; padding: 10px 16px 8px; margin: 0 -16px; scrollbar-width: none }
+  .plans::-webkit-scrollbar { display: none }
+  .plan { flex: 0 0 84%; scroll-snap-align: center }
+}
+.plan { background: var(--card); border-radius: 28px; border: 3px solid transparent; box-shadow: 0 10px 26px rgba(18,36,31,.10); display: flex; flex-direction: column; overflow: hidden; transition: transform .25s, border-color .25s; min-width: 0; animation: enter .6s cubic-bezier(.2,1.4,.4,1) backwards }
+.plan:nth-child(2) { animation-delay: .12s } .plan:nth-child(3) { animation-delay: .24s }
+.plan.ready { animation: none }
+@keyframes enter { from { transform: translateY(34px) scale(.94) } }
+.plan.pick { border-color: var(--c); transform: translateY(-6px) }
+.plan.ready.hop { animation: hop .5s cubic-bezier(.3,1.6,.5,1) }
+@keyframes hop { 0% { transform: translateY(-6px) } 35% { transform: translateY(-18px) scale(1.02) } 100% { transform: translateY(-6px) } }
+.head { background: var(--c); color: #fff; padding: 20px 20px 18px; position: relative }
+.head .tag { position: absolute; top: 16px; right: 16px; background: #fff; color: var(--c-deep); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; padding: 5px 10px; border-radius: 99px; font-weight: 900; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .3s cubic-bezier(.3,1.6,.5,1) }
+.plan.pick .head .tag { opacity: 1; transform: none }
+.head h3 { font-size: 24px }
+.head .who { opacity: .92; font-size: 15px; margin-top: 2px }
+.price { display: flex; align-items: baseline; gap: 4px; margin-top: 14px }
+.price small { font-size: 18px } .price b { font-size: 50px; font-weight: 900; letter-spacing: -.02em; line-height: 1 } .price span { opacity: .9 }
+.body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; flex: 1 }
+.big { background: var(--soft); border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px }
+.big .dot { width: 44px; height: 44px; border-radius: 14px; background: var(--c); color: #fff; display: grid; place-items: center; flex: none; font-size: 15px; font-weight: 900 }
+.big b { display: block; font-size: 19px } .big small { color: var(--muted); font-size: 14px }
+.plan ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px }
+.plan li { display: flex; gap: 10px; align-items: flex-start; font-size: 15.5px }
+.plan li::before { content: "✓"; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 900; margin-top: 1px }
+.go { margin-top: auto; border-radius: 18px; padding: 15px; font: 900 17px var(--font); color: #fff; background: var(--c); box-shadow: 0 5px 0 var(--c-deep); cursor: pointer; text-align: center; text-decoration: none; position: relative; overflow: hidden; display: block }
+.go:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--c-deep) }
+.go:focus-visible { outline: 3px solid var(--c); outline-offset: 3px }
+.plan.pick .go::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); animation: shine 2.6s ease-in-out infinite }
+@keyframes shine { 0%, 55% { left: -60% } 100% { left: 130% } }
+.p-start { --c: var(--navy); --c-deep: var(--navy-deep) }
+.p-pro { --c: var(--hero); --c-deep: var(--hero-deep) }
+.p-max { --c: var(--copper); --c-deep: var(--copper-deep) }
+.dots { display: none; justify-content: center; gap: 8px; margin-top: 12px }
+.dots button { width: 10px; height: 10px; border-radius: 99px; border: 0; background: var(--line); padding: 0; cursor: pointer; transition: width .2s, background .2s }
+.dots button[aria-current="true"] { width: 26px; background: var(--hero) }
+@media (max-width: 860px) { .dots { display: flex } }
+.free { text-align: center; margin: 22px 0 0; font-size: 17px }
+.free b { background: var(--sun); color: #3B2A05; padding: 3px 10px; border-radius: 10px }
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50 }
+
+/* todos têm */
+.all { margin-top: 44px; background: var(--card); border-radius: 28px; padding: 24px 22px }
+.all h2 { font-size: 26px } .all > p { color: var(--muted); margin: 6px 0 18px }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+@media (max-width: 760px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 420px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.f { border-radius: 20px; padding: 14px; background: var(--fc); color: #fff; min-width: 0 }
+.f b { display: block; font-size: 16.5px; margin-bottom: 2px } .f span { font-size: 14px; opacity: .92 }
+.f.k { color: #3B2A05 }
+
+/* dúvidas em balões */
+.faq { margin: 40px auto 56px; max-width: 640px }
+.faq h2 { font-size: 26px } .faq > p { color: var(--muted); margin: 6px 0 14px }
+.thread { background: var(--chat); border-radius: 28px; padding: 18px 14px; display: flex; flex-direction: column; gap: 10px }
+.qa { display: flex; flex-direction: column; gap: 6px }
+.q { align-self: flex-end; max-width: 88%; border: 0; text-align: left; background: var(--b-out); color: var(--b-fg); font: 800 15.5px var(--font); padding: 11px 14px; border-radius: 18px 18px 4px 18px; cursor: pointer; box-shadow: 0 2px 0 rgba(0,0,0,.08); display: flex; gap: 10px; align-items: center }
+.q::after { content: "▸"; color: var(--go); transition: transform .2s }
+.qa.open .q::after { transform: rotate(90deg) }
+.q:focus-visible { outline: 3px solid var(--go); outline-offset: 2px }
+.q:active { transform: scale(.98) }
+.a { align-self: flex-start; max-width: 88%; background: var(--b-in); color: var(--b-fg); font-size: 15px; font-weight: 700; padding: 11px 14px; border-radius: 18px 18px 18px 4px; box-shadow: 0 2px 0 rgba(0,0,0,.06) }
+.a .who { display: block; font-size: 12px; color: var(--go); font-weight: 900; margin-bottom: 2px }
+.a .ok { color: #34B7F1; font-size: 12px; margin-left: 6px }
+.typing { align-self: flex-start; background: var(--b-in); padding: 12px 14px; border-radius: 18px 18px 18px 4px; display: flex; gap: 4px }
+.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: bl 1s infinite }
+.typing span:nth-child(2) { animation-delay: .15s } .typing span:nth-child(3) { animation-delay: .3s }
+@keyframes bl { 0%, 60%, 100% { opacity: .3 } 30% { opacity: 1 } }
+.pop { animation: pop .28s ease-out }
+@keyframes pop { from { transform: translateY(8px) scale(.96); opacity: 0 } to { transform: none; opacity: 1 } }
+.faq .tip { text-align: center; color: var(--muted); font-size: 13.5px; margin-top: 10px }
+
+@media (prefers-reduced-motion: reduce) {
+  .blob i, .plan, .plan.ready.hop, .typing span, .pop, .plan.pick .go::after { animation: none !important }
+  .plan, .blob { transition: none }
+}
+</style>
+</head>
+<body>
+
+<header class="top" id="top">
+  <span class="blob b1" aria-hidden="true"><i></i></span>
+  <span class="blob b2" aria-hidden="true"><i></i></span>
+  <span class="blob b3" aria-hidden="true"><i></i></span>
+  <span class="blob b4" aria-hidden="true"><i></i></span>
+  <div class="in">
+    <div class="brand"><i>E</i> Entre</div>
+    <h1>Uma secretária no seu WhatsApp. Você escolhe o tamanho.</h1>
+    <p>Ela responde, mostra os horários livres e marca na sua agenda, até de madrugada.</p>
+    <div class="ruler">
+      <label for="perDay">Quantas pessoas te chamam no WhatsApp por dia?</label>
+      <div class="val"><b id="pd" class="tnum">12</b><span><span id="pmW">pessoas · umas </span><span class="tnum" id="pmN">310</span> conversas por mês</span></div>
+      <input type="range" id="perDay" min="1" max="60" value="12">
+      <div class="hint" aria-live="polite">Para você, o plano certo é o <b id="hName">Pro</b>, por <b>R$ <span class="tnum" id="hPrice">99</span></b>/mês.</div>
+    </div>
+  </div>
+</header>
+
+<main class="in">
+  <div class="plans-wrap">
+    <div class="plans" id="plans">
+      <article class="plan p-start" data-plan="start">
+        <div class="head"><span class="tag">Para você</span>
+          <h3>Start</h3><div class="who">Para quem atende sozinho</div>
+          <div class="price"><small>R$</small><b>69</b><span>/mês</span></div>
+        </div>
+        <div class="body">
+          <div class="big"><span class="dot tnum">150</span><span><b>150 conversas</b><small>umas 5 pessoas por dia</small></span></div>
+          <ul>
+            <li>Secretária no WhatsApp, 24 horas</li>
+            <li>Agenda e link para marcar sozinho</li>
+            <li>Todos os recursos do Entre</li>
+          </ul>
+          <a class="go" data-plan="Start" href="#" target="_blank" rel="noopener">Começar com o Start</a>
+        </div>
+      </article>
+
+      <article class="plan p-pro pick" data-plan="pro">
+        <div class="head"><span class="tag">Para você</span>
+          <h3>Pro</h3><div class="who">Para o salão com movimento</div>
+          <div class="price"><small>R$</small><b>99</b><span>/mês</span></div>
+        </div>
+        <div class="body">
+          <div class="big"><span class="dot tnum">600</span><span><b>600 conversas</b><small>umas 20 pessoas por dia</small></span></div>
+          <ul>
+            <li>Secretária no WhatsApp, 24 horas</li>
+            <li>Agenda e link para marcar sozinho</li>
+            <li>Todos os recursos do Entre</li>
+            <li>4 vezes mais conversas que o Start, por R$ 30 a mais</li>
+          </ul>
+          <a class="go" data-plan="Pro" href="#" target="_blank" rel="noopener">Começar com o Pro</a>
+        </div>
+      </article>
+
+      <article class="plan p-max" data-plan="max">
+        <div class="head"><span class="tag">Para você</span>
+          <h3>Max</h3><div class="who">Para quem não quer pensar em limite</div>
+          <div class="price"><small>R$</small><b>149</b><span>/mês</span></div>
+        </div>
+        <div class="body">
+          <div class="big"><span class="dot">∞</span><span><b>Conversas sem limite</b><small>uso justo de até 2.000 por mês</small></span></div>
+          <ul>
+            <li>Tudo do Pro</li>
+            <li>A gente configura o Entre para você numa chamada</li>
+            <li>Fala direto com quem faz o Entre, pelo WhatsApp</li>
+          </ul>
+          <a class="go" data-plan="Max" href="#" target="_blank" rel="noopener">Começar com o Max</a>
+        </div>
+      </article>
+    </div>
+    <div class="dots" id="dots" aria-label="Planos">
+      <button type="button" aria-label="Start"></button><button type="button" aria-label="Pro" aria-current="true"></button><button type="button" aria-label="Max"></button>
+    </div>
+    <p class="free">Os 3 planos começam com <b>7 dias grátis</b>. Sem fidelidade.</p>
+  </div>
+
+  <section class="all">
+    <h2>Todos os planos têm tudo isto</h2>
+    <p>A única diferença entre eles é quantas conversas a secretária atende por mês.</p>
+    <div class="grid">
+      <div class="f" style="--fc: var(--hero)"><b>Responde e marca</b><span>Olha a agenda antes de oferecer horário</span></div>
+      <div class="f" style="--fc: var(--navy)"><b>Vários serviços juntos</b><span>Corte + barba num horário só, com tempo e preço somados</span></div>
+      <div class="f k" style="--fc: var(--sun)"><b>Lista de espera</b><span>Vagou um horário, você vê quem queria</span></div>
+      <div class="f" style="--fc: var(--copper)"><b>Lembra de cada cliente</b><span>Sugere o serviço e o profissional de sempre</span></div>
+      <div class="f" style="--fc: var(--hero)"><b>Link de agendamento</b><span>Para a bio do Instagram e o Google</span></div>
+      <div class="f" style="--fc: var(--navy)"><b>Relatório do mês</b><span>Quanto entrou e quais serviços mais saem</span></div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <h2>Dúvidas</h2>
+    <p>Toque numa pergunta e a gente responde.</p>
+    <div class="thread">
+      <div class="qa"><button type="button" class="q" aria-expanded="false">O que conta como uma conversa?</button>
+        <template>Uma pessoa atendida num dia. Se ela mandar 10 mensagens no mesmo dia, conta 1.</template></div>
+      <div class="qa"><button type="button" class="q" aria-expanded="false">E se passar do limite?</button>
+        <template>A secretária não para no meio do atendimento. A gente avisa você quando chegar perto, e você decide se muda de plano.</template></div>
+      <div class="qa"><button type="button" class="q" aria-expanded="false">Posso trocar de plano depois?</button>
+        <template>Pode, quando quiser, para cima ou para baixo.</template></div>
+      <div class="qa"><button type="button" class="q" aria-expanded="false">Tem fidelidade ou multa?</button>
+        <template>Não. Você cancela quando quiser, sem multa.</template></div>
+      <div class="qa"><button type="button" class="q" aria-expanded="false">Ela responde no meu número?</button>
+        <template>Sim, no WhatsApp do seu negócio. Na hora de ligar, a gente vê com você se dá para continuar usando o app do WhatsApp no mesmo número.</template></div>
+      <div class="qa"><button type="button" class="q" aria-expanded="false">Quando a secretária começa?</button>
+        <template>O WhatsApp oficial do Entre está terminando a liberação na Meta. Quem entra na lista agora começa no dia em que liberar, com os 7 dias grátis. O link de agendamento já funciona hoje.</template></div>
+    </div>
+    <p class="tip">Ficou outra dúvida? Toque em qualquer botão "Começar" e fale com a gente.</p>
+  </section>
+</main>
+<canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+
+<script>
+const WA = '5511926699699';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const range = document.getElementById('perDay');
+const plans = [...document.querySelectorAll('.plan')];
+const dots = [...document.querySelectorAll('#dots button')];
+const strip = document.getElementById('plans');
+const INFO = { start: ['Start', 69], pro: ['Pro', 99], max: ['Max', 149] };
+let current = 'pro';
+
+/* números que sobem e descem */
+const shown = new Map();
+function countTo(el, to) {
+  const from = shown.has(el) ? shown.get(el) : (+el.textContent.replace(/\D/g, '') || 0);
+  shown.set(el, to);
+  if (reduce || from === to) { el.textContent = to; return; }
+  const t0 = performance.now(), dur = 450;
+  (function step(t) {
+    if (shown.get(el) !== to) return;
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(from + (to - from) * e);
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
+function pickFor(n) { const m = n * 26; return m <= 150 ? 'start' : m <= 600 ? 'pro' : 'max'; }
+function scrollTo(i, smooth) {
+  if (getComputedStyle(strip).display !== 'flex') return;
+  const p = plans[i];
+  strip.scrollTo({ left: p.offsetLeft - (strip.clientWidth - p.clientWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
+}
+function update(smooth) {
+  const n = +range.value, m = n * 26;
+  document.getElementById('pd').textContent = n;
+  document.getElementById('pmW').textContent = (n === 1 ? 'pessoa' : 'pessoas') + ' · umas ';
+  countTo(document.getElementById('pmN'), Math.round(m / 10) * 10);
+  const k = pickFor(n);
+  document.getElementById('hName').textContent = INFO[k][0];
+  countTo(document.getElementById('hPrice'), INFO[k][1]);
+  plans.forEach((p) => p.classList.toggle('pick', p.dataset.plan === k));
+  if (k !== current) {
+    current = k;
+    const i = plans.findIndex((p) => p.dataset.plan === k);
+    scrollTo(i, smooth);
+    const p = plans[i];
+    if (!reduce && p.classList.contains('ready')) { p.classList.remove('hop'); void p.offsetWidth; p.classList.add('hop'); }
+  }
+}
+range.addEventListener('input', () => update(true));
+plans.forEach((p) => p.addEventListener('animationend', (e) => {
+  if (e.target !== p) return;
+  if (e.animationName === 'enter') p.classList.add('ready');
+  if (e.animationName === 'hop') p.classList.remove('hop');
+}));
+setTimeout(() => plans.forEach((p) => p.classList.add('ready')), 1200);
+dots.forEach((d, i) => d.addEventListener('click', () => scrollTo(i, true)));
+strip.addEventListener('scroll', () => {
+  const mid = strip.scrollLeft + strip.clientWidth / 2;
+  let best = 0, dist = Infinity;
+  plans.forEach((p, i) => { const c = p.offsetLeft + p.clientWidth / 2; if (Math.abs(c - mid) < dist) { dist = Math.abs(c - mid); best = i; } });
+  dots.forEach((d, i) => d.setAttribute('aria-current', String(i === best)));
+}, { passive: true });
+update(false);
+requestAnimationFrame(() => scrollTo(1, false));
+
+/* bolinhas que fogem do dedo ou do mouse */
+const hero = document.getElementById('top');
+const blobs = [...document.querySelectorAll('.blob')];
+if (!reduce) {
+  const move = (x, y) => blobs.forEach((b, i) => {
+    const r = b.getBoundingClientRect(), dx = r.left + r.width / 2 - x, dy = r.top + r.height / 2 - y;
+    const d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / 340) * (30 + i * 8);
+    b.style.transform = `translate(${dx / d * f}px, ${dy / d * f}px)`;
+  });
+  hero.addEventListener('pointermove', (e) => move(e.clientX, e.clientY));
+  hero.addEventListener('pointerdown', (e) => move(e.clientX, e.clientY));
+  hero.addEventListener('pointerleave', () => blobs.forEach((b) => { b.style.transform = ''; }));
+}
+
+/* botão: confete e abre o WhatsApp */
+const cv = document.getElementById('confetti'), cx = cv.getContext('2d');
+let parts = [], raf = 0;
+function burst(x, y) {
+  const s = devicePixelRatio || 1;
+  cv.width = innerWidth * s; cv.height = innerHeight * s;
+  const cols = ['#FFD66B', '#34C77B', '#F2994A', '#2B3D6B', '#1F7A57'];
+  for (let i = 0; i < 70; i++) parts.push({ x, y, vx: (Math.random() - .5) * 11, vy: -Math.random() * 11 - 3, r: 5 + Math.random() * 5, c: cols[i % 5], a: Math.random() * 6, life: 1 });
+  if (!raf) raf = requestAnimationFrame(tickC);
+}
+function tickC() {
+  const s = devicePixelRatio || 1;
+  cx.clearRect(0, 0, cv.width, cv.height);
+  parts.forEach((p) => {
+    p.vy += .35; p.x += p.vx; p.y += p.vy; p.a += .2; p.life -= .012;
+    cx.save(); cx.globalAlpha = Math.max(0, p.life); cx.translate(p.x * s, p.y * s); cx.rotate(p.a);
+    cx.fillStyle = p.c; cx.fillRect(-p.r * s / 2, -p.r * s / 4, p.r * s, p.r * s / 2); cx.restore();
+  });
+  parts = parts.filter((p) => p.life > 0 && p.y < innerHeight + 40);
+  raf = parts.length ? requestAnimationFrame(tickC) : (cx.clearRect(0, 0, cv.width, cv.height), 0);
+}
+document.querySelectorAll('.go').forEach((a) => {
+  a.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Oi! Vi os planos do Entre e quero entrar na lista, plano ' + a.dataset.plan + '.');
+  a.addEventListener('click', () => { if (!reduce) { const r = a.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2); } });
+});
+
+/* dúvidas: toca e a resposta chega digitando */
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+document.querySelectorAll('.qa').forEach((qa) => {
+  const btn = qa.querySelector('.q'), text = qa.querySelector('template').innerHTML.trim();
+  btn.addEventListener('click', async () => {
+    if (qa.dataset.busy) return;
+    const ans = qa.querySelector('.a');
+    if (ans) { ans.remove(); qa.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); return; }
+    qa.dataset.busy = '1'; qa.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+    if (!reduce) {
+      const t = document.createElement('div'); t.className = 'typing'; t.innerHTML = '<span></span><span></span><span></span>';
+      qa.appendChild(t); await wait(700); t.remove();
+    }
+    const a = document.createElement('div'); a.className = 'a' + (reduce ? '' : ' pop'); a.setAttribute('role', 'status');
+    a.innerHTML = '<span class="who">Entre</span>' + text + '<span class="ok" aria-hidden="true">✓✓</span>';
+    qa.appendChild(a); delete qa.dataset.busy;
+  });
+});
+</script>
+
+</body>
+</html>
