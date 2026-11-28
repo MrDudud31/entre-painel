@@ -443,7 +443,8 @@
     btn.disabled = true;
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
     btn.disabled = false;
-    out.textContent = error && !/rate|limit/i.test(error.message) ? friendly(error)
+    out.textContent = error && /sending/i.test(error.message) ? 'Não deu para mandar o e-mail agora. Tente de novo daqui a alguns minutos.'
+      : error && !/rate|limit/i.test(error.message) ? friendly(error)
       : `Se ${email} tiver conta no Entre, chega um e-mail com o link para criar a senha nova. Olhe também a caixa de spam.`;
   });
   function showNewPassword() {
